@@ -1,0 +1,52 @@
+version: "3.3"
+services:
+  template_api:
+    container_name: template_api
+    build:
+      context: .
+      dockerfile: ./Dockerfile.dev
+    restart: always
+    ports:
+      - 3000:3000
+    volumes:
+      - /home/$USER/.ssh:/root/.ssh
+      - ./:/usr/src/app
+    networks:
+      nest_template_network:
+        ipv4_address: 172.51.0.10
+  redis_template_api:
+    container_name: redis_template_api
+    build:
+      context: .
+      dockerfile: ./docker/redis/Dockerfile
+    restart: always
+    ports:
+      - 6381:6379
+    networks:
+      nest_template_network:
+        ipv4_address: 172.51.0.11
+  postgres_template_api:
+    container_name: postgres_template_api
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: template
+    ports:
+      - 5435:5432
+    volumes:
+      - postgres_template_data:/var/lib/postgresql/data
+    networks:
+      nest_template_network:
+        ipv4_address: 172.51.0.12
+networks:
+  nest_template_network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.51.0.0/24
+          gateway: 172.51.0.1
+volumes:
+  postgres_template_data:

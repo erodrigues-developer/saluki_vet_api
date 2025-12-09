@@ -1,0 +1,16 @@
+FROM node:20-alpine
+
+RUN apk update && \
+    apk add --no-cache openssl ca-certificates coreutils
+
+WORKDIR /usr/src/app
+
+COPY . .
+
+RUN npm install
+
+RUN npm i -g typeorm @nestjs/cli
+
+ENV NODE_OPTIONS=--openssl-legacy-provider
+
+CMD ["npm", "run", "start:dev"]
