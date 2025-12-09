@@ -1,7 +1,7 @@
 version: "3.3"
 services:
-  template_api:
-    container_name: template_api
+  saluki_vet_api:
+    container_name: saluki_vet_api
     build:
       context: .
       dockerfile: ./Dockerfile.dev
@@ -12,41 +12,59 @@ services:
       - /home/$USER/.ssh:/root/.ssh
       - ./:/usr/src/app
     networks:
-      nest_template_network:
-        ipv4_address: 172.51.0.10
-  redis_template_api:
-    container_name: redis_template_api
+      nest_saluki_vet_network:
+        ipv4_address: 172.52.0.2
+  redis_saluki_vet_api:
+    container_name: redis_saluki_vet_api
     build:
       context: .
       dockerfile: ./docker/redis/Dockerfile
     restart: always
     ports:
-      - 6381:6379
+      - 6379:6379
     networks:
-      nest_template_network:
-        ipv4_address: 172.51.0.11
-  postgres_template_api:
-    container_name: postgres_template_api
+      nest_saluki_vet_network:
+        ipv4_address: 172.52.0.3
+  postgres_saluki_vet_api:
+    container_name: postgres_saluki_vet_api
     image: postgres:15-alpine
     restart: always
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: template
+      POSTGRES_DB: saluki_vet
     ports:
-      - 5435:5432
+      - 5432:5432
     volumes:
-      - postgres_template_data:/var/lib/postgresql/data
+      - postgres_saluki_vet_data:/var/lib/postgresql/data
     networks:
-      nest_template_network:
-        ipv4_address: 172.51.0.12
+      nest_saluki_vet_network:
+        ipv4_address: 172.52.0.4
+  logstash_saluki_vet_api:
+    container_name: logstash_saluki_vet_api
+    restart: always
+    build:
+      context: .
+      dockerfile: ./docker/logstash/Dockerfile
+    volumes:
+      - ./docker/logstash/logstash.conf:/etc/logstash/conf.d/logstash.conf
+      - ./docker/logstash/logstash.yml:/usr/share/logstash/config/logstash.yml
+      - ./docker/logstash/patterns:/opt/logstash/patterns
+    networks:
+      nest_saluki_vet_network:
+        ipv4_address: 172.52.0.5
+    ports:
+      - "5044:5044"
+      - "9600:9600"
+    env_file:
+      - .env
 networks:
-  nest_template_network:
+  nest_saluki_vet_network:
     driver: bridge
     ipam:
       driver: default
       config:
-        - subnet: 172.51.0.0/24
-          gateway: 172.51.0.1
+        - subnet: 172.52.0.0/24
+          gateway: 172.52.0.1
 volumes:
-  postgres_template_data:
+  postgres_saluki_vet_data:
