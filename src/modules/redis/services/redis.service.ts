@@ -14,4 +14,9 @@ export default class RedisService {
     await this.redis.set(key, value);
     await this.redis.expire(key, time);
   }
+
+  async ping(): Promise<boolean> {
+    const response = await this.redis.ping();
+    return response === 'PONG';
+  }
 }

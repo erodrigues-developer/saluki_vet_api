@@ -11,6 +11,7 @@ import { RedisModule } from './modules/redis/redis.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { SqsModule } from './modules/sqs/sqs.module';
 import { S3Module } from './modules/s3/s3.module';
+import { ClientsModule } from './modules/clients/clients.module';
 import configuration from './configs/configuration';
 
 @Module({
@@ -45,6 +46,7 @@ import configuration from './configs/configuration';
     LoggerModule,
     SqsModule,
     S3Module,
+    ClientsModule,
   ],
   controllers: [AppController],
   providers: [
