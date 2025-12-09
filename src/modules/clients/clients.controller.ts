@@ -73,6 +73,18 @@ export class ClientsController {
   })
   @ApiQuery({ name: 'page', required: false, example: 1 })
   @ApiQuery({ name: 'limit', required: false, example: 10 })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    example: 'createdAt',
+    description: 'name | document | email | city | createdAt | updatedAt',
+  })
+  @ApiQuery({
+    name: 'sortDirection',
+    required: false,
+    example: 'desc',
+    description: 'asc | desc',
+  })
   findAll(@Query() query: FilterClientsDto) {
     return this.clientsService.findAll(query);
   }

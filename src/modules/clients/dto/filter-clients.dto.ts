@@ -3,6 +3,7 @@ import { Type } from 'class-transformer';
 import {
   IsBooleanString,
   IsInt,
+  IsIn,
   IsOptional,
   IsString,
   Max,
@@ -64,4 +65,26 @@ export class FilterClientsDto {
   @Max(100)
   @IsOptional()
   limit?: number = 10;
+
+  @ApiPropertyOptional({
+    description: 'Campo de ordenação',
+    example: 'createdAt',
+    enum: ['name', 'document', 'email', 'city', 'createdAt', 'updatedAt'],
+    default: 'createdAt',
+  })
+  @IsString()
+  @IsOptional()
+  @IsIn(['name', 'document', 'email', 'city', 'createdAt', 'updatedAt'])
+  sortBy?: string = 'createdAt';
+
+  @ApiPropertyOptional({
+    description: 'Direção da ordenação',
+    example: 'desc',
+    enum: ['asc', 'desc'],
+    default: 'desc',
+  })
+  @IsString()
+  @IsOptional()
+  @IsIn(['asc', 'desc'])
+  sortDirection?: string = 'desc';
 }

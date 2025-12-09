@@ -9,6 +9,8 @@ export interface ClientsFilterOptions {
   isActive?: boolean;
   page: number;
   limit: number;
+  sortBy?: 'name' | 'document' | 'email' | 'city' | 'created_at' | 'updated_at';
+  sortDirection?: 'ASC' | 'DESC';
 }
 
 export interface PaginatedClients {
@@ -49,7 +51,23 @@ export class ClientsRepository extends Repository<Client> {
     const { page, limit } = filters;
     const qb = this.createQueryBuilder('client');
     this.applyFilters(qb, filters);
-    qb.orderBy('client.created_at', 'DESC');
+
+    const sortableColumns: Record<string, string> = {
+      name: 'name',
+      document: 'document',
+      email: 'email',
+      city: 'city',
+      created_at: 'created_at',
+      updated_at: 'updated_at',
+    };
+
+    const sortBy =
+      filters.sortBy && sortableColumns[filters.sortBy]
+        ? sortableColumns[filters.sortBy]
+        : 'created_at';
+    const sortDirection = filters.sortDirection === 'ASC' ? 'ASC' : 'DESC';
+
+    qb.orderBy(`client.${sortBy}`, sortDirection).addOrderBy('client.id', 'DESC');
     qb.skip((page - 1) * limit);
     qb.take(limit);
 

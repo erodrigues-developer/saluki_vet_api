@@ -35,6 +35,14 @@ export class ClientsService {
           : undefined,
       page,
       limit,
+      sortBy:
+        filters.sortBy === 'createdAt'
+          ? 'created_at'
+          : filters.sortBy === 'updatedAt'
+          ? 'updated_at'
+          : (filters.sortBy as any),
+      sortDirection:
+        filters.sortDirection?.toLowerCase() === 'asc' ? 'ASC' : 'DESC',
     });
 
     return {
