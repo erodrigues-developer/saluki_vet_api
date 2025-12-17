@@ -3,6 +3,7 @@ import { DataSource, DataSourceOptions } from 'typeorm';
 import { SeederOptions, runSeeders } from 'typeorm-extension';
 import TestSeeder from './seeds/test.seeder';
 import ClientsSeeder from './seeds/clients.seeder';
+import SpeciesSeeder from './seeds/species.seeder';
 dotenv.config();
 
 const options: DataSourceOptions & SeederOptions = {
@@ -16,7 +17,7 @@ const options: DataSourceOptions & SeederOptions = {
   entities: ['src/modules/**/entities/*.entity{.ts,.js}'],
   logging: process.env.DB_LOG == 'true' ? true : false,
   migrations: ['src/database/migrations/*.ts'],
-  seeds: [ClientsSeeder, TestSeeder],
+  seeds: [ClientsSeeder, SpeciesSeeder, TestSeeder],
 };
 
 const datasource = new DataSource(options);

@@ -1,73 +1,40 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
-</p>
+# Saluki Vet API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+API em NestJS para gestão da clínica veterinária. Inclui CRUDs versionados, validação global, Swagger em `/docs` e seeds para subir dados de exemplo rapidamente.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Migrations e seeds
 
-## Description
+- Subir schema: `npm run migrate` (inclui `src/database/migrations/1720560000002-CreateSpeciesTable.ts`).
+- Popular dados iniciais: `npm run seed` (insere clientes e espécies: Cachorro, Gato, Coelho).
+- Configuração do datasource: `src/database/datasource.ts`.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## CRUD de Species
 
-## Installation
+Base path: `/api/v1/species`
 
-```bash
-$ npm install
-```
+- `POST /api/v1/species` – cria espécie. Body:
+  ```json
+  { "name": "Cachorro" }
+  ```
+- `GET /api/v1/species` – lista com filtros, ordenação e paginação. Query:
+  - `name` (string, busca parcial case-insensitive)
+  - `page` (number, default 1)
+  - `limit` (number, default 10)
+  - `sortBy` (`name | createdAt | updatedAt`, default `createdAt`)
+  - `sortDirection` (`asc | desc`, default `desc`)
+  Exemplo: `GET /api/v1/species?name=ga&sortBy=name&sortDirection=asc&page=1&limit=5`
+  Resposta:
+  ```json
+  {
+    "data": [{ "id": 2, "name": "Gato", "createdAt": "...", "updatedAt": "..." }],
+    "meta": { "total": 1, "page": 1, "limit": 5 }
+  }
+  ```
+- `GET /api/v1/species/:id` – retorna espécie por ID.
+- `PATCH /api/v1/species/:id` – atualiza campos (hoje apenas `name`).
+- `DELETE /api/v1/species/:id` – remove a espécie (HTTP 204 em caso de sucesso).
 
-## Running the app
+## Testes
 
-```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
-```
-
-## Test
-
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
-```
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](LICENSE).
+- Rodar specs da feature: `npm test -- --runInBand species`
+- Jest roda em `src/**/*.spec.ts`.
