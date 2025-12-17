@@ -13,6 +13,7 @@ import { SqsModule } from './modules/sqs/sqs.module';
 import { S3Module } from './modules/s3/s3.module';
 import { ClientsModule } from './modules/clients/clients.module';
 import { SpeciesModule } from './modules/species/species.module';
+import { BreedsModule } from './modules/breeds/breeds.module';
 import configuration from './configs/configuration';
 
 @Module({
@@ -49,6 +50,7 @@ import configuration from './configs/configuration';
     S3Module,
     ClientsModule,
     SpeciesModule,
+    BreedsModule,
   ],
   controllers: [AppController],
   providers: [

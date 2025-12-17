@@ -4,8 +4,8 @@ API em NestJS para gestão da clínica veterinária. Inclui CRUDs versionados, v
 
 ## Migrations e seeds
 
-- Subir schema: `npm run migrate` (inclui `src/database/migrations/1720560000002-CreateSpeciesTable.ts`).
-- Popular dados iniciais: `npm run seed` (insere clientes e espécies: Cachorro, Gato, Coelho).
+- Subir schema: `npm run migrate` (inclui `src/database/migrations/1720560000002-CreateSpeciesTable.ts` e `src/database/migrations/1720560000003-CreateBreedsTable.ts`).
+- Popular dados iniciais: `npm run seed` (insere clientes, espécies e raças vinculadas).
 - Configuração do datasource: `src/database/datasource.ts`.
 
 ## CRUD de Species
@@ -34,7 +34,43 @@ Base path: `/api/v1/species`
 - `PATCH /api/v1/species/:id` – atualiza campos (hoje apenas `name`).
 - `DELETE /api/v1/species/:id` – remove a espécie (HTTP 204 em caso de sucesso).
 
+## CRUD de Breeds
+
+Base path: `/api/v1/breeds`
+
+- `POST /api/v1/breeds` – cria raça. Body:
+  ```json
+  { "name": "Bulldog", "speciesId": 1 }
+  ```
+- `GET /api/v1/breeds` – lista com filtros, ordenação e paginação. Query:
+  - `name` (string, busca parcial case-insensitive)
+  - `speciesId` (number)
+  - `page` (number, default 1)
+  - `limit` (number, default 10)
+  - `sortBy` (`name | speciesId | createdAt | updatedAt`, default `createdAt`)
+  - `sortDirection` (`asc | desc`, default `desc`)
+  Exemplo: `GET /api/v1/breeds?speciesId=1&name=bull&sortBy=name&sortDirection=asc&page=1&limit=5`
+  Resposta:
+  ```json
+  {
+    "data": [
+      {
+        "id": 2,
+        "name": "Bulldog Francês",
+        "speciesId": 1,
+        "species": { "id": 1, "name": "Cachorro" },
+        "createdAt": "...",
+        "updatedAt": "..."
+      }
+    ],
+    "meta": { "total": 1, "page": 1, "limit": 5 }
+  }
+  ```
+- `GET /api/v1/breeds/:id` – retorna raça por ID (inclui `species` com `id` e `name`).
+- `PATCH /api/v1/breeds/:id` – atualiza campos (`name`, `speciesId`), retornando raça com `species` populado.
+- `DELETE /api/v1/breeds/:id` – remove a raça (HTTP 204 em caso de sucesso).
+
 ## Testes
 
-- Rodar specs da feature: `npm test -- --runInBand species`
+- Rodar specs das features: `npm test -- --runInBand species breeds`
 - Jest roda em `src/**/*.spec.ts`.
