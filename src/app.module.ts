@@ -14,6 +14,7 @@ import { S3Module } from './modules/s3/s3.module';
 import { ClientsModule } from './modules/clients/clients.module';
 import { SpeciesModule } from './modules/species/species.module';
 import { BreedsModule } from './modules/breeds/breeds.module';
+import { PetsModule } from './modules/pets/pets.module';
 import configuration from './configs/configuration';
 
 @Module({
@@ -51,6 +52,7 @@ import configuration from './configs/configuration';
     ClientsModule,
     SpeciesModule,
     BreedsModule,
+    PetsModule,
   ],
   controllers: [AppController],
   providers: [
