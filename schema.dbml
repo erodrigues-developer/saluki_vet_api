@@ -322,3 +322,170 @@ Table pet_vaccines {
   created_at       datetime [not null]
   updated_at       datetime [not null]
 }
+
+/*************************************************
+ * INTERNAÇÃO (HOSPITALIZATION)
+ *************************************************/
+
+Table boxes {
+  id          bigint [pk, increment]
+  name        varchar(100) [not null] // Box 01, Canil A, Gati B...
+  description text
+  is_active   boolean [not null, default: true]
+  created_at  datetime [not null]
+  updated_at  datetime [not null]
+}
+
+Table inpatient_records {
+  id              bigint [pk, increment]
+  pet_id          bigint [not null, ref: > pets.id]
+  box_id          bigint [not null, ref: > boxes.id]
+  consultation_id bigint [ref: > consultations.id]
+  reason          text
+  admission_at    datetime [not null]
+  discharge_at    datetime
+  status          varchar(20) [not null, default: 'ACTIVE'] // ACTIVE, DISCHARGED, DECEASED
+  notes           text
+  created_at      datetime [not null]
+  updated_at      datetime [not null]
+}
+
+Table clinical_parameters {
+  id                  bigint [pk, increment]
+  inpatient_record_id bigint [not null, ref: > inpatient_records.id]
+  measured_at         datetime [not null]
+  temperature_c       decimal(5,2)
+  heart_rate_bpm      int
+  respiratory_rate_mpm int
+  blood_pressure      varchar(50)
+  weight_kg           decimal(10,2)
+  notes               text
+  created_by_user_id  bigint [ref: > users.id]
+}
+
+Table treatment_map {
+  id                  bigint [pk, increment]
+  inpatient_record_id bigint [not null, ref: > inpatient_records.id]
+  scheduled_at        datetime [not null]
+  executed_at         datetime
+  medicament_id       bigint [ref: > products.id]
+  procedure_id        bigint [ref: > procedures.id]
+  dose                varchar(100)
+  status              varchar(20) [not null, default: 'PENDING'] // PENDING, EXECUTED, SKIPPED
+  executed_by_user_id bigint [ref: > users.id]
+  notes               text
+}
+
+/*************************************************
+ * PRONTUÁRIO AVANÇADO E EXAMES
+ *************************************************/
+
+Table exam_types {
+  id          bigint [pk, increment]
+  name        varchar(255) [not null] // Hemograma, Ultrassom...
+  description text
+  default_price decimal(10,2)
+  created_at  datetime [not null]
+  updated_at  datetime [not null]
+}
+
+Table exam_requests {
+  id              bigint [pk, increment]
+  consultation_id bigint [ref: > consultations.id]
+  pet_id          bigint [not null, ref: > pets.id]
+  exam_type_id    bigint [not null, ref: > exam_types.id]
+  requested_at    datetime [not null]
+  status          varchar(20) [not null, default: 'PENDING'] // PENDING, COLLECTED, COMPLETED, CANCELED
+  notes           text
+}
+
+Table exam_results {
+  id              bigint [pk, increment]
+  exam_request_id bigint [not null, ref: > exam_requests.id]
+  result_data     text // Pode ser JSON ou texto formatado
+  file_url        varchar(500)
+  completed_at    datetime [not null]
+  veterinarian_id bigint [ref: > users.id]
+}
+
+Table prescriptions {
+  id              bigint [pk, increment]
+  consultation_id bigint [ref: > consultations.id]
+  pet_id          bigint [not null, ref: > pets.id]
+  veterinarian_id bigint [not null, ref: > users.id]
+  prescribed_at   datetime [not null]
+  content         text [not null] // Texto da receita formatado
+  expiration_date date
+}
+
+/*************************************************
+ * BANHO E TOSA (GROOMING)
+ *************************************************/
+
+Table grooming_packages {
+  id          bigint [pk, increment]
+  client_id   bigint [not null, ref: > clients.id]
+  pet_id      bigint [not null, ref: > pets.id]
+  total_sessions int [not null]
+  used_sessions  int [not null, default: 0]
+  price       decimal(10,2)
+  is_paid     boolean [not null, default: false]
+  expires_at  date
+  created_at  datetime [not null]
+}
+
+Table grooming_sessions {
+  id                  bigint [pk, increment]
+  pet_id              bigint [not null, ref: > pets.id]
+  groomer_id          bigint [ref: > users.id]
+  package_id          bigint [ref: > grooming_packages.id]
+  scheduled_at        datetime [not null]
+  started_at          datetime
+  finished_at         datetime
+  status              varchar(20) [not null, default: 'SCHEDULED'] // SCHEDULED, IN_PROGRESS, COMPLETED, CANCELED
+  service_notes       text
+  checklist_json      text // Detalhes da tosa, orelha, unhas...
+  total_amount        decimal(10,2)
+}
+
+/*************************************************
+ * FINANCEIRO E COMISSÕES
+ *************************************************/
+
+Table accounts_payable {
+  id              bigint [pk, increment]
+  description     varchar(255) [not null]
+  category        varchar(100)
+  amount          decimal(10,2) [not null]
+  due_date        date [not null]
+  paid_at         datetime
+  status          varchar(20) [not null, default: 'PENDING'] // PENDING, PAID, CANCELED
+  notes           text
+  created_at      datetime [not null]
+  updated_at      datetime [not null]
+}
+
+Table accounts_receivable {
+  id              bigint [pk, increment]
+  sale_id         bigint [ref: > sales.id]
+  client_id       bigint [ref: > clients.id]
+  description     varchar(255) [not null]
+  amount          decimal(10,2) [not null]
+  due_date        date [not null]
+  paid_at         datetime
+  status          varchar(20) [not null, default: 'PENDING']
+  created_at      datetime [not null]
+  updated_at      datetime [not null]
+}
+
+Table commissions {
+  id              bigint [pk, increment]
+  user_id         bigint [not null, ref: > users.id]
+  sale_id         bigint [ref: > sales.id]
+  consultation_id bigint [ref: > consultations.id]
+  grooming_session_id bigint [ref: > grooming_sessions.id]
+  amount          decimal(10,2) [not null]
+  calculated_at   datetime [not null]
+  paid_at         datetime
+  status          varchar(20) [not null, default: 'PENDING'] // PENDING, PAID
+}

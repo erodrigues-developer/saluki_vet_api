@@ -15,6 +15,21 @@ import { ClientsModule } from './modules/clients/clients.module';
 import { SpeciesModule } from './modules/species/species.module';
 import { BreedsModule } from './modules/breeds/breeds.module';
 import { PetsModule } from './modules/pets/pets.module';
+import { RolesModule } from './modules/roles/roles.module';
+import { UsersModule } from './modules/users/users.module';
+import { ClinicSettingsModule } from './modules/clinic-settings/clinic-settings.module';
+import { AppointmentTypesModule } from './modules/appointment-types/appointment-types.module';
+import { AppointmentStatusesModule } from './modules/appointment-statuses/appointment-statuses.module';
+import { ProductCategoriesModule } from './modules/product-categories/product-categories.module';
+import { ProductsModule } from './modules/products/products.module';
+import { ProceduresModule } from './modules/procedures/procedures.module';
+import { AppointmentsModule } from './modules/appointments/appointments.module';
+import { ConsultationsModule } from './modules/consultations/consultations.module';
+import { ConsultationProceduresModule } from './modules/consultation-procedures/consultation-procedures.module';
+import { PaymentMethodsModule } from './modules/payment-methods/payment-methods.module';
+import { SalesModule } from './modules/sales/sales.module';
+import { SaleItemsModule } from './modules/sale-items/sale-items.module';
+import { PaymentsModule } from './modules/payments/payments.module';
 import configuration from './configs/configuration';
 
 @Module({
@@ -53,6 +68,21 @@ import configuration from './configs/configuration';
     SpeciesModule,
     BreedsModule,
     PetsModule,
+    RolesModule,
+    UsersModule,
+    ClinicSettingsModule,
+    AppointmentTypesModule,
+    AppointmentStatusesModule,
+    ProductCategoriesModule,
+    ProductsModule,
+    ProceduresModule,
+    AppointmentsModule,
+    ConsultationsModule,
+    ConsultationProceduresModule,
+    PaymentMethodsModule,
+    SalesModule,
+    SaleItemsModule,
+    PaymentsModule,
   ],
   controllers: [AppController],
   providers: [

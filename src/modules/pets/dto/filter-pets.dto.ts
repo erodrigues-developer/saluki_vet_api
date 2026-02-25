@@ -55,7 +55,7 @@ export class FilterPetsDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  @Max(100)
+  @Max(1500)
   @IsOptional()
   limit?: number = 10;
 
