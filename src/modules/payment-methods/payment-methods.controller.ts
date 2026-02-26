@@ -9,10 +9,11 @@ import {
   Query,
 } from '@nestjs/common';
 import { PaymentMethodsService } from './payment-methods.service';
-import { ApiTags, ApiOperation, ApiOkResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiOkResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { PaymentMethod } from './entities/payment-method.entity';
 
 @ApiTags('payment-methods')
+@ApiBearerAuth()
 @Controller('payment-methods')
 export class PaymentMethodsController {
   constructor(private readonly paymentMethodsService: PaymentMethodsService) {}

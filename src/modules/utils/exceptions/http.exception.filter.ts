@@ -9,7 +9,7 @@ import {
 import { ModuleRef } from '@nestjs/core';
 import { AxiosError } from 'axios';
 import { Request, Response } from 'express';
-import { LogstashLogger } from 'src/modules/logger/logstash.logger';
+import { LogstashLogger } from '../../logger/logstash.logger';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {

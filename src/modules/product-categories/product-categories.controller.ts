@@ -1,9 +1,10 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOkResponse, ApiOperation, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { ProductCategoriesService } from './product-categories.service';
 import { ProductCategory } from './entities/product-category.entity';
 
 @ApiTags('Product Categories')
+@ApiBearerAuth()
 @Controller({
   path: 'product-categories',
   version: '1',

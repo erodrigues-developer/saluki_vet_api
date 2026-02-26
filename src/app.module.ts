@@ -3,9 +3,11 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
 import { HttpExceptionFilter } from './modules/utils/exceptions/http.exception.filter';
 import { SuccessLoggingInterceptor } from './modules/utils/interceptors/success.logging.interceptor';
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { RolesGuard } from './common/guards/roles.guard';
 import { LoggerModule } from './modules/logger/logger.module';
 import { RedisModule } from './modules/redis/redis.module';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -23,6 +25,7 @@ import { AppointmentStatusesModule } from './modules/appointment-statuses/appoin
 import { ProductCategoriesModule } from './modules/product-categories/product-categories.module';
 import { ProductsModule } from './modules/products/products.module';
 import { ProceduresModule } from './modules/procedures/procedures.module';
+import { AuthModule } from './modules/auth/auth.module';
 import { AppointmentsModule } from './modules/appointments/appointments.module';
 import { ConsultationsModule } from './modules/consultations/consultations.module';
 import { ConsultationProceduresModule } from './modules/consultation-procedures/consultation-procedures.module';
@@ -83,6 +86,7 @@ import configuration from './configs/configuration';
     SalesModule,
     SaleItemsModule,
     PaymentsModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [
@@ -94,6 +98,14 @@ import configuration from './configs/configuration';
     {
       provide: APP_INTERCEPTOR,
       useClass: SuccessLoggingInterceptor,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
     },
   ],
   exports: [TypeOrmModule],

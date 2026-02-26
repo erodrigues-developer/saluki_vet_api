@@ -39,6 +39,7 @@ async function bootstrap() {
       'API de gestão de clientes, pets e agendamentos para a clínica veterinária. Todos os exemplos estão prontos para copiar/colar.',
     )
     .setVersion('1.0.0')
+    .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, swaggerConfig, {
     deepScanRoutes: true,

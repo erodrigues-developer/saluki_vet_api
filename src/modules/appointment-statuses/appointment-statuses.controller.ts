@@ -1,9 +1,10 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOkResponse, ApiOperation, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { AppointmentStatusesService } from './appointment-statuses.service';
 import { AppointmentStatus } from './entities/appointment-status.entity';
 
 @ApiTags('Appointment Statuses')
+@ApiBearerAuth()
 @Controller({
   path: 'appointment-statuses',
   version: '1',

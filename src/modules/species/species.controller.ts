@@ -21,6 +21,7 @@ import {
   ApiParam,
   ApiQuery,
   ApiTags,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { SpeciesService } from './species.service';
 import { CreateSpeciesDto } from './dto/create-species.dto';
@@ -30,6 +31,7 @@ import { Species } from './entities/species.entity';
 import { PaginatedSpeciesResponseDto } from './dto/paginated-species-response.dto';
 
 @ApiTags('Species')
+@ApiBearerAuth()
 @Controller({
   path: 'species',
   version: '1',

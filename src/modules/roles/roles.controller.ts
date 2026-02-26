@@ -1,9 +1,10 @@
 import { Controller, Get } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOkResponse, ApiOperation, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { RolesService } from './roles.service';
 import { Role } from './entities/role.entity';
 
 @ApiTags('Roles')
+@ApiBearerAuth()
 @Controller({
   path: 'roles',
   version: '1',

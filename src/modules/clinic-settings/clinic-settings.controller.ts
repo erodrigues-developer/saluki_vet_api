@@ -1,10 +1,11 @@
 import { Body, Controller, Get, Patch } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOkResponse, ApiOperation, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { ClinicSettingsService } from './clinic-settings.service';
 import { ClinicSettings } from './entities/clinic-settings.entity';
 import { UpdateClinicSettingsDto } from './dto/update-clinic-settings.dto';
 
 @ApiTags('Clinic Settings')
+@ApiBearerAuth()
 @Controller({
   path: 'clinic-settings',
   version: '1',

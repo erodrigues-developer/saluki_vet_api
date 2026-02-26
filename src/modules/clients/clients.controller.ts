@@ -21,6 +21,7 @@ import {
   ApiTags,
   ApiNoContentResponse,
   ApiQuery,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { ClientsService } from './clients.service';
 import { CreateClientDto } from './dto/create-client.dto';
@@ -30,6 +31,7 @@ import { Client } from './entities/client.entity';
 import { PaginatedClientsResponseDto } from './dto/paginated-clients-response.dto';
 
 @ApiTags('Clients')
+@ApiBearerAuth()
 @Controller({
   path: 'clients',
   version: '1',

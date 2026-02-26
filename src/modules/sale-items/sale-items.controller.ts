@@ -7,10 +7,11 @@ import {
   Delete,
 } from '@nestjs/common';
 import { SaleItemsService } from './sale-items.service';
-import { ApiTags, ApiOperation, ApiOkResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiOkResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { SaleItem } from './entities/sale-item.entity';
 
 @ApiTags('sale-items')
+@ApiBearerAuth()
 @Controller('sale-items')
 export class SaleItemsController {
   constructor(private readonly saleItemsService: SaleItemsService) {}

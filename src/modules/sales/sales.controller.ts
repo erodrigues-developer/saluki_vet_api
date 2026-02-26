@@ -9,10 +9,11 @@ import {
   Query,
 } from '@nestjs/common';
 import { SalesService } from './sales.service';
-import { ApiTags, ApiOperation, ApiOkResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiOkResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { Sale } from './entities/sale.entity';
 
 @ApiTags('sales')
+@ApiBearerAuth()
 @Controller('sales')
 export class SalesController {
   constructor(private readonly salesService: SalesService) {}
