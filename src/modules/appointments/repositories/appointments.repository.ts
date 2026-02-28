@@ -20,7 +20,16 @@ export class AppointmentsRepository extends Repository<Appointment> {
     sortBy: string;
     sortDirection: 'ASC' | 'DESC';
   }): Promise<[Appointment[], number]> {
-    const { page, limit, petId, clientId, veterinarianId, statusId, sortBy, sortDirection } = params;
+    const {
+      page,
+      limit,
+      petId,
+      clientId,
+      veterinarianId,
+      statusId,
+      sortBy,
+      sortDirection,
+    } = params;
 
     const where: FindOptionsWhere<Appointment> = {};
     if (petId) where.petId = petId;

@@ -1,5 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe, VersioningType, RequestMethod } from '@nestjs/common';
+import {
+  INestApplication,
+  ValidationPipe,
+  VersioningType,
+  RequestMethod,
+} from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from './../src/app.module';
 
@@ -12,8 +17,19 @@ describe('AuthController (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
-    app.setGlobalPrefix('api', { exclude: [{ path: '', method: RequestMethod.GET }, { path: '/', method: RequestMethod.GET }] });
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      }),
+    );
+    app.setGlobalPrefix('api', {
+      exclude: [
+        { path: '', method: RequestMethod.GET },
+        { path: '/', method: RequestMethod.GET },
+      ],
+    });
     app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
     await app.init();
   });
@@ -28,7 +44,7 @@ describe('AuthController (e2e)', () => {
         .post('/api/v1/auth/login')
         .send({
           email: 'invalid@salukivet.com.br',
-          password: 'wrongpassword'
+          password: 'wrongpassword',
         })
         .expect(401);
     });
@@ -38,7 +54,7 @@ describe('AuthController (e2e)', () => {
         .post('/api/v1/auth/login')
         .send({
           email: 'admin@salukivet.com.br',
-          password: 'admin123'
+          password: 'admin123',
         })
         .expect(201);
 

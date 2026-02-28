@@ -1,5 +1,18 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+} from '@nestjs/common';
+import {
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { ConsultationProceduresService } from './consultation-procedures.service';
 import { ConsultationProcedure } from './entities/consultation-procedure.entity';
 
@@ -10,7 +23,9 @@ import { ConsultationProcedure } from './entities/consultation-procedure.entity'
   version: '1',
 })
 export class ConsultationProceduresController {
-  constructor(private readonly consultationProceduresService: ConsultationProceduresService) {}
+  constructor(
+    private readonly consultationProceduresService: ConsultationProceduresService,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Adiciona um procedimento à consulta' })
@@ -22,8 +37,12 @@ export class ConsultationProceduresController {
   @Get('consultation/:consultationId')
   @ApiOperation({ summary: 'Lista procedimentos de uma consulta' })
   @ApiOkResponse({ type: [ConsultationProcedure] })
-  findByConsultation(@Param('consultationId', ParseIntPipe) consultationId: number) {
-    return this.consultationProceduresService.findByConsultation(consultationId);
+  findByConsultation(
+    @Param('consultationId', ParseIntPipe) consultationId: number,
+  ) {
+    return this.consultationProceduresService.findByConsultation(
+      consultationId,
+    );
   }
 
   @Delete(':id')

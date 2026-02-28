@@ -47,7 +47,9 @@ export class ClientsRepository extends Repository<Client> {
     }
   }
 
-  async findPaginated(filters: ClientsFilterOptions): Promise<PaginatedClients> {
+  async findPaginated(
+    filters: ClientsFilterOptions,
+  ): Promise<PaginatedClients> {
     const { page, limit } = filters;
     const qb = this.createQueryBuilder('client');
     this.applyFilters(qb, filters);
@@ -67,7 +69,10 @@ export class ClientsRepository extends Repository<Client> {
         : 'created_at';
     const sortDirection = filters.sortDirection === 'ASC' ? 'ASC' : 'DESC';
 
-    qb.orderBy(`client.${sortBy}`, sortDirection).addOrderBy('client.id', 'DESC');
+    qb.orderBy(`client.${sortBy}`, sortDirection).addOrderBy(
+      'client.id',
+      'DESC',
+    );
     qb.skip((page - 1) * limit);
     qb.take(limit);
 

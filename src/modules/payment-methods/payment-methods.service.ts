@@ -1,10 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PaymentMethodsRepository, PaymentMethodsFilterOptions } from './repositories/payment-methods.repository';
+import {
+  PaymentMethodsRepository,
+  PaymentMethodsFilterOptions,
+} from './repositories/payment-methods.repository';
 import { PaymentMethod } from './entities/payment-method.entity';
 
 @Injectable()
 export class PaymentMethodsService {
-  constructor(private readonly paymentMethodsRepository: PaymentMethodsRepository) {}
+  constructor(
+    private readonly paymentMethodsRepository: PaymentMethodsRepository,
+  ) {}
 
   async create(payload: Partial<PaymentMethod>): Promise<PaymentMethod> {
     const paymentMethod = this.paymentMethodsRepository.create(payload);
@@ -16,7 +21,9 @@ export class PaymentMethodsService {
   }
 
   async findOne(id: number): Promise<PaymentMethod> {
-    const paymentMethod = await this.paymentMethodsRepository.findOne({ where: { id } });
+    const paymentMethod = await this.paymentMethodsRepository.findOne({
+      where: { id },
+    });
     if (!paymentMethod) {
       throw new NotFoundException(`PaymentMethod with ID ${id} not found`);
     }

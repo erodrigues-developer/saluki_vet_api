@@ -18,7 +18,9 @@ export class AppointmentTypesService {
   }
 
   async findOne(id: number): Promise<AppointmentType> {
-    const type = await this.appointmentTypesRepository.findOne({ where: { id } });
+    const type = await this.appointmentTypesRepository.findOne({
+      where: { id },
+    });
     if (!type) {
       throw new NotFoundException(`AppointmentType ${id} not found`);
     }

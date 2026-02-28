@@ -17,7 +17,15 @@ export class ConsultationsRepository extends Repository<Consultation> {
     sortBy: string;
     sortDirection: 'ASC' | 'DESC';
   }): Promise<[Consultation[], number]> {
-    const { page, limit, petId, clientId, veterinarianId, sortBy, sortDirection } = params;
+    const {
+      page,
+      limit,
+      petId,
+      clientId,
+      veterinarianId,
+      sortBy,
+      sortDirection,
+    } = params;
 
     const where: FindOptionsWhere<Consultation> = {};
     if (petId) where.petId = petId;

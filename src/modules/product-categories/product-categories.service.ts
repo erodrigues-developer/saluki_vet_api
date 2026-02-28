@@ -9,7 +9,9 @@ export class ProductCategoriesService {
   ) {}
 
   async create(payload: any): Promise<ProductCategory> {
-    const category = this.productCategoriesRepository.create({ ...payload } as any);
+    const category = this.productCategoriesRepository.create({
+      ...payload,
+    } as any);
     return this.productCategoriesRepository.save(category as any);
   }
 
@@ -23,7 +25,8 @@ export class ProductCategoriesService {
     const page = params.page && params.page > 0 ? Number(params.page) : 1;
     const limit = params.limit && params.limit > 0 ? Number(params.limit) : 10;
     const sortBy = params.sortBy || 'name';
-    const sortDirection = params.sortDirection?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+    const sortDirection =
+      params.sortDirection?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
 
     const [data, total] = await this.productCategoriesRepository.findPaginated({
       page,
@@ -44,7 +47,9 @@ export class ProductCategoriesService {
   }
 
   async findOne(id: number): Promise<ProductCategory> {
-    const category = await this.productCategoriesRepository.findOne({ where: { id } });
+    const category = await this.productCategoriesRepository.findOne({
+      where: { id },
+    });
     if (!category) {
       throw new NotFoundException(`ProductCategory ${id} not found`);
     }

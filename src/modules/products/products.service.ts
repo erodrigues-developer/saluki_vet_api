@@ -32,7 +32,8 @@ export class ProductsService {
     const page = params.page && params.page > 0 ? Number(params.page) : 1;
     const limit = params.limit && params.limit > 0 ? Number(params.limit) : 10;
     const sortBy = params.sortBy || 'name';
-    const sortDirection = params.sortDirection?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+    const sortDirection =
+      params.sortDirection?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
 
     let parsedIsActive: boolean | undefined = undefined;
     if (params.isActive !== undefined && params.isActive !== null) {
@@ -41,7 +42,8 @@ export class ProductsService {
 
     let parsedIsService: boolean | undefined = undefined;
     if (params.isService !== undefined && params.isService !== null) {
-      parsedIsService = params.isService === 'true' || params.isService === true;
+      parsedIsService =
+        params.isService === 'true' || params.isService === true;
     }
 
     const [data, total] = await this.productsRepository.findPaginated({
@@ -49,7 +51,9 @@ export class ProductsService {
       limit,
       name: params.name,
       sku: params.sku,
-      productCategoryId: params.productCategoryId ? Number(params.productCategoryId) : undefined,
+      productCategoryId: params.productCategoryId
+        ? Number(params.productCategoryId)
+        : undefined,
       isService: parsedIsService,
       isActive: parsedIsActive,
       sortBy,
@@ -69,7 +73,7 @@ export class ProductsService {
   async findOne(id: number): Promise<Product> {
     const product = await this.productsRepository.findOne({
       where: { id },
-      relations: ['productCategory']
+      relations: ['productCategory'],
     });
     if (!product) {
       throw new NotFoundException(`Product ${id} not found`);
@@ -80,7 +84,10 @@ export class ProductsService {
   async update(id: number, payload: any): Promise<Product> {
     const product = await this.findOne(id);
 
-    if (payload.productCategoryId && payload.productCategoryId !== product.productCategoryId) {
+    if (
+      payload.productCategoryId &&
+      payload.productCategoryId !== product.productCategoryId
+    ) {
       await this.productCategoriesService.findOne(payload.productCategoryId);
     }
 

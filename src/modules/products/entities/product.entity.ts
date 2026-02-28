@@ -21,7 +21,10 @@ export class Product {
   @Column({ name: 'product_category_id', type: 'bigint', nullable: true })
   productCategoryId?: number | null;
 
-  @ManyToOne(() => ProductCategory, (category) => category.products, { eager: true, nullable: true })
+  @ManyToOne(() => ProductCategory, (category) => category.products, {
+    eager: true,
+    nullable: true,
+  })
   @JoinColumn({ name: 'product_category_id' })
   productCategory?: ProductCategory | null;
 
@@ -42,11 +45,23 @@ export class Product {
   unit?: string | null;
 
   @ApiProperty({ example: 120.0 })
-  @Column({ name: 'sale_price', type: 'decimal', precision: 10, scale: 2, default: 0 })
+  @Column({
+    name: 'sale_price',
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    default: 0,
+  })
   salePrice: number;
 
   @ApiProperty({ example: 50.0, nullable: true })
-  @Column({ name: 'cost_price', type: 'decimal', precision: 10, scale: 2, nullable: true })
+  @Column({
+    name: 'cost_price',
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+  })
   costPrice?: number | null;
 
   @ApiProperty({ example: true, description: 'Rastrear estoque' })

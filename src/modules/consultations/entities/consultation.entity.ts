@@ -34,11 +34,23 @@ export class Consultation {
   visitDate: Date;
 
   @ApiProperty({ example: 5.5, nullable: true })
-  @Column({ name: 'weight_kg', type: 'decimal', precision: 10, scale: 2, nullable: true })
+  @Column({
+    name: 'weight_kg',
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+  })
   weightKg?: number | null;
 
   @ApiProperty({ example: 38.5, nullable: true })
-  @Column({ name: 'temperature_c', type: 'decimal', precision: 5, scale: 2, nullable: true })
+  @Column({
+    name: 'temperature_c',
+    type: 'decimal',
+    precision: 5,
+    scale: 2,
+    nullable: true,
+  })
   temperatureC?: number | null;
 
   @ApiProperty({ example: 'Vômito há 2 dias', nullable: true })

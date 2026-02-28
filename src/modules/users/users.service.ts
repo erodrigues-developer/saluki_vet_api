@@ -39,11 +39,16 @@ export class UsersService {
     const limit = filters.limit ?? 10;
 
     const { data, total } = await this.usersRepository.findPaginated({
-        ...filters,
-        page,
-        limit,
-        sortBy: filters.sortBy === 'createdAt' ? 'created_at' : filters.sortBy === 'updatedAt' ? 'updated_at' : filters.sortBy,
-        sortDirection: filters.sortDirection?.toUpperCase() as any || 'DESC',
+      ...filters,
+      page,
+      limit,
+      sortBy:
+        filters.sortBy === 'createdAt'
+          ? 'created_at'
+          : filters.sortBy === 'updatedAt'
+            ? 'updated_at'
+            : filters.sortBy,
+      sortDirection: (filters.sortDirection?.toUpperCase() as any) || 'DESC',
     });
 
     return {

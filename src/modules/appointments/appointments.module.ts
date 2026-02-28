@@ -1,4 +1,4 @@
-import { Appointment } from "./entities/appointment.entity";
+import { Appointment } from './entities/appointment.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Module } from '@nestjs/common';
 import { AppointmentsService } from './appointments.service';

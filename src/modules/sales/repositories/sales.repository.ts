@@ -38,7 +38,9 @@ export class SalesRepository extends Repository<Sale> {
       });
     }
     if (filters.startDate) {
-      qb.andWhere('sale.saleDate >= :startDate', { startDate: filters.startDate });
+      qb.andWhere('sale.saleDate >= :startDate', {
+        startDate: filters.startDate,
+      });
     }
     if (filters.endDate) {
       qb.andWhere('sale.saleDate <= :endDate', { endDate: filters.endDate });

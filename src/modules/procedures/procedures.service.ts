@@ -22,7 +22,8 @@ export class ProceduresService {
     const page = params.page && params.page > 0 ? Number(params.page) : 1;
     const limit = params.limit && params.limit > 0 ? Number(params.limit) : 10;
     const sortBy = params.sortBy || 'name';
-    const sortDirection = params.sortDirection?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+    const sortDirection =
+      params.sortDirection?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
 
     let parsedIsActive: boolean | undefined = undefined;
     if (params.isActive !== undefined && params.isActive !== null) {
@@ -49,7 +50,9 @@ export class ProceduresService {
   }
 
   async findOne(id: number): Promise<Procedure> {
-    const procedure = await this.proceduresRepository.findOne({ where: { id } });
+    const procedure = await this.proceduresRepository.findOne({
+      where: { id },
+    });
     if (!procedure) {
       throw new NotFoundException(`Procedure ${id} not found`);
     }

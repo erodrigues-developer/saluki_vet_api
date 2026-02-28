@@ -49,12 +49,12 @@ export class PetsService {
         filters.sortBy === 'createdAt'
           ? 'created_at'
           : filters.sortBy === 'updatedAt'
-          ? 'updated_at'
-          : filters.sortBy === 'clientId'
-          ? 'client_id'
-          : filters.sortBy === 'microchipCode'
-          ? 'microchip_code'
-          : (filters.sortBy as any),
+            ? 'updated_at'
+            : filters.sortBy === 'clientId'
+              ? 'client_id'
+              : filters.sortBy === 'microchipCode'
+                ? 'microchip_code'
+                : (filters.sortBy as any),
       sortDirection:
         filters.sortDirection?.toLowerCase() === 'asc' ? 'ASC' : 'DESC',
     });

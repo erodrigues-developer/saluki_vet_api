@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { AppointmentStatusesRepository } from './repositories/appointment-statuses.repository';
 import { AppointmentStatus } from './entities/appointment-status.entity';
 
@@ -9,7 +13,10 @@ export class AppointmentStatusesService {
   ) {}
 
   async create(payload: any): Promise<AppointmentStatus> {
-    const status = this.appointmentStatusesRepository.create({ ...payload, isSystem: false } as any);
+    const status = this.appointmentStatusesRepository.create({
+      ...payload,
+      isSystem: false,
+    } as any);
     return this.appointmentStatusesRepository.save(status as any);
   }
 
@@ -18,7 +25,9 @@ export class AppointmentStatusesService {
   }
 
   async findOne(id: number): Promise<AppointmentStatus> {
-    const status = await this.appointmentStatusesRepository.findOne({ where: { id } });
+    const status = await this.appointmentStatusesRepository.findOne({
+      where: { id },
+    });
     if (!status) {
       throw new NotFoundException(`AppointmentStatus ${id} not found`);
     }

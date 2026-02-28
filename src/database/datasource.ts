@@ -20,7 +20,14 @@ const options: DataSourceOptions & SeederOptions = {
   entities: ['src/modules/**/entities/*.entity{.ts,.js}'],
   logging: process.env.DB_LOG == 'true' ? true : false,
   migrations: ['src/database/migrations/*.ts'],
-  seeds: [SystemSeeder, ClientsSeeder, SpeciesSeeder, BreedsSeeder, PetsSeeder, TestSeeder],
+  seeds: [
+    SystemSeeder,
+    ClientsSeeder,
+    SpeciesSeeder,
+    BreedsSeeder,
+    PetsSeeder,
+    TestSeeder,
+  ],
 };
 
 const datasource = new DataSource(options);

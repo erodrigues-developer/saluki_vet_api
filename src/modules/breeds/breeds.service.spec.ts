@@ -100,9 +100,10 @@ describe('BreedsService', () => {
   it('should update a breed and validate species when provided', async () => {
     const entity = breedFactory();
     const updated = { ...entity, name: 'Pug', speciesId: 2 };
-    repository.findOne
-      .mockResolvedValueOnce(entity)
-      .mockResolvedValueOnce({ ...updated, species: { id: 2, name: 'Gato' } } as any);
+    repository.findOne.mockResolvedValueOnce(entity).mockResolvedValueOnce({
+      ...updated,
+      species: { id: 2, name: 'Gato' },
+    } as any);
     repository.merge.mockReturnValue({ ...entity, name: 'Pug' } as any);
     repository.save.mockResolvedValue({ ...entity, name: 'Pug' } as any);
     speciesService.findOne.mockResolvedValue({ id: 2, name: 'Gato' } as any);

@@ -1,5 +1,19 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+} from '@nestjs/common';
+import {
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { AppointmentTypesService } from './appointment-types.service';
 import { AppointmentType } from './entities/appointment-type.entity';
 
@@ -10,7 +24,9 @@ import { AppointmentType } from './entities/appointment-type.entity';
   version: '1',
 })
 export class AppointmentTypesController {
-  constructor(private readonly appointmentTypesService: AppointmentTypesService) {}
+  constructor(
+    private readonly appointmentTypesService: AppointmentTypesService,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Cria um novo tipo de agendamento' })

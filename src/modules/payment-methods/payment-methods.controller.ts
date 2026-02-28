@@ -9,7 +9,12 @@ import {
   Query,
 } from '@nestjs/common';
 import { PaymentMethodsService } from './payment-methods.service';
-import { ApiTags, ApiOperation, ApiOkResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiOkResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { PaymentMethod } from './entities/payment-method.entity';
 
 @ApiTags('payment-methods')
@@ -32,7 +37,11 @@ export class PaymentMethodsController {
     @Query('limit') limit: number = 10,
     @Query('q') q?: string,
   ) {
-    return this.paymentMethodsService.findAll({ page: +page || 1, limit: +limit || 10, q });
+    return this.paymentMethodsService.findAll({
+      page: +page || 1,
+      limit: +limit || 10,
+      q,
+    });
   }
 
   @Get(':id')

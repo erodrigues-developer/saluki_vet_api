@@ -1,6 +1,13 @@
-import { MigrationInterface, QueryRunner, Table, TableForeignKey } from 'typeorm';
+import {
+  MigrationInterface,
+  QueryRunner,
+  Table,
+  TableForeignKey,
+} from 'typeorm';
 
-export class CreateUsersAndRolesTables1720560000005 implements MigrationInterface {
+export class CreateUsersAndRolesTables1720560000005
+  implements MigrationInterface
+{
   name = 'CreateUsersAndRolesTables1720560000005';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

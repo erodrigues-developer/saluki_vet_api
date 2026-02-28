@@ -4,21 +4,29 @@ import { ConsultationProcedure } from './entities/consultation-procedure.entity'
 
 @Injectable()
 export class ConsultationProceduresService {
-  constructor(private readonly consultationProceduresRepository: ConsultationProceduresRepository) {}
+  constructor(
+    private readonly consultationProceduresRepository: ConsultationProceduresRepository,
+  ) {}
 
   async create(payload: any): Promise<ConsultationProcedure> {
-    const cp = this.consultationProceduresRepository.create({ ...payload } as any);
+    const cp = this.consultationProceduresRepository.create({
+      ...payload,
+    } as any);
     return this.consultationProceduresRepository.save(cp as any);
   }
 
-  async findByConsultation(consultationId: number): Promise<ConsultationProcedure[]> {
+  async findByConsultation(
+    consultationId: number,
+  ): Promise<ConsultationProcedure[]> {
     return this.consultationProceduresRepository.find({
       where: { consultationId },
     });
   }
 
   async remove(id: number): Promise<void> {
-    const cp = await this.consultationProceduresRepository.findOne({ where: { id } });
+    const cp = await this.consultationProceduresRepository.findOne({
+      where: { id },
+    });
     if (!cp) throw new NotFoundException('Not found');
     await this.consultationProceduresRepository.remove(cp);
   }

@@ -33,8 +33,8 @@ export class SpeciesService {
         filters.sortBy === 'createdAt'
           ? 'created_at'
           : filters.sortBy === 'updatedAt'
-          ? 'updated_at'
-          : (filters.sortBy as any),
+            ? 'updated_at'
+            : (filters.sortBy as any),
       sortDirection:
         filters.sortDirection?.toLowerCase() === 'asc' ? 'ASC' : 'DESC',
     });

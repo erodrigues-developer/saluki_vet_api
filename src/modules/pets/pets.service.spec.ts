@@ -135,15 +135,13 @@ describe('PetsService', () => {
 
   it('should update a pet after validating references', async () => {
     const entity = petFactory();
-    repository.findOne
-      .mockResolvedValueOnce(entity)
-      .mockResolvedValueOnce({
-        ...entity,
-        name: 'Luna',
-        client: { id: 2, name: 'João Pereira' },
-        species: { id: 2, name: 'Gato' },
-        breed: { id: 2, name: 'Siamês' },
-      } as any);
+    repository.findOne.mockResolvedValueOnce(entity).mockResolvedValueOnce({
+      ...entity,
+      name: 'Luna',
+      client: { id: 2, name: 'João Pereira' },
+      species: { id: 2, name: 'Gato' },
+      breed: { id: 2, name: 'Siamês' },
+    } as any);
     repository.merge.mockReturnValue({ ...entity, name: 'Luna' } as any);
     repository.save.mockResolvedValue({ ...entity, name: 'Luna' } as any);
     clientsService.findOne.mockResolvedValue({ id: 2 } as any);

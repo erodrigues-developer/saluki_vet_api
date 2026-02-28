@@ -8,7 +8,12 @@ export interface PetsFilterOptions {
   microchipCode?: string;
   page: number;
   limit: number;
-  sortBy?: 'name' | 'client_id' | 'microchip_code' | 'created_at' | 'updated_at';
+  sortBy?:
+    | 'name'
+    | 'client_id'
+    | 'microchip_code'
+    | 'created_at'
+    | 'updated_at';
   sortDirection?: 'ASC' | 'DESC';
 }
 

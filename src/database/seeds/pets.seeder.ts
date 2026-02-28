@@ -23,11 +23,21 @@ export default class PetsSeeder implements Seeder {
     const clients = await clientRepo.find();
     if (clients.length === 0) return; // Depends on ClientsSeeder
 
-    const dogSpecies = await speciesRepo.findOne({ where: { name: 'Cachorro' } });
+    const dogSpecies = await speciesRepo.findOne({
+      where: { name: 'Cachorro' },
+    });
     const catSpecies = await speciesRepo.findOne({ where: { name: 'Gato' } });
 
-    const viraLata = dogSpecies ? await breedRepo.findOne({ where: { name: 'Vira-lata', speciesId: dogSpecies.id } }) : null;
-    const siames = catSpecies ? await breedRepo.findOne({ where: { name: 'Siamês', speciesId: catSpecies.id } }) : null;
+    const viraLata = dogSpecies
+      ? await breedRepo.findOne({
+          where: { name: 'Vira-lata', speciesId: dogSpecies.id },
+        })
+      : null;
+    const siames = catSpecies
+      ? await breedRepo.findOne({
+          where: { name: 'Siamês', speciesId: catSpecies.id },
+        })
+      : null;
 
     const now = new Date();
     const insertPets = [];

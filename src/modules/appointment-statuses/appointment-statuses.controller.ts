@@ -1,5 +1,18 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+} from '@nestjs/common';
+import {
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { AppointmentStatusesService } from './appointment-statuses.service';
 import { AppointmentStatus } from './entities/appointment-status.entity';
 
@@ -10,7 +23,9 @@ import { AppointmentStatus } from './entities/appointment-status.entity';
   version: '1',
 })
 export class AppointmentStatusesController {
-  constructor(private readonly appointmentStatusesService: AppointmentStatusesService) {}
+  constructor(
+    private readonly appointmentStatusesService: AppointmentStatusesService,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Cria um novo status de agendamento' })

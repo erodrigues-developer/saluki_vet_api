@@ -1,4 +1,4 @@
-import { ClinicSettings } from "./entities/clinic-settings.entity";
+import { ClinicSettings } from './entities/clinic-settings.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Module } from '@nestjs/common';
 import { ClinicSettingsService } from './clinic-settings.service';

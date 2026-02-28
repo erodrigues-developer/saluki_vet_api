@@ -43,10 +43,10 @@ export class BreedsService {
         filters.sortBy === 'createdAt'
           ? 'created_at'
           : filters.sortBy === 'updatedAt'
-          ? 'updated_at'
-          : filters.sortBy === 'speciesId'
-          ? 'species_id'
-          : (filters.sortBy as any),
+            ? 'updated_at'
+            : filters.sortBy === 'speciesId'
+              ? 'species_id'
+              : (filters.sortBy as any),
       sortDirection:
         filters.sortDirection?.toLowerCase() === 'asc' ? 'ASC' : 'DESC',
     });

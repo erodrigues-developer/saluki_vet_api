@@ -19,7 +19,10 @@ export class ProductCategory {
   @Column({ type: 'varchar', length: 100 })
   name: string;
 
-  @ApiProperty({ example: 'Antibióticos, anti-inflamatórios, etc.', nullable: true })
+  @ApiProperty({
+    example: 'Antibióticos, anti-inflamatórios, etc.',
+    nullable: true,
+  })
   @Column({ type: 'text', nullable: true })
   description?: string | null;
 

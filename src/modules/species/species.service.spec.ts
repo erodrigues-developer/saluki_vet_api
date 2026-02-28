@@ -67,14 +67,16 @@ describe('SpeciesService', () => {
   });
 
   it('should fail on invalid pagination', async () => {
-    await expect(service.findAll({ page: 0, limit: 10 } as any)).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
+    await expect(
+      service.findAll({ page: 0, limit: 10 } as any),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('should throw when species not found', async () => {
     repository.findOne.mockResolvedValue(null);
-    await expect(service.findOne(999)).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.findOne(999)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
   });
 
   it('should update a species', async () => {

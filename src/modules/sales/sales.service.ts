@@ -1,5 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { SalesRepository, SalesFilterOptions } from './repositories/sales.repository';
+import {
+  SalesRepository,
+  SalesFilterOptions,
+} from './repositories/sales.repository';
 import { Sale } from './entities/sale.entity';
 
 @Injectable()
@@ -18,7 +21,14 @@ export class SalesService {
   async findOne(id: number): Promise<Sale> {
     const sale = await this.salesRepository.findOne({
       where: { id },
-      relations: ['client', 'veterinarian', 'items', 'items.product', 'payments', 'payments.paymentMethod'],
+      relations: [
+        'client',
+        'veterinarian',
+        'items',
+        'items.product',
+        'payments',
+        'payments.paymentMethod',
+      ],
     });
     if (!sale) {
       throw new NotFoundException(`Sale with ID ${id} not found`);
@@ -29,7 +39,7 @@ export class SalesService {
   async update(id: number, payload: any): Promise<Sale> {
     const sale = await this.salesRepository.findOne({ where: { id } });
     if (!sale) {
-       throw new NotFoundException(`Sale with ID ${id} not found`);
+      throw new NotFoundException(`Sale with ID ${id} not found`);
     }
     Object.assign(sale, payload);
     return this.salesRepository.save(sale);
@@ -38,7 +48,7 @@ export class SalesService {
   async remove(id: number): Promise<void> {
     const sale = await this.salesRepository.findOne({ where: { id } });
     if (!sale) {
-       throw new NotFoundException(`Sale with ID ${id} not found`);
+      throw new NotFoundException(`Sale with ID ${id} not found`);
     }
     await this.salesRepository.remove(sale);
   }

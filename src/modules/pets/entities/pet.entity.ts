@@ -97,7 +97,12 @@ export class Pet {
   color?: string | null;
 
   @ApiProperty({ example: 'MC-123456', required: false })
-  @Column({ name: 'microchip_code', type: 'varchar', length: 100, nullable: true })
+  @Column({
+    name: 'microchip_code',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
   microchipCode?: string | null;
 
   @ApiProperty({ example: 'Poeira', required: false })

@@ -19,7 +19,17 @@ export class ProductsRepository extends Repository<Product> {
     sortBy: string;
     sortDirection: 'ASC' | 'DESC';
   }): Promise<[Product[], number]> {
-    const { page, limit, name, sku, productCategoryId, isService, isActive, sortBy, sortDirection } = params;
+    const {
+      page,
+      limit,
+      name,
+      sku,
+      productCategoryId,
+      isService,
+      isActive,
+      sortBy,
+      sortDirection,
+    } = params;
 
     const where: FindOptionsWhere<Product> = {};
     if (name) {

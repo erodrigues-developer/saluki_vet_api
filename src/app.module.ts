@@ -49,11 +49,11 @@ import configuration from './configs/configuration';
           host:
             configService.get<string>('DATABASE_HOST') ||
             'postgres_template_api',
-          port: parseInt(
-            configService.get<string>('DATABASE_PORT') || '5432',
-          ),
-          username: configService.get<string>('DATABASE_USERNAME') || 'postgres',
-          password: configService.get<string>('DATABASE_PASSWORD') || 'postgres',
+          port: parseInt(configService.get<string>('DATABASE_PORT') || '5432'),
+          username:
+            configService.get<string>('DATABASE_USERNAME') || 'postgres',
+          password:
+            configService.get<string>('DATABASE_PASSWORD') || 'postgres',
           database: configService.get<string>('DATABASE_NAME') || 'template',
           synchronize: false,
           autoLoadEntities: true,

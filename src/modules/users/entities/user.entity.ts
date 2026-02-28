@@ -25,10 +25,19 @@ export class User {
   @Column({ type: 'varchar', length: 255, unique: true })
   email: string;
 
-  @Column({ name: 'password_hash', type: 'varchar', length: 255, select: false })
+  @Column({
+    name: 'password_hash',
+    type: 'varchar',
+    length: 255,
+    select: false,
+  })
   passwordHash: string;
 
-  @ApiProperty({ example: '+55 11 98888-7777', nullable: true, required: false })
+  @ApiProperty({
+    example: '+55 11 98888-7777',
+    nullable: true,
+    required: false,
+  })
   @Column({ type: 'varchar', length: 50, nullable: true })
   phone?: string | null;
 
@@ -36,7 +45,11 @@ export class User {
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive: boolean;
 
-  @ApiProperty({ example: '2024-07-10T15:00:00Z', nullable: true, required: false })
+  @ApiProperty({
+    example: '2024-07-10T15:00:00Z',
+    nullable: true,
+    required: false,
+  })
   @Column({ name: 'last_login_at', type: 'timestamp', nullable: true })
   lastLoginAt?: Date | null;
 
@@ -57,6 +70,9 @@ export class User {
     joinColumn: { name: 'user_id', referencedColumnName: 'id' },
     inverseJoinColumn: { name: 'role_id', referencedColumnName: 'id' },
   })
-  @ApiProperty({ type: () => [Role], description: 'Papéis atribuídos ao usuário' })
+  @ApiProperty({
+    type: () => [Role],
+    description: 'Papéis atribuídos ao usuário',
+  })
   roles: Role[];
 }

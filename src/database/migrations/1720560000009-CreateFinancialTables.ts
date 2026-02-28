@@ -1,4 +1,9 @@
-import { MigrationInterface, QueryRunner, Table, TableForeignKey } from 'typeorm';
+import {
+  MigrationInterface,
+  QueryRunner,
+  Table,
+  TableForeignKey,
+} from 'typeorm';
 
 export class CreateFinancialTables1720560000009 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -216,47 +221,65 @@ export class CreateFinancialTables1720560000009 implements MigrationInterface {
     );
 
     // Foreign Keys
-    await queryRunner.createForeignKey('sales', new TableForeignKey({
-      columnNames: ['client_id'],
-      referencedColumnNames: ['id'],
-      referencedTableName: 'clients',
-      onDelete: 'SET NULL',
-    }));
+    await queryRunner.createForeignKey(
+      'sales',
+      new TableForeignKey({
+        columnNames: ['client_id'],
+        referencedColumnNames: ['id'],
+        referencedTableName: 'clients',
+        onDelete: 'SET NULL',
+      }),
+    );
 
-    await queryRunner.createForeignKey('sales', new TableForeignKey({
-      columnNames: ['veterinarian_id'],
-      referencedColumnNames: ['id'],
-      referencedTableName: 'users',
-      onDelete: 'CASCADE',
-    }));
+    await queryRunner.createForeignKey(
+      'sales',
+      new TableForeignKey({
+        columnNames: ['veterinarian_id'],
+        referencedColumnNames: ['id'],
+        referencedTableName: 'users',
+        onDelete: 'CASCADE',
+      }),
+    );
 
-    await queryRunner.createForeignKey('sale_items', new TableForeignKey({
-      columnNames: ['sale_id'],
-      referencedColumnNames: ['id'],
-      referencedTableName: 'sales',
-      onDelete: 'CASCADE',
-    }));
+    await queryRunner.createForeignKey(
+      'sale_items',
+      new TableForeignKey({
+        columnNames: ['sale_id'],
+        referencedColumnNames: ['id'],
+        referencedTableName: 'sales',
+        onDelete: 'CASCADE',
+      }),
+    );
 
-    await queryRunner.createForeignKey('sale_items', new TableForeignKey({
-      columnNames: ['product_id'],
-      referencedColumnNames: ['id'],
-      referencedTableName: 'products',
-      onDelete: 'CASCADE',
-    }));
+    await queryRunner.createForeignKey(
+      'sale_items',
+      new TableForeignKey({
+        columnNames: ['product_id'],
+        referencedColumnNames: ['id'],
+        referencedTableName: 'products',
+        onDelete: 'CASCADE',
+      }),
+    );
 
-    await queryRunner.createForeignKey('payments', new TableForeignKey({
-      columnNames: ['sale_id'],
-      referencedColumnNames: ['id'],
-      referencedTableName: 'sales',
-      onDelete: 'CASCADE',
-    }));
+    await queryRunner.createForeignKey(
+      'payments',
+      new TableForeignKey({
+        columnNames: ['sale_id'],
+        referencedColumnNames: ['id'],
+        referencedTableName: 'sales',
+        onDelete: 'CASCADE',
+      }),
+    );
 
-    await queryRunner.createForeignKey('payments', new TableForeignKey({
-      columnNames: ['payment_method_id'],
-      referencedColumnNames: ['id'],
-      referencedTableName: 'payment_methods',
-      onDelete: 'RESTRICT',
-    }));
+    await queryRunner.createForeignKey(
+      'payments',
+      new TableForeignKey({
+        columnNames: ['payment_method_id'],
+        referencedColumnNames: ['id'],
+        referencedTableName: 'payment_methods',
+        onDelete: 'RESTRICT',
+      }),
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

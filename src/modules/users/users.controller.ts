@@ -48,7 +48,10 @@ export class UsersController {
 
   @Get()
   @ApiOperation({ summary: 'Lista usuários com filtros e paginação' })
-  @ApiOkResponse({ description: 'Lista paginada de usuários', type: PaginatedUsersResponseDto })
+  @ApiOkResponse({
+    description: 'Lista paginada de usuários',
+    type: PaginatedUsersResponseDto,
+  })
   findAll(@Query() query: FilterUsersDto) {
     return this.usersService.findAll(query);
   }

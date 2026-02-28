@@ -1,4 +1,9 @@
-import { MigrationInterface, QueryRunner, Table, TableForeignKey } from 'typeorm';
+import {
+  MigrationInterface,
+  QueryRunner,
+  Table,
+  TableForeignKey,
+} from 'typeorm';
 
 export class CreateBreedsTable1720560000003 implements MigrationInterface {
   name = 'CreateBreedsTable1720560000003';
@@ -56,7 +61,9 @@ export class CreateBreedsTable1720560000003 implements MigrationInterface {
     const table = await queryRunner.getTable('breeds');
     if (table) {
       const foreignKey = table.foreignKeys.find(
-        (fk) => fk.columnNames.includes('species_id') && fk.referencedTableName === 'species',
+        (fk) =>
+          fk.columnNames.includes('species_id') &&
+          fk.referencedTableName === 'species',
       );
       if (foreignKey) {
         await queryRunner.dropForeignKey('breeds', foreignKey);

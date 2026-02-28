@@ -22,7 +22,13 @@ export class Procedure {
   description?: string | null;
 
   @ApiProperty({ example: 150.0 })
-  @Column({ name: 'default_price', type: 'decimal', precision: 10, scale: 2, nullable: true })
+  @Column({
+    name: 'default_price',
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+  })
   defaultPrice?: number | null;
 
   @ApiProperty({ example: true })

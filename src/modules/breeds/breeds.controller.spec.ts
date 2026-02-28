@@ -34,7 +34,10 @@ describe('BreedsController', () => {
       name: 'Bulldog',
       species: { id: 1, name: 'Cachorro' },
     } as any);
-    const result = await controller.create({ name: 'Bulldog', speciesId: 1 } as any);
+    const result = await controller.create({
+      name: 'Bulldog',
+      speciesId: 1,
+    } as any);
     expect(result.species.name).toBe('Cachorro');
   });
 

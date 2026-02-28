@@ -19,7 +19,10 @@ export class Role {
   @Column({ type: 'varchar', length: 50, unique: true })
   code: string;
 
-  @ApiProperty({ example: 'Administrador', description: 'Nome amigável do papel' })
+  @ApiProperty({
+    example: 'Administrador',
+    description: 'Nome amigável do papel',
+  })
   @Column({ type: 'varchar', length: 100 })
   name: string;
 

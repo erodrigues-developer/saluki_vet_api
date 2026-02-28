@@ -21,7 +21,10 @@ export class AppointmentStatus {
   @Column({ type: 'varchar', length: 100 })
   name: string;
 
-  @ApiProperty({ example: true, description: 'Se é um status do sistema (não deletável)' })
+  @ApiProperty({
+    example: true,
+    description: 'Se é um status do sistema (não deletável)',
+  })
   @Column({ name: 'is_system', type: 'boolean', default: true })
   isSystem: boolean;
 

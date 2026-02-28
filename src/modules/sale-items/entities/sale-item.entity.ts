@@ -40,7 +40,13 @@ export class SaleItem {
   unitPrice: number;
 
   @ApiProperty({ example: 10.0 })
-  @Column({ name: 'discount_amount', type: 'decimal', precision: 10, scale: 2, default: 0 })
+  @Column({
+    name: 'discount_amount',
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    default: 0,
+  })
   discountAmount: number;
 
   @ApiProperty({ example: 140.0 })

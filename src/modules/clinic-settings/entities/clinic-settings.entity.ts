@@ -13,11 +13,21 @@ export class ClinicSettings {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
-  @ApiProperty({ example: 30, description: 'Duração padrão do slot de agendamento em minutos' })
-  @Column({ name: 'appointment_slot_duration_minutes', type: 'int', default: 30 })
+  @ApiProperty({
+    example: 30,
+    description: 'Duração padrão do slot de agendamento em minutos',
+  })
+  @Column({
+    name: 'appointment_slot_duration_minutes',
+    type: 'int',
+    default: 30,
+  })
   appointmentSlotDurationMinutes: number;
 
-  @ApiProperty({ example: '{"seg": ["08:00-18:00"]}', description: 'JSON com horários de funcionamento' })
+  @ApiProperty({
+    example: '{"seg": ["08:00-18:00"]}',
+    description: 'JSON com horários de funcionamento',
+  })
   @Column({ name: 'business_hours_json', type: 'text', nullable: true })
   businessHoursJson?: string | null;
 
@@ -26,7 +36,12 @@ export class ClinicSettings {
   logoUrl?: string | null;
 
   @ApiProperty({ example: 'BRL', description: 'Moeda padrão' })
-  @Column({ name: 'default_currency', type: 'varchar', length: 10, default: 'BRL' })
+  @Column({
+    name: 'default_currency',
+    type: 'varchar',
+    length: 10,
+    default: 'BRL',
+  })
   defaultCurrency: string;
 
   @ApiProperty({ example: 'Notas da clínica', nullable: true })

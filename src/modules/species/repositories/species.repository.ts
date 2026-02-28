@@ -33,7 +33,9 @@ export class SpeciesRepository extends Repository<Species> {
     }
   }
 
-  async findPaginated(filters: SpeciesFilterOptions): Promise<PaginatedSpecies> {
+  async findPaginated(
+    filters: SpeciesFilterOptions,
+  ): Promise<PaginatedSpecies> {
     const { page, limit } = filters;
     const qb = this.createQueryBuilder('species');
     this.applyFilters(qb, filters);
