@@ -6,6 +6,17 @@ Project {
  * USUÁRIOS E PERMISSÕES (DENTRO DA CLÍNICA)
  *************************************************/
 
+Table audit_logs {
+  id              bigint [pk, increment]
+  entity_name     varchar(100) [not null] // ex: 'accounts_payable'
+  record_id       bigint [not null]
+  action          varchar(20) [not null] // CREATE, UPDATE, DELETE
+  old_values      text // JSON com estado anterior
+  new_values      text // JSON com estado novo
+  user_id         bigint [ref: > users.id] // null se ação do sistema
+  created_at      datetime [not null]
+}
+
 Table roles {
   id          bigint [pk, increment]
   code        varchar(50) [not null, unique] // ADMIN, VET, RECEPTION...
@@ -455,9 +466,13 @@ Table grooming_sessions {
 Table accounts_payable {
   id              bigint [pk, increment]
   description     varchar(255) [not null]
+  supplier_name   varchar(255) // Fornecedor / Favorecido
   category        varchar(100)
   amount          decimal(10,2) [not null]
   due_date        date [not null]
+  paid_amount     decimal(10,2)
+  payment_method  varchar(50)
+  document_url    varchar(500)
   paid_at         datetime
   status          varchar(20) [not null, default: 'PENDING'] // PENDING, PAID, CANCELED
   notes           text

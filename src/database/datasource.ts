@@ -18,6 +18,7 @@ const options: DataSourceOptions & SeederOptions = {
   database: process.env.DATABASE_NAME || 'template',
   synchronize: false,
   entities: ['src/modules/**/entities/*.entity{.ts,.js}'],
+  subscribers: ['src/database/subscribers/*.subscriber{.ts,.js}'],
   logging: process.env.DB_LOG == 'true' ? true : false,
   migrations: ['src/database/migrations/*.ts'],
   seeds: [

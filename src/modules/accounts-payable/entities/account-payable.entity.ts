@@ -29,6 +29,43 @@ export class AccountPayable {
   @Column({ name: 'due_date', type: 'date' })
   dueDate: Date;
 
+  @ApiProperty({ example: 'Petz Fornecedor', nullable: true })
+  @Column({
+    name: 'supplier_name',
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+  })
+  supplierName?: string | null;
+
+  @ApiProperty({ example: 150.5, nullable: true })
+  @Column({
+    name: 'paid_amount',
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+  })
+  paidAmount?: number | null;
+
+  @ApiProperty({ example: 'PIX', nullable: true })
+  @Column({
+    name: 'payment_method',
+    type: 'varchar',
+    length: 50,
+    nullable: true,
+  })
+  paymentMethod?: string | null;
+
+  @ApiProperty({ example: 'https://s3.../doc.pdf', nullable: true })
+  @Column({
+    name: 'document_url',
+    type: 'varchar',
+    length: 500,
+    nullable: true,
+  })
+  documentUrl?: string | null;
+
   @ApiProperty({ example: '2024-07-10T14:00:00Z', nullable: true })
   @Column({ name: 'paid_at', type: 'timestamp', nullable: true })
   paidAt?: Date | null;

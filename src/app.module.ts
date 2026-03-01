@@ -6,6 +6,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { APP_FILTER, APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
 import { HttpExceptionFilter } from './modules/utils/exceptions/http.exception.filter';
 import { SuccessLoggingInterceptor } from './modules/utils/interceptors/success.logging.interceptor';
+import { AlsInterceptor } from './common/interceptors/als.interceptor';
+import { AuditSubscriber } from './database/subscribers/audit.subscriber';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { LoggerModule } from './modules/logger/logger.module';
@@ -33,6 +35,8 @@ import { PaymentMethodsModule } from './modules/payment-methods/payment-methods.
 import { SalesModule } from './modules/sales/sales.module';
 import { SaleItemsModule } from './modules/sale-items/sale-items.module';
 import { PaymentsModule } from './modules/payments/payments.module';
+import { AccountsPayableModule } from './modules/accounts-payable/accounts-payable.module';
+import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
 import configuration from './configs/configuration';
 
 @Module({
@@ -57,6 +61,7 @@ import configuration from './configs/configuration';
           database: configService.get<string>('DATABASE_NAME') || 'template',
           synchronize: false,
           autoLoadEntities: true,
+          subscribers: [AuditSubscriber],
           logging: process.env.DB_LOG == 'true' ? true : false,
         };
       },
@@ -87,6 +92,8 @@ import configuration from './configs/configuration';
     SaleItemsModule,
     PaymentsModule,
     AuthModule,
+    AccountsPayableModule,
+    AuditLogsModule,
   ],
   controllers: [AppController],
   providers: [
@@ -98,6 +105,10 @@ import configuration from './configs/configuration';
     {
       provide: APP_INTERCEPTOR,
       useClass: SuccessLoggingInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AlsInterceptor,
     },
     {
       provide: APP_GUARD,

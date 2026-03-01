@@ -30,7 +30,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request>();
     let status = 500;
     let message = 'Internal server error';
-    let stack = exception.stack;
+    const stack = exception.stack;
     let errors = [];
 
     if (exception instanceof HttpException) {
