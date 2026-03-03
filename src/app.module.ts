@@ -37,6 +37,7 @@ import { SaleItemsModule } from './modules/sale-items/sale-items.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { AccountsPayableModule } from './modules/accounts-payable/accounts-payable.module';
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
+import { SuppliersModule } from './modules/suppliers/suppliers.module';
 import configuration from './configs/configuration';
 
 @Module({
@@ -94,6 +95,7 @@ import configuration from './configs/configuration';
     AuthModule,
     AccountsPayableModule,
     AuditLogsModule,
+    SuppliersModule,
   ],
   controllers: [AppController],
   providers: [

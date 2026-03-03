@@ -7,6 +7,7 @@ describe('AccountsPayableController', () => {
 
   const accountsPayableServiceMock = {
     create: jest.fn(),
+    update: jest.fn(),
     getDashboardMetrics: jest.fn(),
     findAll: jest.fn(),
     markAsPaid: jest.fn(),
@@ -31,5 +32,20 @@ describe('AccountsPayableController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  it('should update account payable', async () => {
+    accountsPayableServiceMock.update.mockResolvedValue({
+      id: 1,
+      description: 'Conta atualizada',
+      supplierId: 2,
+    });
+
+    const result = await controller.update(1, {
+      description: 'Conta atualizada',
+      supplierId: 2,
+    } as any);
+
+    expect(result.supplierId).toBe(2);
   });
 });

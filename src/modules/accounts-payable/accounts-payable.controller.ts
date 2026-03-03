@@ -13,6 +13,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AccountsPayableService } from './accounts-payable.service';
 import { CreateAccountPayableDto } from './dto/create-account-payable.dto';
 import { PayAccountDto } from './dto/pay-account.dto';
+import { UpdateAccountPayableDto } from './dto/update-account-payable.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -29,6 +30,15 @@ export class AccountsPayableController {
   @ApiOperation({ summary: 'Cadastrar nova conta a pagar' })
   create(@Body() dto: CreateAccountPayableDto) {
     return this.service.create(dto);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Atualizar conta a pagar' })
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateAccountPayableDto,
+  ) {
+    return this.service.update(id, dto);
   }
 
   @Get('dashboard')

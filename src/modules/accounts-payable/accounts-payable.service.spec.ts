@@ -3,12 +3,42 @@ import { AccountsPayableService } from './accounts-payable.service';
 import { AccountPayable } from './entities/account-payable.entity';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { Supplier } from '../suppliers/entities/supplier.entity';
 
 describe('AccountsPayableService', () => {
   let service: AccountsPayableService;
   let repository: Repository<AccountPayable>;
+  let suppliersRepository: Repository<Supplier>;
 
   const mockDate = new Date('2024-07-15T12:00:00Z');
+
+  const mockQueryBuilder = {
+    leftJoinAndSelect: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
+    orderBy: jest.fn().mockReturnThis(),
+    getMany: jest.fn().mockResolvedValue([
+      {
+        id: 1,
+        amount: '150.50',
+        dueDate: new Date('2024-07-15'),
+        status: 'PENDING',
+        category: 'Custos Fixos',
+        supplierId: 1,
+        supplier: { id: 1, name: 'Zoetis' },
+      },
+      {
+        id: 2,
+        amount: '200.00',
+        dueDate: new Date('2024-07-10'),
+        status: 'PAID',
+        paidAmount: '200.00',
+        paidAt: mockDate,
+        category: 'Folha de Pagamento',
+        supplierId: 2,
+        supplier: { id: 2, name: 'Elanco' },
+      },
+    ]),
+  };
 
   const mockRepository = {
     create: jest.fn().mockImplementation((dto) => dto),
@@ -21,28 +51,15 @@ describe('AccountsPayableService', () => {
       }),
     ),
     findOneBy: jest.fn(),
-    createQueryBuilder: jest.fn(() => ({
-      andWhere: jest.fn(),
-      orderBy: jest.fn(),
-      getMany: jest.fn().mockResolvedValue([
-        {
-          id: 1,
-          amount: '150.50',
-          dueDate: new Date('2024-07-15'),
-          status: 'PENDING',
-          category: 'Custos Fixos',
-        },
-        {
-          id: 2,
-          amount: '200.00',
-          dueDate: new Date('2024-07-10'),
-          status: 'PAID',
-          paidAmount: '200.00',
-          paidAt: mockDate,
-          category: 'Folha de Pagamento',
-        },
-      ]),
+    merge: jest.fn().mockImplementation((entity, payload) => ({
+      ...entity,
+      ...payload,
     })),
+    createQueryBuilder: jest.fn(() => mockQueryBuilder),
+  };
+
+  const mockSuppliersRepository = {
+    findOneBy: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -53,12 +70,19 @@ describe('AccountsPayableService', () => {
           provide: getRepositoryToken(AccountPayable),
           useValue: mockRepository,
         },
+        {
+          provide: getRepositoryToken(Supplier),
+          useValue: mockSuppliersRepository,
+        },
       ],
     }).compile();
 
     service = module.get<AccountsPayableService>(AccountsPayableService);
     repository = module.get<Repository<AccountPayable>>(
       getRepositoryToken(AccountPayable),
+    );
+    suppliersRepository = module.get<Repository<Supplier>>(
+      getRepositoryToken(Supplier),
     );
   });
 
@@ -74,12 +98,19 @@ describe('AccountsPayableService', () => {
     it('should create a new account payable with status PENDING', async () => {
       const dto = {
         description: 'Conta de Energia',
+        supplierId: 1,
         amount: 150.5,
         dueDate: new Date('2024-07-20'),
       };
 
-      const result = await service.create(dto);
+      mockSuppliersRepository.findOneBy.mockResolvedValueOnce({
+        id: 1,
+        name: 'Zoetis',
+      });
 
+      const result = await service.create(dto as any);
+
+      expect(suppliersRepository.findOneBy).toHaveBeenCalledWith({ id: 1 });
       expect(repository.create).toHaveBeenCalledWith({
         ...dto,
         status: 'PENDING',
@@ -87,6 +118,49 @@ describe('AccountsPayableService', () => {
       expect(repository.save).toHaveBeenCalled();
       expect(result.status).toEqual('PENDING');
       expect(result.id).toEqual(1);
+    });
+
+    it('should throw NotFoundException when supplier does not exist', async () => {
+      mockSuppliersRepository.findOneBy.mockResolvedValueOnce(null);
+
+      await expect(
+        service.create({
+          description: 'Conta',
+          supplierId: 999,
+          amount: 100,
+          dueDate: new Date(),
+        } as any),
+      ).rejects.toThrow('Supplier not found');
+    });
+  });
+
+  describe('update', () => {
+    it('should update account payable with new supplierId', async () => {
+      const mockAccount = {
+        id: 1,
+        description: 'Conta antiga',
+        supplierId: 1,
+      } as any;
+
+      mockRepository.findOneBy.mockResolvedValueOnce(mockAccount);
+      mockSuppliersRepository.findOneBy.mockResolvedValueOnce({
+        id: 2,
+        name: 'Elanco',
+      });
+
+      const result = await service.update(1, {
+        description: 'Conta atualizada',
+        supplierId: 2,
+      } as any);
+
+      expect(mockRepository.findOneBy).toHaveBeenCalledWith({ id: 1 });
+      expect(mockSuppliersRepository.findOneBy).toHaveBeenCalledWith({ id: 2 });
+      expect(mockRepository.merge).toHaveBeenCalledWith(mockAccount, {
+        description: 'Conta atualizada',
+        supplierId: 2,
+      });
+      expect(result.description).toBe('Conta atualizada');
+      expect(result.supplierId).toBe(2);
     });
   });
 
@@ -106,7 +180,7 @@ describe('AccountsPayableService', () => {
         paymentMethod: 'PIX',
       };
 
-      const result = await service.markAsPaid(1, dto);
+      await service.markAsPaid(1, dto);
 
       expect(repository.findOneBy).toHaveBeenCalledWith({ id: 1 });
       expect(repository.save).toHaveBeenCalledWith({
@@ -165,7 +239,7 @@ describe('AccountsPayableService', () => {
 
       expect(result.data.kpis).toEqual(
         expect.objectContaining({
-          totalPending: 150.5, // 2024-07-15 is after 2024-07-12
+          totalPending: 150.5,
           totalPaid: 200,
           totalOverdue: 0,
           expectedTotal: 350.5,

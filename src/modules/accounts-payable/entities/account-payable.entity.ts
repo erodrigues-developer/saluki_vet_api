@@ -3,9 +3,12 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
+  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { Supplier } from '../../suppliers/entities/supplier.entity';
 
 @Entity({ name: 'accounts_payable' })
 export class AccountPayable {
@@ -29,14 +32,19 @@ export class AccountPayable {
   @Column({ name: 'due_date', type: 'date' })
   dueDate: Date;
 
-  @ApiProperty({ example: 'Petz Fornecedor', nullable: true })
-  @Column({
-    name: 'supplier_name',
-    type: 'varchar',
-    length: 255,
+  @ApiProperty({ example: 1, nullable: true })
+  @Column({ name: 'supplier_id', type: 'bigint', nullable: true })
+  supplierId?: number | null;
+
+  @ManyToOne(() => Supplier, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'supplier_id' })
+  @ApiProperty({
+    type: () => Supplier,
+    required: false,
     nullable: true,
+    description: 'Fornecedor vinculado',
   })
-  supplierName?: string | null;
+  supplier?: Supplier | null;
 
   @ApiProperty({ example: 150.5, nullable: true })
   @Column({

@@ -4,20 +4,41 @@ import { Repository, SelectQueryBuilder } from 'typeorm';
 import { AccountPayable } from './entities/account-payable.entity';
 import { CreateAccountPayableDto } from './dto/create-account-payable.dto';
 import { PayAccountDto } from './dto/pay-account.dto';
+import { Supplier } from '../suppliers/entities/supplier.entity';
+import { UpdateAccountPayableDto } from './dto/update-account-payable.dto';
 
 @Injectable()
 export class AccountsPayableService {
   constructor(
     @InjectRepository(AccountPayable)
     private readonly repository: Repository<AccountPayable>,
+    @InjectRepository(Supplier)
+    private readonly suppliersRepository: Repository<Supplier>,
   ) {}
 
   async create(dto: CreateAccountPayableDto): Promise<AccountPayable> {
+    await this.ensureSupplierExists(dto.supplierId);
+
     const entity = this.repository.create({
       ...dto,
       status: 'PENDING',
     });
     return this.repository.save(entity);
+  }
+
+  async update(
+    id: number,
+    dto: UpdateAccountPayableDto,
+  ): Promise<AccountPayable> {
+    const entity = await this.repository.findOneBy({ id });
+    if (!entity) throw new NotFoundException('Account not found');
+
+    if (dto.supplierId !== undefined) {
+      await this.ensureSupplierExists(dto.supplierId);
+    }
+
+    const merged = this.repository.merge(entity, dto);
+    return this.repository.save(merged);
   }
 
   async findAll(
@@ -26,7 +47,9 @@ export class AccountsPayableService {
     year?: number,
     status?: string,
   ): Promise<AccountPayable[]> {
-    const query = this.repository.createQueryBuilder('ap');
+    const query = this.repository
+      .createQueryBuilder('ap')
+      .leftJoinAndSelect('ap.supplier', 'supplier');
 
     if (category) {
       query.andWhere('ap.category = :category', { category: category });
@@ -175,5 +198,13 @@ export class AccountsPayableService {
     }
 
     query.andWhere('ap.status = :status', { status });
+  }
+
+  private async ensureSupplierExists(supplierId: number): Promise<void> {
+    const supplier = await this.suppliersRepository.findOneBy({ id: supplierId });
+
+    if (!supplier) {
+      throw new NotFoundException('Supplier not found');
+    }
   }
 }

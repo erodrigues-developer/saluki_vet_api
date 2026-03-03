@@ -1,12 +1,15 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  IsString,
-  IsNotEmpty,
-  IsOptional,
-  IsNumber,
   IsDateString,
+  IsInt,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
   MaxLength,
+  Min,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateAccountPayableDto {
   @ApiProperty({ example: 'Conta de Energia' })
@@ -15,11 +18,12 @@ export class CreateAccountPayableDto {
   @MaxLength(255)
   description: string;
 
-  @ApiPropertyOptional({ example: 'Enel' })
-  @IsString()
-  @IsOptional()
-  @MaxLength(255)
-  supplierName?: string;
+  @ApiProperty({ example: 1, description: 'ID do fornecedor vinculado' })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @IsNotEmpty()
+  supplierId: number;
 
   @ApiPropertyOptional({ example: 'Custos Fixos' })
   @IsString()
