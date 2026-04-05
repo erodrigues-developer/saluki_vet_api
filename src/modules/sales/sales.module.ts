@@ -5,9 +5,14 @@ import { SalesService } from './sales.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Sale } from './entities/sale.entity';
 import { SalesRepository } from './repositories/sales.repository';
+import { Payment } from '../payments/entities/payment.entity';
+import { PaymentMethod } from '../payment-methods/entities/payment-method.entity';
+import { AccountReceivable } from '../accounts-receivable/entities/account-receivable.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Sale])],
+  imports: [
+    TypeOrmModule.forFeature([Sale, Payment, PaymentMethod, AccountReceivable]),
+  ],
   controllers: [SalesController],
   providers: [SalesService, SalesRepository],
   exports: [SalesService],

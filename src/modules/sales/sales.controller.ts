@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   Query,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { SalesService } from './sales.service';
 import {
@@ -16,6 +17,8 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { Sale } from './entities/sale.entity';
+import { CheckoutSaleDto } from './dto/checkout-sale.dto';
+import { CheckoutSaleResponseDto } from './dto/checkout-sale-response.dto';
 
 @ApiTags('sales')
 @ApiBearerAuth()
@@ -28,6 +31,19 @@ export class SalesController {
   @ApiOkResponse({ type: Sale })
   create(@Body() createDto: any) {
     return this.salesService.create(createDto);
+  }
+
+  @Post(':id/checkout')
+  @ApiOperation({
+    summary:
+      'Realizar checkout transacional da venda (pagamento + contas a receber + baixa da venda)',
+  })
+  @ApiOkResponse({ type: CheckoutSaleResponseDto })
+  checkout(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() checkoutDto: CheckoutSaleDto,
+  ): Promise<CheckoutSaleResponseDto> {
+    return this.salesService.checkout(id, checkoutDto);
   }
 
   @Get()
