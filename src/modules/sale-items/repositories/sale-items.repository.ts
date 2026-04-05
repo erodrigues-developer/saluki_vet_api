@@ -11,7 +11,7 @@ export class SaleItemsRepository extends Repository<SaleItem> {
   async findBySale(saleId: number): Promise<SaleItem[]> {
     return this.find({
       where: { saleId },
-      relations: ['product'],
+      relations: ['product', 'procedure'],
     });
   }
 }

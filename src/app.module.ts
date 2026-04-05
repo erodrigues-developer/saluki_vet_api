@@ -36,6 +36,8 @@ import { SalesModule } from './modules/sales/sales.module';
 import { SaleItemsModule } from './modules/sale-items/sale-items.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { AccountsPayableModule } from './modules/accounts-payable/accounts-payable.module';
+import { AccountsReceivableModule } from './modules/accounts-receivable/accounts-receivable.module';
+import { CommissionsModule } from './modules/commissions/commissions.module';
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
 import { SuppliersModule } from './modules/suppliers/suppliers.module';
 import configuration from './configs/configuration';
@@ -94,6 +96,8 @@ import configuration from './configs/configuration';
     PaymentsModule,
     AuthModule,
     AccountsPayableModule,
+    AccountsReceivableModule,
+    CommissionsModule,
     AuditLogsModule,
     SuppliersModule,
   ],

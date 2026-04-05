@@ -1,14 +1,22 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ProceduresRepository } from './repositories/procedures.repository';
 import { Procedure } from './entities/procedure.entity';
+import { CreateProcedureDto } from './dto/create-procedure.dto';
+import { UpdateProcedureDto } from './dto/update-procedure.dto';
 
 @Injectable()
 export class ProceduresService {
   constructor(private readonly proceduresRepository: ProceduresRepository) {}
 
-  async create(payload: any): Promise<Procedure> {
-    const procedure = this.proceduresRepository.create({ ...payload } as any);
-    return this.proceduresRepository.save(procedure as any);
+  async create(payload: CreateProcedureDto): Promise<Procedure> {
+    const procedure = this.proceduresRepository.create({
+      ...payload,
+      commissionPercent:
+        payload.commissionPercent !== undefined
+          ? payload.commissionPercent
+          : 0,
+    });
+    return this.proceduresRepository.save(procedure);
   }
 
   async findAll(params: {
@@ -59,7 +67,7 @@ export class ProceduresService {
     return procedure;
   }
 
-  async update(id: number, payload: any): Promise<Procedure> {
+  async update(id: number, payload: UpdateProcedureDto): Promise<Procedure> {
     const procedure = await this.findOne(id);
     const merged = this.proceduresRepository.merge(procedure, payload);
     return this.proceduresRepository.save(merged);

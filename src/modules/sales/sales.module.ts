@@ -8,9 +8,11 @@ import { SalesRepository } from './repositories/sales.repository';
 import { Payment } from '../payments/entities/payment.entity';
 import { PaymentMethod } from '../payment-methods/entities/payment-method.entity';
 import { AccountReceivable } from '../accounts-receivable/entities/account-receivable.entity';
+import { CommissionsModule } from '../commissions/commissions.module';
 
 @Module({
   imports: [
+    CommissionsModule,
     TypeOrmModule.forFeature([Sale, Payment, PaymentMethod, AccountReceivable]),
   ],
   controllers: [SalesController],

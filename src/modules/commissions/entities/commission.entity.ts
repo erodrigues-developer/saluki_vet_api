@@ -9,7 +9,7 @@ import {
 import { User } from '../../users/entities/user.entity';
 import { Sale } from '../../sales/entities/sale.entity';
 import { Consultation } from '../../consultations/entities/consultation.entity';
-import { GroomingSession } from '../../grooming-sessions/entities/grooming-session.entity';
+import { Procedure } from '../../procedures/entities/procedure.entity';
 
 @Entity({ name: 'commissions' })
 export class Commission {
@@ -45,13 +45,37 @@ export class Commission {
   @Column({ name: 'grooming_session_id', type: 'bigint', nullable: true })
   groomingSessionId?: number | null;
 
-  @ManyToOne(() => GroomingSession)
-  @JoinColumn({ name: 'grooming_session_id' })
-  groomingSession?: GroomingSession;
+  @ApiProperty({ example: 1, nullable: true })
+  @Column({ name: 'procedure_id', type: 'bigint', nullable: true })
+  procedureId?: number | null;
+
+  @ManyToOne(() => Procedure, { nullable: true })
+  @JoinColumn({ name: 'procedure_id' })
+  procedure?: Procedure | null;
 
   @ApiProperty({ example: 25.5 })
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   amount: number;
+
+  @ApiProperty({ example: 150, nullable: true })
+  @Column({
+    name: 'base_amount',
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+  })
+  baseAmount?: number | null;
+
+  @ApiProperty({ example: 15, nullable: true })
+  @Column({
+    name: 'rate_percent',
+    type: 'decimal',
+    precision: 5,
+    scale: 2,
+    nullable: true,
+  })
+  ratePercent?: number | null;
 
   @ApiProperty({ example: '2024-07-09T12:00:00Z' })
   @Column({ name: 'calculated_at', type: 'timestamp' })

@@ -31,6 +31,16 @@ export class Procedure {
   })
   defaultPrice?: number | null;
 
+  @ApiProperty({ example: 15, description: 'Percentual de comissao (0 a 100)' })
+  @Column({
+    name: 'commission_percent',
+    type: 'decimal',
+    precision: 5,
+    scale: 2,
+    default: 0,
+  })
+  commissionPercent: number;
+
   @ApiProperty({ example: true })
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive: boolean;

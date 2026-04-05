@@ -9,6 +9,7 @@ import { Sale } from './entities/sale.entity';
 import { Payment } from '../payments/entities/payment.entity';
 import { PaymentMethod } from '../payment-methods/entities/payment-method.entity';
 import { AccountReceivable } from '../accounts-receivable/entities/account-receivable.entity';
+import { CommissionsService } from '../commissions/commissions.service';
 
 describe('SalesService - checkout', () => {
   const saleEntity = {
@@ -66,11 +67,20 @@ describe('SalesService - checkout', () => {
       transaction: jest.fn((callback) => callback(manager)),
     };
 
-    const service = new SalesService({} as any, dataSource as any);
+    const commissionsService = {
+      calculateForPaidSale: jest.fn().mockResolvedValue([]),
+    };
+
+    const service = new SalesService(
+      {} as any,
+      dataSource as any,
+      commissionsService as unknown as CommissionsService,
+    );
 
     return {
       service,
       dataSource,
+      commissionsService,
       checkoutQueryBuilder,
       saleRepository,
       paymentsRepository,
@@ -91,6 +101,7 @@ describe('SalesService - checkout', () => {
       paymentsRepository,
       paymentMethodsRepository,
       accountsReceivableRepository,
+      commissionsService,
     } = createSut();
 
     checkoutQueryBuilder.getOne.mockResolvedValue({ ...saleEntity });
@@ -134,7 +145,7 @@ describe('SalesService - checkout', () => {
         clientId: 7,
         status: 'PAID',
         description: 'Recebimento da venda #10',
-        dueDate: '2026-03-02',
+        dueDate: new Date('2026-03-02T00:00:00.000Z'),
       }),
     );
     expect(saleRepository.save).toHaveBeenCalledWith(
@@ -142,6 +153,14 @@ describe('SalesService - checkout', () => {
         id: 10,
         status: 'PAID',
       }),
+    );
+    expect(commissionsService.calculateForPaidSale).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        id: 10,
+        status: 'PAID',
+      }),
+      new Date('2026-03-02T18:30:00.000Z'),
     );
   });
 

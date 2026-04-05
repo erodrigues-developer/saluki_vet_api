@@ -15,12 +15,14 @@ import { CheckoutSaleResponseDto } from './dto/checkout-sale-response.dto';
 import { Payment } from '../payments/entities/payment.entity';
 import { PaymentMethod } from '../payment-methods/entities/payment-method.entity';
 import { AccountReceivable } from '../accounts-receivable/entities/account-receivable.entity';
+import { CommissionsService } from '../commissions/commissions.service';
 
 @Injectable()
 export class SalesService {
   constructor(
     private readonly salesRepository: SalesRepository,
     private readonly dataSource: DataSource,
+    private readonly commissionsService: CommissionsService,
   ) {}
 
   async create(payload: Partial<Sale>): Promise<Sale> {
@@ -40,6 +42,7 @@ export class SalesService {
         'veterinarian',
         'items',
         'items.product',
+        'items.procedure',
         'payments',
         'payments.paymentMethod',
       ],
@@ -136,6 +139,7 @@ export class SalesService {
           paymentMethodId: payload.paymentMethodId,
           amount: requestedAmount,
           paidAt,
+          notes: payload.notes,
         });
 
         const savedPayment = await paymentsRepository.save(payment);
@@ -158,6 +162,7 @@ export class SalesService {
 
         sale.status = 'PAID';
         await saleRepository.save(sale);
+        await this.commissionsService.calculateForPaidSale(manager, sale, paidAt);
 
         return {
           saleId: sale.id,

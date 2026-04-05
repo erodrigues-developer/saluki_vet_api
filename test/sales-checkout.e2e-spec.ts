@@ -18,6 +18,11 @@ import { JwtAuthGuard } from '../src/common/guards/jwt-auth.guard';
 import { RolesGuard } from '../src/common/guards/roles.guard';
 import { getDataSourceToken } from '@nestjs/typeorm';
 import { SalesRepository } from '../src/modules/sales/repositories/sales.repository';
+import { SaleItem } from '../src/modules/sale-items/entities/sale-item.entity';
+import { Procedure } from '../src/modules/procedures/entities/procedure.entity';
+import { Commission } from '../src/modules/commissions/entities/commission.entity';
+import { CommissionsService } from '../src/modules/commissions/commissions.service';
+import { CommissionsRepository } from '../src/modules/commissions/repositories/commissions.repository';
 
 // Note: Reusing the same in-memory logic that simulates atomic DB capabilities, 
 // but now wrapped properly around HTTP supertest to evaluate pipeline, guards and pipes.
@@ -27,6 +32,7 @@ type InMemorySale = {
   status: string;
   totalAmount: number;
   clientId: number | null;
+  veterinarianId?: number;
 };
 
 type InMemoryPayment = {
@@ -53,17 +59,49 @@ type InMemoryAccountReceivable = {
   status: string;
 };
 
+type InMemorySaleItem = {
+  id: number;
+  saleId: number;
+  productId: number | null;
+  procedureId: number | null;
+  quantity: number;
+  unitPrice: number;
+  discountAmount: number;
+  totalPrice: number;
+};
+
+type InMemoryProcedure = {
+  id: number;
+  commissionPercent: number;
+};
+
+type InMemoryCommission = {
+  id: number;
+  userId: number;
+  saleId: number | null;
+  procedureId: number | null;
+  amount: number;
+  baseAmount: number | null;
+  ratePercent: number | null;
+  calculatedAt: Date;
+  status: string;
+};
+
 type InMemoryState = {
   sales: InMemorySale[];
   payments: InMemoryPayment[];
   paymentMethods: InMemoryPaymentMethod[];
   accountsReceivable: InMemoryAccountReceivable[];
+  saleItems: InMemorySaleItem[];
+  procedures: InMemoryProcedure[];
+  commissions: InMemoryCommission[];
 };
 
 class InMemoryCheckoutDataSource {
   private state: InMemoryState;
   private paymentSequence = 100;
   private accountSequence = 500;
+  private commissionSequence = 800;
   private isLocked = false;
   private queueResolvers: Array<() => void> = [];
   private failAccountSaveBySaleId = new Set<number>();
@@ -200,12 +238,47 @@ class InMemoryCheckoutDataSource {
       },
     };
 
+    const saleItemsRepository = {
+      find: async (params: { where: { saleId: number } }) => {
+        return txState.saleItems
+          .filter((item) => item.saleId === params.where.saleId)
+          .map((item) => ({
+            ...item,
+            procedure:
+              item.procedureId !== null
+                ? txState.procedures.find(
+                    (procedure) => procedure.id === item.procedureId,
+                  ) || null
+                : null,
+          })) as any;
+      },
+    };
+
+    const commissionsRepository = {
+      findOne: async (params: { where: { saleId: number; procedureId: number } }) => {
+        const commission = txState.commissions.find(
+          (item) =>
+            item.saleId === params.where.saleId &&
+            item.procedureId === params.where.procedureId,
+        );
+        return commission ? ({ ...commission } as any) : null;
+      },
+      create: (payload: Omit<InMemoryCommission, 'id'>) => ({ ...payload }),
+      save: async (payload: Omit<InMemoryCommission, 'id'>) => {
+        const saved = { id: this.commissionSequence++, ...payload };
+        txState.commissions.push(saved);
+        return { ...saved } as any;
+      },
+    };
+
     return {
       getRepository: (entity: any) => {
         if (entity === Sale) return saleRepository;
         if (entity === Payment) return paymentsRepository;
         if (entity === PaymentMethod) return paymentMethodsRepository;
         if (entity === AccountReceivable) return accountsReceivableRepository;
+        if (entity === SaleItem) return saleItemsRepository;
+        if (entity === Commission) return commissionsRepository;
         throw new Error(`Repository not implemented for ${entity}`);
       },
     };
@@ -229,8 +302,8 @@ describe('Sales checkout (e2e integration)', () => {
   beforeEach(async () => {
     dataSource = new InMemoryCheckoutDataSource({
       sales: [
-        { id: 1, status: 'OPEN', totalAmount: 150.5, clientId: 7 },
-        { id: 2, status: 'OPEN', totalAmount: 200, clientId: null },
+        { id: 1, status: 'OPEN', totalAmount: 150.5, clientId: 7, veterinarianId: 3 } as any,
+        { id: 2, status: 'OPEN', totalAmount: 200, clientId: null, veterinarianId: 4 } as any,
         { id: 3, status: 'OPEN', totalAmount: 90, clientId: 4 },
         { id: 4, status: 'OPEN', totalAmount: 99, clientId: 5 },
       ],
@@ -240,6 +313,20 @@ describe('Sales checkout (e2e integration)', () => {
         { id: 2, isActive: false },
       ],
       accountsReceivable: [],
+      saleItems: [
+        {
+          id: 1,
+          saleId: 1,
+          productId: null,
+          procedureId: 11,
+          quantity: 1,
+          unitPrice: 150.5,
+          discountAmount: 0,
+          totalPrice: 150.5,
+        },
+      ],
+      procedures: [{ id: 11, commissionPercent: 15 }],
+      commissions: [],
     });
 
     jest.spyOn(JwtAuthGuard.prototype, 'canActivate').mockReturnValue(true as any);
@@ -249,9 +336,14 @@ describe('Sales checkout (e2e integration)', () => {
       controllers: [SalesController],
       providers: [
         SalesService,
+        CommissionsService,
         {
           provide: SalesRepository,
           useValue: {}, 
+        },
+        {
+          provide: CommissionsRepository,
+          useValue: {},
         },
         {
           provide: getDataSourceToken(),
@@ -305,6 +397,17 @@ describe('Sales checkout (e2e integration)', () => {
     );
     expect(res.body).toHaveProperty('paymentId');
     expect(res.body).toHaveProperty('accountReceivableId');
+    expect(dataSource.getSnapshot().commissions).toEqual([
+      expect.objectContaining({
+        saleId: 1,
+        procedureId: 11,
+        userId: 3,
+        amount: 22.58,
+        baseAmount: 150.5,
+        ratePercent: 15,
+        status: 'PENDING',
+      }),
+    ]);
   });
 
   it('should reject forbidden saleId in payload contract via HTTP 400', async () => {

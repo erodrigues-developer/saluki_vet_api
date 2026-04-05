@@ -1,5 +1,7 @@
 import { Type } from 'class-transformer';
 import {
+  IsOptional,
+  IsString,
   IsDateString,
   IsInt,
   IsNotEmpty,
@@ -33,4 +35,13 @@ export class CheckoutSaleDto {
   @IsDateString()
   @IsNotEmpty()
   paidAt: string;
+
+  @ApiProperty({
+    example: 'Pagamento integral no balcao',
+    required: false,
+    description: 'Observacao opcional para conciliacao do checkout',
+  })
+  @IsString()
+  @IsOptional()
+  notes?: string;
 }
