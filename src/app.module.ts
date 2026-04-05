@@ -40,6 +40,11 @@ import { AccountsReceivableModule } from './modules/accounts-receivable/accounts
 import { CommissionsModule } from './modules/commissions/commissions.module';
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
 import { SuppliersModule } from './modules/suppliers/suppliers.module';
+import { BoxesModule } from './modules/boxes/boxes.module';
+import { InpatientRecordsModule } from './modules/inpatient-records/inpatient-records.module';
+import { ClinicalParametersModule } from './modules/clinical-parameters/clinical-parameters.module';
+import { TreatmentMapModule } from './modules/treatment-map/treatment-map.module';
+import { PrescriptionsModule } from './modules/prescriptions/prescriptions.module';
 import configuration from './configs/configuration';
 
 @Module({
@@ -100,6 +105,11 @@ import configuration from './configs/configuration';
     CommissionsModule,
     AuditLogsModule,
     SuppliersModule,
+    BoxesModule,
+    InpatientRecordsModule,
+    ClinicalParametersModule,
+    TreatmentMapModule,
+    PrescriptionsModule,
   ],
   controllers: [AppController],
   providers: [
