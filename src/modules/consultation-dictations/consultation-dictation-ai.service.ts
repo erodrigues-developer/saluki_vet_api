@@ -135,18 +135,37 @@ export class ConsultationDictationAiService {
         [
           'system',
           [
-            'Voce e um veterinario assistente especializado em prontuario clinico.',
-            'Leia o ditado em portugues do Brasil e devolva apenas o JSON solicitado.',
-            'Nao invente dados. Se um campo nao estiver explicitamente presente ou nao puder ser inferido com seguranca, retorne null.',
-            'Mantenha textos objetivos, tecnicos e prontos para uso nos campos do prontuario.',
-            'Em transcriptFinal, normalize repeticoes, ruido de ditado e pontuacao, preservando o sentido clinico.',
-            'Em keywords, use termos curtos, em minusculo, sem acentos desnecessarios e sem duplicidade.',
+            'Voce e um veterinario clinico senior e redator tecnico de prontuario.',
+            'Transforme relato bruto em texto clinico profissional, objetivo e acionavel.',
+            'Retorne somente JSON valido no schema solicitado.',
+            'Nao invente dados: se a informacao nao estiver explicita ou nao puder ser inferida com seguranca, use null.',
+            'Evite repeticao literal da fala do tutor; sintetize em linguagem tecnica veterinaria.',
+            'Nao repetir "tutor relata" em todos os campos; prefira sintese clinica direta.',
+            'Cada campo deve agregar informacao nova e coerente com os demais, sem contradicoes temporais ou clinicas.',
+            'Priorize especificidade: inicio, duracao, progressao, frequencia, intensidade, fatores associados e impacto funcional quando disponiveis.',
+            'Nao emitir diagnostico definitivo na anamnese; em assessment, usar hipotese ou impressao clinica com cautela.',
+            'Quando houver incerteza, explicite como "a esclarecer" ou retorne null conforme o caso.',
+            'Escreva frases curtas, tecnicas e prontas para prontuario; evite generalidades vagas.',
+            'subjective: historia clinica organizada da queixa e anamnese, sem redundancia.',
+            'objective: apenas achados objetivos de exame fisico/observacao; se ausentes, null.',
+            'assessment: interpretacao clinica e hipoteses diferenciais sem conclusao absoluta.',
+            'plan: conduta proposta, exames complementares, monitorizacao e retorno quando citados; sem extrapolar dados ausentes.',
+            'mainComplaint: problema principal em 1 frase clinica com tempo/evolucao quando houver.',
+            'clinicalFindings: sintese dos achados relevantes que sustentam a avaliacao.',
+            'diagnosis: diagnostico ou suspeita principal somente se houver base suficiente; caso contrario, null.',
+            'treatmentPlan: plano terapeutico objetivo e verificavel apenas com dados presentes.',
+            'notes: lacunas, riscos, pendencias e observacoes adicionais uteis.',
+            'summary: resumo executivo em ate 280 caracteres, tecnico e informativo.',
+            'transcriptFinal: normalize ruido, repeticoes e pontuacao preservando o sentido clinico.',
+            'keywords: 4 a 8 termos clinicos curtos, em minusculo, sem duplicidade e sem acentos desnecessarios.',
           ].join(' '),
         ],
         [
           'human',
           [
             'Estruture o ditado clinico abaixo para os campos da consulta.',
+            'A saida deve ser profissional e diferenciada por campo, sem repetir o mesmo texto.',
+            'Se faltar dado para algum campo, use null.',
             '',
             '{transcriptDraft}',
           ].join('\n'),
@@ -402,6 +421,18 @@ export class ConsultationDictationAiService {
     }
 
     const normalized = value.replace(/\s+/g, ' ').trim();
+    const lowered = normalized.toLowerCase();
+    if (
+      lowered === 'null' ||
+      lowered === 'n/a' ||
+      lowered === 'na' ||
+      lowered === 'nenhum' ||
+      lowered === 'nenhuma' ||
+      lowered === 'sem dados'
+    ) {
+      return null;
+    }
+
     return normalized.length > 0 ? normalized : null;
   }
 
