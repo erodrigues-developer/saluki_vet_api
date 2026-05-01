@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
+import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { ChatOpenAI } from '@langchain/openai';
 import OpenAI from 'openai';
 import { toFile } from 'openai/uploads';
@@ -18,6 +19,8 @@ type TranscriptionOptions = {
   language?: string | null;
   fallbackTranscript?: string | null;
 };
+
+type AiProvider = 'openai' | 'anthropic' | 'gemini';
 
 const consultationDictationSchema = z.object({
   transcriptFinal: z
@@ -87,12 +90,21 @@ type ConsultationDictationSchema = z.infer<typeof consultationDictationSchema>;
 @Injectable()
 export class ConsultationDictationAiService {
   private readonly logger = new Logger(ConsultationDictationAiService.name);
-  private modelInstance?: ChatOpenAI;
+  private modelInstance?: BaseChatModel;
   private transcriptionClient?: OpenAI;
 
   constructor(private readonly configService: ConfigService) {}
 
   isConfigured() {
+    const provider = this.getAiProvider();
+    if (provider === 'anthropic') {
+      return Boolean(this.configService.get<string>('ANTHROPIC_API_KEY'));
+    }
+
+    if (provider === 'gemini') {
+      return Boolean(this.configService.get<string>('GEMINI_API_KEY'));
+    }
+
     return Boolean(this.configService.get<string>('OPENAI_API_KEY'));
   }
 
@@ -103,13 +115,13 @@ export class ConsultationDictationAiService {
 
     if (!this.isConfigured()) {
       this.logger.warn(
-        'OPENAI_API_KEY not configured. Falling back to local dictation parser.',
+        `${this.getAiProvider().toUpperCase()} API key not configured. Falling back to local dictation parser.`,
       );
       return this.buildStructuredDraftFallback(cleanedTranscript);
     }
 
     try {
-      const structuredLlm = this.getModel().withStructuredOutput(
+      const structuredLlm = (await this.getModel()).withStructuredOutput(
         consultationDictationSchema,
         {
           name: 'consultation_dictation_extraction',
@@ -173,7 +185,14 @@ export class ConsultationDictationAiService {
 
     if (!this.isConfigured()) {
       this.logger.warn(
-        'OPENAI_API_KEY not configured. Falling back to local transcript draft for uploaded audio.',
+        `${this.getAiProvider().toUpperCase()} API key not configured. Falling back to local transcript draft for uploaded audio.`,
+      );
+      return fallbackTranscript;
+    }
+
+    if (this.getAiProvider() !== 'openai') {
+      this.logger.warn(
+        `Audio transcription is only enabled for OPENAI provider. Current provider is ${this.getAiProvider().toUpperCase()}. Falling back to local transcript draft.`,
       );
       return fallbackTranscript;
     }
@@ -214,19 +233,49 @@ export class ConsultationDictationAiService {
     }
   }
 
-  private getModel() {
+  private async getModel() {
     if (this.modelInstance) {
       return this.modelInstance;
     }
 
-    const modelName =
-      this.configService.get<string>('OPENAI_MODEL') || 'gpt-5-mini';
-    const timeoutMs = Number(
-      this.configService.get<string>('OPENAI_TIMEOUT_MS') || '20000',
-    );
+    const provider = this.getAiProvider();
+    this.modelInstance = this.buildProviderModel(provider);
 
-    this.modelInstance = new ChatOpenAI({
-      model: modelName,
+    return this.modelInstance;
+  }
+
+  private buildProviderModel(provider: AiProvider): BaseChatModel {
+    const timeoutMs = this.getTimeoutMs();
+
+    if (provider === 'anthropic') {
+      // Dynamic require keeps the app buildable even when optional providers are not installed.
+      const { ChatAnthropic } = require('@langchain/anthropic');
+      return new ChatAnthropic({
+        model:
+          this.configService.get<string>('ANTHROPIC_MODEL') ||
+          'claude-3-5-sonnet-latest',
+        temperature: 0,
+        maxRetries: 2,
+        anthropicApiKey: this.configService.get<string>('ANTHROPIC_API_KEY'),
+        timeout: timeoutMs,
+      });
+    }
+
+    if (provider === 'gemini') {
+      // Dynamic require keeps the app buildable even when optional providers are not installed.
+      const { ChatGoogleGenerativeAI } = require('@langchain/google-genai');
+      return new ChatGoogleGenerativeAI({
+        model:
+          this.configService.get<string>('GEMINI_MODEL') ||
+          'gemini-1.5-pro',
+        temperature: 0,
+        maxRetries: 2,
+        apiKey: this.configService.get<string>('GEMINI_API_KEY'),
+      });
+    }
+
+    return new ChatOpenAI({
+      model: this.configService.get<string>('OPENAI_MODEL') || 'gpt-5-mini',
       temperature: 0,
       maxRetries: 2,
       apiKey: this.configService.get<string>('OPENAI_API_KEY'),
@@ -234,8 +283,29 @@ export class ConsultationDictationAiService {
         timeout: timeoutMs,
       },
     });
+  }
 
-    return this.modelInstance;
+  private getAiProvider(): AiProvider {
+    const configured = (
+      this.configService.get<string>('AI_PROVIDER') || 'openai'
+    )
+      .toLowerCase()
+      .trim();
+
+    if (configured === 'anthropic' || configured === 'gemini') {
+      return configured;
+    }
+
+    return 'openai';
+  }
+
+  private getTimeoutMs() {
+    const rawValue =
+      this.configService.get<string>('AI_TIMEOUT_MS') ||
+      this.configService.get<string>('OPENAI_TIMEOUT_MS') ||
+      '20000';
+    const parsed = Number(rawValue);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 20000;
   }
 
   private getTranscriptionClient() {
@@ -243,9 +313,7 @@ export class ConsultationDictationAiService {
       return this.transcriptionClient;
     }
 
-    const timeoutMs = Number(
-      this.configService.get<string>('OPENAI_TIMEOUT_MS') || '20000',
-    );
+    const timeoutMs = this.getTimeoutMs();
 
     this.transcriptionClient = new OpenAI({
       apiKey: this.configService.get<string>('OPENAI_API_KEY'),

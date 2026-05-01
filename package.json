@@ -26,6 +26,8 @@
     "@aws-sdk/client-s3": "^3.515.0",
     "@aws-sdk/client-sqs": "^3.496.0",
     "@langchain/core": "^1.1.39",
+    "@langchain/anthropic": "^1.0.6",
+    "@langchain/google-genai": "^1.0.6",
     "@langchain/openai": "^1.4.2",
     "@nestjs-modules/ioredis": "^2.0.2",
     "@nestjs/axios": "^3.0.2",
