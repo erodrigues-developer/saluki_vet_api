@@ -1,10 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { HumanMessage } from '@langchain/core/messages';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { ChatOpenAI } from '@langchain/openai';
-import OpenAI from 'openai';
-import { toFile } from 'openai/uploads';
 import { z } from 'zod';
 import { ConsultationDictationStructuredPayload } from './entities/consultation-dictation.entity';
 
@@ -91,12 +90,15 @@ type ConsultationDictationSchema = z.infer<typeof consultationDictationSchema>;
 export class ConsultationDictationAiService {
   private readonly logger = new Logger(ConsultationDictationAiService.name);
   private modelInstance?: BaseChatModel;
-  private transcriptionClient?: OpenAI;
 
   constructor(private readonly configService: ConfigService) {}
 
   isConfigured() {
     const provider = this.getAiProvider();
+    if (provider === 'openai') {
+      return Boolean(this.configService.get<string>('OPENAI_API_KEY'));
+    }
+
     if (provider === 'anthropic') {
       return Boolean(this.configService.get<string>('ANTHROPIC_API_KEY'));
     }
@@ -105,7 +107,7 @@ export class ConsultationDictationAiService {
       return Boolean(this.configService.get<string>('GEMINI_API_KEY'));
     }
 
-    return Boolean(this.configService.get<string>('OPENAI_API_KEY'));
+    return Boolean(this.configService.get<string>('GEMINI_API_KEY'));
   }
 
   async buildStructuredDraft(
@@ -164,7 +166,7 @@ export class ConsultationDictationAiService {
       };
     } catch (error: any) {
       this.logger.error(
-        'OpenAI structured extraction failed. Falling back to local parser.',
+        `${this.getAiProvider().toUpperCase()} structured extraction failed. Falling back to local parser.`,
         error?.stack,
       );
       return this.buildStructuredDraftFallback(cleanedTranscript);
@@ -190,47 +192,77 @@ export class ConsultationDictationAiService {
       return fallbackTranscript;
     }
 
-    if (this.getAiProvider() !== 'openai') {
-      this.logger.warn(
-        `Audio transcription is only enabled for OPENAI provider. Current provider is ${this.getAiProvider().toUpperCase()}. Falling back to local transcript draft.`,
-      );
-      return fallbackTranscript;
-    }
-
-    try {
-      const file = await toFile(
-        audioBuffer,
-        options.fileName?.trim() || 'consultation-dictation.webm',
-        {
-          type: options.mimeType?.trim() || 'audio/webm',
-        },
-      );
-
-      const transcription =
-        await this.getTranscriptionClient().audio.transcriptions.create({
-          file,
-          model: this.getTranscriptionModel(),
-          language: this.normalizeTranscriptionLanguage(options.language),
-          prompt:
-            fallbackTranscript.length >= 10
-              ? `Contexto do rascunho ja capturado no navegador: ${fallbackTranscript}`
-              : undefined,
-        });
-
-      return this.normalizeClinicalTranscript(
-        transcription.text || fallbackTranscript,
-      );
-    } catch (error: any) {
-      if (fallbackTranscript.length >= 10) {
-        this.logger.error(
-          'OpenAI audio transcription failed. Falling back to browser transcript draft.',
-          error?.stack,
+    const provider = this.getAiProvider();
+    if (provider === 'gemini') {
+      try {
+        const transcript = await this.transcribeAudioWithGemini(
+          audioBuffer,
+          options,
+          fallbackTranscript,
         );
-        return fallbackTranscript;
-      }
+        return this.normalizeClinicalTranscript(transcript || fallbackTranscript);
+      } catch (error: any) {
+        if (fallbackTranscript.length >= 10) {
+          this.logger.error(
+            'Gemini audio transcription failed. Falling back to browser transcript draft.',
+            error?.stack,
+          );
+          return fallbackTranscript;
+        }
 
-      throw error;
+        throw error;
+      }
     }
+
+    this.logger.warn(
+      `Audio transcription via LangChain ainda nao esta habilitada para provider ${provider.toUpperCase()}. Falling back to local transcript draft.`,
+    );
+    return fallbackTranscript;
+  }
+
+  private async transcribeAudioWithGemini(
+    audioBuffer: Buffer,
+    options: TranscriptionOptions,
+    fallbackTranscript: string,
+  ) {
+    const modelName =
+      this.configService.get<string>('GEMINI_TRANSCRIPTION_MODEL') ||
+      this.configService.get<string>('GEMINI_MODEL') ||
+      'gemini-2.5-flash';
+    const mimeType = options.mimeType?.trim() || 'audio/webm';
+    const { ChatGoogleGenerativeAI } = require('@langchain/google-genai');
+    const model = new ChatGoogleGenerativeAI({
+      model: modelName,
+      temperature: 0,
+      maxRetries: 2,
+      apiKey: this.configService.get<string>('GEMINI_API_KEY'),
+    });
+
+    const contextLine =
+      fallbackTranscript.length >= 10
+        ? `Contexto parcial ja capturado no navegador: ${fallbackTranscript}`
+        : 'Nao ha rascunho previo.';
+
+    const response = await model.invoke([
+      new HumanMessage({
+        content: [
+          {
+            type: 'text',
+            text: [
+              'Transcreva este audio de consulta veterinaria em portugues do Brasil.',
+              'Retorne somente o texto transcrito limpo, sem markdown.',
+              contextLine,
+            ].join(' '),
+          },
+          {
+            type: mimeType,
+            data: audioBuffer.toString('base64'),
+          },
+        ],
+      }),
+    ]);
+
+    return this.extractTextFromMessageContent(response.content);
   }
 
   private async getModel() {
@@ -248,7 +280,6 @@ export class ConsultationDictationAiService {
     const timeoutMs = this.getTimeoutMs();
 
     if (provider === 'anthropic') {
-      // Dynamic require keeps the app buildable even when optional providers are not installed.
       const { ChatAnthropic } = require('@langchain/anthropic');
       return new ChatAnthropic({
         model:
@@ -262,12 +293,11 @@ export class ConsultationDictationAiService {
     }
 
     if (provider === 'gemini') {
-      // Dynamic require keeps the app buildable even when optional providers are not installed.
       const { ChatGoogleGenerativeAI } = require('@langchain/google-genai');
       return new ChatGoogleGenerativeAI({
         model:
           this.configService.get<string>('GEMINI_MODEL') ||
-          'gemini-1.5-pro',
+          'gemini-2.5-flash',
         temperature: 0,
         maxRetries: 2,
         apiKey: this.configService.get<string>('GEMINI_API_KEY'),
@@ -287,61 +317,50 @@ export class ConsultationDictationAiService {
 
   private getAiProvider(): AiProvider {
     const configured = (
-      this.configService.get<string>('AI_PROVIDER') || 'openai'
+      this.configService.get<string>('AI_PROVIDER') || 'gemini'
     )
       .toLowerCase()
       .trim();
 
-    if (configured === 'anthropic' || configured === 'gemini') {
+    if (
+      configured === 'openai' ||
+      configured === 'anthropic' ||
+      configured === 'gemini'
+    ) {
       return configured;
     }
 
-    return 'openai';
+    return 'gemini';
   }
 
   private getTimeoutMs() {
     const rawValue =
-      this.configService.get<string>('AI_TIMEOUT_MS') ||
-      this.configService.get<string>('OPENAI_TIMEOUT_MS') ||
-      '20000';
+      this.configService.get<string>('AI_TIMEOUT_MS') || '20000';
     const parsed = Number(rawValue);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : 20000;
   }
 
-  private getTranscriptionClient() {
-    if (this.transcriptionClient) {
-      return this.transcriptionClient;
+  private extractTextFromMessageContent(content: unknown) {
+    if (typeof content === 'string') {
+      return content;
     }
 
-    const timeoutMs = this.getTimeoutMs();
-
-    this.transcriptionClient = new OpenAI({
-      apiKey: this.configService.get<string>('OPENAI_API_KEY'),
-      timeout: timeoutMs,
-      maxRetries: 2,
-    });
-
-    return this.transcriptionClient;
-  }
-
-  private getTranscriptionModel() {
-    return (
-      this.configService.get<string>('OPENAI_TRANSCRIPTION_MODEL') ||
-      'gpt-4o-mini-transcribe'
-    );
-  }
-
-  private normalizeTranscriptionLanguage(value?: string | null) {
-    const normalized = (value || '').trim().toLowerCase();
-    if (!normalized) {
-      return undefined;
+    if (Array.isArray(content)) {
+      return content
+        .map((item: any) => {
+          if (typeof item === 'string') {
+            return item;
+          }
+          if (typeof item?.text === 'string') {
+            return item.text;
+          }
+          return '';
+        })
+        .join(' ')
+        .trim();
     }
 
-    if (normalized.startsWith('pt')) {
-      return 'pt';
-    }
-
-    return normalized;
+    return '';
   }
 
   private mapResponseToPayload(

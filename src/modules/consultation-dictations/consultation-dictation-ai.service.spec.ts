@@ -12,7 +12,7 @@ describe('ConsultationDictationAiService', () => {
     return new ConsultationDictationAiService(configService);
   };
 
-  it('should fallback to local parsing when OPENAI_API_KEY is not configured', async () => {
+  it('should fallback to local parsing when selected provider key is not configured', async () => {
     const service = createService();
 
     const draft = await service.buildStructuredDraft(
