@@ -13,6 +13,7 @@ import { ExamType } from '../../modules/exam-types/entities/exam-type.entity';
 import { Vaccine } from '../../modules/vaccines/entities/vaccine.entity';
 import { Box } from '../../modules/boxes/entities/box.entity';
 import { StockLocation } from '../../modules/stock-locations/entities/stock-location.entity';
+import { StockMovement } from '../../modules/stock-movements/entities/stock-movement.entity';
 import * as bcrypt from 'bcrypt';
 
 export default class SystemSeeder implements Seeder {
@@ -31,6 +32,7 @@ export default class SystemSeeder implements Seeder {
     const vaccineRepo = dataSource.getRepository(Vaccine);
     const boxRepo = dataSource.getRepository(Box);
     const stockLocationRepo = dataSource.getRepository(StockLocation);
+    const stockMovementRepo = dataSource.getRepository(StockMovement);
 
     const now = new Date();
 
@@ -186,6 +188,18 @@ export default class SystemSeeder implements Seeder {
         },
       ]);
     }
+    const arrivedStatus = await apptStatusRepo.findOne({
+      where: { code: 'ARRIVED' },
+    });
+    if (!arrivedStatus) {
+      await apptStatusRepo.insert({
+        code: 'ARRIVED',
+        name: 'Chegou',
+        isSystem: true,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
 
     // 6. Product Categories
     if ((await categoryRepo.count()) === 0) {
@@ -229,55 +243,57 @@ export default class SystemSeeder implements Seeder {
       if (vacCat)
         insertProducts.push({
           name: 'Vacina V10 Importada',
-          categoryId: vacCat.id,
+          productCategoryId: vacCat.id,
           costPrice: 35.0,
           salePrice: 90.0,
-          stockQuantity: 50,
           isService: false,
+          trackStock: true,
+          isVaccine: true,
           createdAt: now,
           updatedAt: now,
         });
       if (vacCat)
         insertProducts.push({
           name: 'Vacina Antirrábica',
-          categoryId: vacCat.id,
+          productCategoryId: vacCat.id,
           costPrice: 15.0,
           salePrice: 60.0,
-          stockQuantity: 100,
           isService: false,
+          trackStock: true,
+          isVaccine: true,
           createdAt: now,
           updatedAt: now,
         });
       if (medCat)
         insertProducts.push({
           name: 'Bravecto 10-20kg',
-          categoryId: medCat.id,
+          productCategoryId: medCat.id,
           costPrice: 150.0,
           salePrice: 220.0,
-          stockQuantity: 20,
           isService: false,
+          trackStock: true,
           createdAt: now,
           updatedAt: now,
         });
       if (medCat)
         insertProducts.push({
           name: 'Simparic 20-40kg',
-          categoryId: medCat.id,
+          productCategoryId: medCat.id,
           costPrice: 130.0,
           salePrice: 195.0,
-          stockQuantity: 25,
           isService: false,
+          trackStock: true,
           createdAt: now,
           updatedAt: now,
         });
       if (racCat)
         insertProducts.push({
           name: 'Ração Premier Cães Adultos 15kg',
-          categoryId: racCat.id,
+          productCategoryId: racCat.id,
           costPrice: 180.0,
           salePrice: 249.9,
-          stockQuantity: 10,
           isService: false,
+          trackStock: true,
           createdAt: now,
           updatedAt: now,
         });
@@ -508,6 +524,35 @@ export default class SystemSeeder implements Seeder {
           updatedAt: now,
         },
       ]);
+    }
+
+    const defaultLocation = await stockLocationRepo.findOne({
+      where: { isDefault: true },
+    });
+    if (defaultLocation && (await stockMovementRepo.count()) === 0) {
+      const seededProducts = await productRepo.find({ where: { trackStock: true } });
+      const quantitiesByName = new Map([
+        ['Vacina V10 Importada', 50],
+        ['Vacina Antirrábica', 100],
+        ['Bravecto 10-20kg', 20],
+        ['Simparic 20-40kg', 25],
+        ['Ração Premier Cães Adultos 15kg', 10],
+      ]);
+      await stockMovementRepo.insert(
+        seededProducts.map((product) => ({
+          productId: product.id,
+          stockLocationId: defaultLocation.id,
+          movementType: 'IN',
+          quantity: quantitiesByName.get(product.name) ?? 10,
+          unitCost: product.costPrice ?? null,
+          occurredAt: now,
+          referenceType: 'SEED',
+          referenceId: product.id,
+          notes: 'Estoque inicial do seed',
+          createdAt: now,
+          updatedAt: now,
+        })),
+      );
     }
   }
 }

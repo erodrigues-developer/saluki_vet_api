@@ -28,7 +28,13 @@ export class AuditSubscriber implements EntitySubscriberInterface {
     oldValues: any,
     newValues: any,
   ) {
-    if (!event.metadata || event.metadata.tableName === 'audit_logs') return;
+    if (
+      !event.metadata ||
+      event.metadata.tableName === 'audit_logs' ||
+      event.queryRunner?.isReleased
+    ) {
+      return;
+    }
 
     const store = als.getStore();
     const userId = store?.get('userId');

@@ -7,6 +7,8 @@ describe('TreatmentMapService', () => {
   let productsRepository: any;
   let proceduresRepository: any;
   let inpatientRecordsService: any;
+  let dataSource: any;
+  let stockMovementsService: any;
 
   beforeEach(() => {
     repository = {
@@ -18,12 +20,22 @@ describe('TreatmentMapService', () => {
     productsRepository = { findOneBy: jest.fn() };
     proceduresRepository = { findOneBy: jest.fn() };
     inpatientRecordsService = { ensureActiveRecord: jest.fn() };
+    dataSource = {
+      transaction: jest.fn((callback) =>
+        callback({
+          getRepository: jest.fn(() => repository),
+        }),
+      ),
+    };
+    stockMovementsService = { createStockOut: jest.fn().mockResolvedValue(null) };
 
     service = new TreatmentMapService(
       repository,
       productsRepository,
       proceduresRepository,
       inpatientRecordsService,
+      dataSource,
+      stockMovementsService,
     );
   });
 

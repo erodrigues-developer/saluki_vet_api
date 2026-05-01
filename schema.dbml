@@ -196,6 +196,28 @@ Table consultations {
   updated_at          datetime [not null]
 }
 
+Table consultation_dictations {
+  id                    bigint [pk, increment]
+  consultation_id       bigint [not null, ref: > consultations.id]
+  created_by_user_id    bigint [ref: > users.id]
+  status                varchar(20) [not null, default: 'PENDING']
+  capture_source        varchar(30) [not null, default: 'MANUAL_TEXT']
+  language              varchar(20) [not null, default: 'pt-BR']
+  audio_duration_seconds int
+  audio_file_name       varchar(255)
+  audio_mime_type       varchar(100)
+  audio_blob            blob
+  transcript_draft      text [not null]
+  transcript_final      text
+  structured_payload    json
+  failure_reason        text
+  processing_attempts   int [not null, default: 0]
+  processing_started_at datetime
+  processed_at          datetime
+  created_at            datetime [not null]
+  updated_at            datetime [not null]
+}
+
 Table consultation_procedures {
   id               bigint [pk, increment]
   consultation_id  bigint [not null, ref: > consultations.id]

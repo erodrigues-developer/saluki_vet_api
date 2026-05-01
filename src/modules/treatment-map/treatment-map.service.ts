@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';
 import { TreatmentMap } from './entities/treatment-map.entity';
 import { CreateTreatmentItemDto } from './dto/create-treatment-item.dto';
 import { ExecuteTreatmentItemDto } from './dto/execute-treatment-item.dto';
@@ -12,6 +12,7 @@ import { Product } from '../products/entities/product.entity';
 import { Procedure } from '../procedures/entities/procedure.entity';
 import { InpatientRecordsService } from '../inpatient-records/inpatient-records.service';
 import { FilterTreatmentMapDto } from './dto/filter-treatment-map.dto';
+import { StockMovementsService } from '../stock-movements/stock-movements.service';
 
 @Injectable()
 export class TreatmentMapService {
@@ -23,6 +24,8 @@ export class TreatmentMapService {
     @InjectRepository(Procedure)
     private readonly proceduresRepository: Repository<Procedure>,
     private readonly inpatientRecordsService: InpatientRecordsService,
+    private readonly dataSource: DataSource,
+    private readonly stockMovementsService: StockMovementsService,
   ) {}
 
   async create(
@@ -135,7 +138,34 @@ export class TreatmentMapService {
         : payload.notes;
     }
 
-    const saved = await this.treatmentMapRepository.save(item);
+    const saved = await this.dataSource.transaction(async (manager) => {
+      const persisted = await manager.getRepository(TreatmentMap).save(item);
+      await this.createStockMovementForTreatment(manager, item);
+      return persisted;
+    });
     return this.findOne(saved.id);
+  }
+
+  private async createStockMovementForTreatment(
+    manager: EntityManager,
+    item: TreatmentMap,
+  ) {
+    const productId = item.medicamentId ?? item.procedure?.consumedProductId;
+    const quantity = item.medicamentId
+      ? 1
+      : Number(item.procedure?.consumptionQuantity || 0);
+
+    if (!productId || quantity <= 0) {
+      return;
+    }
+
+    await this.stockMovementsService.createStockOut(manager, {
+      productId,
+      quantity,
+      referenceType: 'TREATMENT_MAP',
+      referenceId: item.id,
+      occurredAt: item.executedAt ?? new Date(),
+      notes: `Baixa automatica do tratamento #${item.id}`,
+    });
   }
 }

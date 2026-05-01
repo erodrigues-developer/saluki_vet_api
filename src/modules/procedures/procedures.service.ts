@@ -1,14 +1,19 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { ProceduresRepository } from './repositories/procedures.repository';
 import { Procedure } from './entities/procedure.entity';
 import { CreateProcedureDto } from './dto/create-procedure.dto';
 import { UpdateProcedureDto } from './dto/update-procedure.dto';
+import { ProductsService } from '../products/products.service';
 
 @Injectable()
 export class ProceduresService {
-  constructor(private readonly proceduresRepository: ProceduresRepository) {}
+  constructor(
+    private readonly proceduresRepository: ProceduresRepository,
+    private readonly productsService: ProductsService,
+  ) {}
 
   async create(payload: CreateProcedureDto): Promise<Procedure> {
+    await this.validateConsumption(payload);
     const procedure = this.proceduresRepository.create({
       ...payload,
       commissionPercent:
@@ -69,6 +74,7 @@ export class ProceduresService {
 
   async update(id: number, payload: UpdateProcedureDto): Promise<Procedure> {
     const procedure = await this.findOne(id);
+    await this.validateConsumption(payload);
     const merged = this.proceduresRepository.merge(procedure, payload);
     return this.proceduresRepository.save(merged);
   }
@@ -76,5 +82,27 @@ export class ProceduresService {
   async remove(id: number): Promise<void> {
     const procedure = await this.findOne(id);
     await this.proceduresRepository.remove(procedure);
+  }
+
+  private async validateConsumption(
+    payload: Pick<CreateProcedureDto, 'consumedProductId' | 'consumptionQuantity'>,
+  ) {
+    if (!payload.consumedProductId) {
+      return;
+    }
+
+    const quantity = Number(payload.consumptionQuantity || 0);
+    if (quantity <= 0) {
+      throw new BadRequestException(
+        'Quantidade de consumo deve ser maior que zero.',
+      );
+    }
+
+    const product = await this.productsService.findOne(payload.consumedProductId);
+    if (product.isService || !product.trackStock) {
+      throw new BadRequestException(
+        'Produto consumido deve ser um item fisico com estoque controlado.',
+      );
+    }
   }
 }

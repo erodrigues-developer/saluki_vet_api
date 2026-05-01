@@ -3,9 +3,12 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
+  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { Product } from '../../products/entities/product.entity';
 
 @Entity({ name: 'procedures' })
 export class Procedure {
@@ -40,6 +43,24 @@ export class Procedure {
     default: 0,
   })
   commissionPercent: number;
+
+  @ApiProperty({ example: 1, nullable: true })
+  @Column({ name: 'consumed_product_id', type: 'bigint', nullable: true })
+  consumedProductId?: number | null;
+
+  @ManyToOne(() => Product, { nullable: true })
+  @JoinColumn({ name: 'consumed_product_id' })
+  consumedProduct?: Product | null;
+
+  @ApiProperty({ example: 1, nullable: true })
+  @Column({
+    name: 'consumption_quantity',
+    type: 'decimal',
+    precision: 10,
+    scale: 3,
+    nullable: true,
+  })
+  consumptionQuantity?: number | null;
 
   @ApiProperty({ example: true })
   @Column({ name: 'is_active', type: 'boolean', default: true })

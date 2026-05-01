@@ -34,6 +34,20 @@ export class AppointmentsController {
     return this.appointmentsService.create(payload);
   }
 
+  @Post('quick-create')
+  @ApiOperation({ summary: 'Cria tutor, pet e agendamento em uma transação' })
+  @ApiOkResponse({ type: Appointment })
+  quickCreate(@Body() payload: any) {
+    return this.appointmentsService.quickCreate(payload);
+  }
+
+  @Post(':id/check-in')
+  @ApiOperation({ summary: 'Registra chegada e classifica triagem' })
+  @ApiOkResponse({ type: Appointment })
+  checkIn(@Param('id', ParseIntPipe) id: number, @Body() payload: any) {
+    return this.appointmentsService.checkIn(id, payload);
+  }
+
   @Get()
   @ApiOperation({ summary: 'Lista agendamentos com paginação e filtros' })
   findAll(@Query() query: any) {

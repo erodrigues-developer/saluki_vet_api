@@ -2,12 +2,16 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { ProductsRepository } from './repositories/products.repository';
 import { Product } from './entities/product.entity';
 import { ProductCategoriesService } from '../product-categories/product-categories.service';
+import { DataSource } from 'typeorm';
+import { StockMovementsService } from '../stock-movements/stock-movements.service';
 
 @Injectable()
 export class ProductsService {
   constructor(
     private readonly productsRepository: ProductsRepository,
     private readonly productCategoriesService: ProductCategoriesService,
+    private readonly dataSource: DataSource,
+    private readonly stockMovementsService: StockMovementsService,
   ) {}
 
   async create(payload: any): Promise<Product> {
@@ -61,7 +65,7 @@ export class ProductsService {
     });
 
     return {
-      data,
+      data: await this.attachCurrentStock(data),
       meta: {
         page,
         limit,
@@ -78,7 +82,8 @@ export class ProductsService {
     if (!product) {
       throw new NotFoundException(`Product ${id} not found`);
     }
-    return product;
+    const [withStock] = await this.attachCurrentStock([product]);
+    return withStock;
   }
 
   async update(id: number, payload: any): Promise<Product> {
@@ -99,5 +104,19 @@ export class ProductsService {
     const product = await this.findOne(id);
     // Soft delete
     await this.productsRepository.softRemove(product);
+  }
+
+  private async attachCurrentStock(products: Product[]) {
+    return Promise.all(
+      products.map(async (product) => ({
+        ...product,
+        currentStock: product.trackStock
+          ? await this.stockMovementsService.getCurrentStock(
+              this.dataSource.manager,
+              product.id,
+            )
+          : null,
+      })),
+    );
   }
 }

@@ -12,6 +12,7 @@ import { Pet } from '../pets/entities/pet.entity';
 import { Consultation } from '../consultations/entities/consultation.entity';
 import { ClinicalParameter } from '../clinical-parameters/entities/clinical-parameter.entity';
 import { InpatientRecordsService } from '../inpatient-records/inpatient-records.service';
+import { StockMovementsModule } from '../stock-movements/stock-movements.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { InpatientRecordsService } from '../inpatient-records/inpatient-records.
       Consultation,
       ClinicalParameter,
     ]),
+    StockMovementsModule,
   ],
   controllers: [TreatmentMapController, TreatmentMapActionsController],
   providers: [TreatmentMapService, InpatientRecordsService],

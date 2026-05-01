@@ -45,6 +45,8 @@ import { InpatientRecordsModule } from './modules/inpatient-records/inpatient-re
 import { ClinicalParametersModule } from './modules/clinical-parameters/clinical-parameters.module';
 import { TreatmentMapModule } from './modules/treatment-map/treatment-map.module';
 import { PrescriptionsModule } from './modules/prescriptions/prescriptions.module';
+import { ConsultationDictationsModule } from './modules/consultation-dictations/consultation-dictations.module';
+import { StockMovementsModule } from './modules/stock-movements/stock-movements.module';
 import configuration from './configs/configuration';
 
 @Module({
@@ -110,6 +112,8 @@ import configuration from './configs/configuration';
     ClinicalParametersModule,
     TreatmentMapModule,
     PrescriptionsModule,
+    ConsultationDictationsModule,
+    StockMovementsModule,
   ],
   controllers: [AppController],
   providers: [

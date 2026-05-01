@@ -16,6 +16,8 @@ import { Payment } from '../payments/entities/payment.entity';
 import { PaymentMethod } from '../payment-methods/entities/payment-method.entity';
 import { AccountReceivable } from '../accounts-receivable/entities/account-receivable.entity';
 import { CommissionsService } from '../commissions/commissions.service';
+import { SaleItem } from '../sale-items/entities/sale-item.entity';
+import { StockMovementsService } from '../stock-movements/stock-movements.service';
 
 @Injectable()
 export class SalesService {
@@ -23,6 +25,7 @@ export class SalesService {
     private readonly salesRepository: SalesRepository,
     private readonly dataSource: DataSource,
     private readonly commissionsService: CommissionsService,
+    private readonly stockMovementsService: StockMovementsService,
   ) {}
 
   async create(payload: Partial<Sale>): Promise<Sale> {
@@ -162,6 +165,7 @@ export class SalesService {
 
         sale.status = 'PAID';
         await saleRepository.save(sale);
+        await this.createStockMovementsForSale(manager, sale.id, paidAt);
         await this.commissionsService.calculateForPaidSale(manager, sale, paidAt);
 
         return {
@@ -187,6 +191,31 @@ export class SalesService {
   private normalizeMoney(value: number | string): number {
     const parsed = Number(value);
     return Math.round((parsed + Number.EPSILON) * 100) / 100;
+  }
+
+  private async createStockMovementsForSale(
+    manager: any,
+    saleId: number,
+    occurredAt: Date,
+  ) {
+    const items = await manager.getRepository(SaleItem).find({
+      where: { saleId },
+      relations: ['product'],
+    });
+
+    for (const item of items) {
+      if (!item.productId || !item.product?.trackStock) {
+        continue;
+      }
+      await this.stockMovementsService.createStockOut(manager, {
+        productId: item.productId,
+        quantity: Number(item.quantity),
+        referenceType: 'SALE',
+        referenceId: item.id,
+        occurredAt,
+        notes: `Baixa automatica da venda #${saleId}`,
+      });
+    }
   }
 
   private isAccountsReceivableSaleDuplicate(error: unknown): boolean {

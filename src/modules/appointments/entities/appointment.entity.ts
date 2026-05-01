@@ -62,6 +62,22 @@ export class Appointment {
   @Column({ type: 'text', nullable: true })
   notes?: string | null;
 
+  @ApiProperty({ example: 'AMARELA', nullable: true })
+  @Column({ name: 'triage_risk', type: 'varchar', length: 20, nullable: true })
+  triageRisk?: string | null;
+
+  @ApiProperty({ example: 60, nullable: true })
+  @Column({ name: 'triage_score', type: 'int', nullable: true })
+  triageScore?: number | null;
+
+  @ApiProperty({ example: 'Vomitos persistentes', nullable: true })
+  @Column({ name: 'triage_notes', type: 'text', nullable: true })
+  triageNotes?: string | null;
+
+  @ApiProperty({ example: '2024-07-20T10:00:00Z', nullable: true })
+  @Column({ name: 'arrived_at', type: 'timestamp', nullable: true })
+  arrivedAt?: Date | null;
+
   @ApiProperty({ example: 1, nullable: true })
   @Column({ name: 'created_by_user_id', type: 'bigint', nullable: true })
   createdByUserId?: number | null;

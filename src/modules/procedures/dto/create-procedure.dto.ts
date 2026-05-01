@@ -46,4 +46,18 @@ export class CreateProcedureDto {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean = true;
+
+  @ApiPropertyOptional({ example: 1 })
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  @IsOptional()
+  consumedProductId?: number | null;
+
+  @ApiPropertyOptional({ example: 1 })
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 3 })
+  @Min(0)
+  @IsOptional()
+  consumptionQuantity?: number | null;
 }

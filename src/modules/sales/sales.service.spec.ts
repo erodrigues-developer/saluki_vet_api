@@ -10,6 +10,7 @@ import { Payment } from '../payments/entities/payment.entity';
 import { PaymentMethod } from '../payment-methods/entities/payment-method.entity';
 import { AccountReceivable } from '../accounts-receivable/entities/account-receivable.entity';
 import { CommissionsService } from '../commissions/commissions.service';
+import { SaleItem } from '../sale-items/entities/sale-item.entity';
 
 describe('SalesService - checkout', () => {
   const saleEntity = {
@@ -53,12 +54,17 @@ describe('SalesService - checkout', () => {
       save: jest.fn(),
     };
 
+    const saleItemsRepository = {
+      find: jest.fn().mockResolvedValue([]),
+    };
+
     const manager = {
       getRepository: jest.fn((entity) => {
         if (entity === Sale) return saleRepository;
         if (entity === Payment) return paymentsRepository;
         if (entity === PaymentMethod) return paymentMethodsRepository;
         if (entity === AccountReceivable) return accountsReceivableRepository;
+        if (entity === SaleItem) return saleItemsRepository;
         throw new Error(`Unexpected repository request for ${entity}`);
       }),
     };
@@ -70,11 +76,15 @@ describe('SalesService - checkout', () => {
     const commissionsService = {
       calculateForPaidSale: jest.fn().mockResolvedValue([]),
     };
+    const stockMovementsService = {
+      createStockOut: jest.fn().mockResolvedValue(null),
+    };
 
     const service = new SalesService(
       {} as any,
       dataSource as any,
       commissionsService as unknown as CommissionsService,
+      stockMovementsService as any,
     );
 
     return {
@@ -86,6 +96,8 @@ describe('SalesService - checkout', () => {
       paymentsRepository,
       paymentMethodsRepository,
       accountsReceivableRepository,
+      saleItemsRepository,
+      stockMovementsService,
     };
   };
 
