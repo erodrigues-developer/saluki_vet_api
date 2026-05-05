@@ -73,6 +73,48 @@ export class SalesService {
     await this.salesRepository.remove(sale);
   }
 
+  async cancel(id: number): Promise<Sale> {
+    const sale = await this.salesRepository.findOne({ where: { id } });
+    if (!sale) {
+      throw new NotFoundException(`Sale with ID ${id} not found`);
+    }
+
+    if (sale.status === 'CANCELED') {
+      throw new ConflictException(`Venda #${sale.id} ja esta cancelada.`);
+    }
+
+    sale.status = 'CANCELED';
+    return this.salesRepository.save(sale);
+  }
+
+  async undoCheckout(id: number): Promise<Sale> {
+    return this.dataSource.transaction(async (manager) => {
+      const saleRepository = manager.getRepository(Sale);
+      const paymentsRepository = manager.getRepository(Payment);
+      const accountsReceivableRepository = manager.getRepository(AccountReceivable);
+
+      const sale = await saleRepository
+        .createQueryBuilder('sale')
+        .setLock('pessimistic_write')
+        .where('sale.id = :id', { id })
+        .getOne();
+
+      if (!sale) {
+        throw new NotFoundException(`Sale with ID ${id} not found`);
+      }
+
+      if (sale.status !== 'PAID') {
+        throw new ConflictException(`Apenas vendas pagas podem ter pagamento estornado.`);
+      }
+
+      await paymentsRepository.delete({ saleId: sale.id });
+      await accountsReceivableRepository.delete({ saleId: sale.id });
+
+      sale.status = 'OPEN';
+      return saleRepository.save(sale);
+    });
+  }
+
   async checkout(
     id: number,
     payload: CheckoutSaleDto,

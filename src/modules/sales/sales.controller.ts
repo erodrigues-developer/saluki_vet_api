@@ -46,6 +46,20 @@ export class SalesController {
     return this.salesService.checkout(id, checkoutDto);
   }
 
+  @Post(':id/cancel')
+  @ApiOperation({ summary: 'Cancelar venda' })
+  @ApiOkResponse({ type: Sale })
+  cancel(@Param('id', ParseIntPipe) id: number) {
+    return this.salesService.cancel(id);
+  }
+
+  @Post(':id/undo-checkout')
+  @ApiOperation({ summary: 'Estornar pagamento de venda paga' })
+  @ApiOkResponse({ type: Sale })
+  undoCheckout(@Param('id', ParseIntPipe) id: number) {
+    return this.salesService.undoCheckout(id);
+  }
+
   @Get()
   @ApiOperation({ summary: 'Listar vendas com filtros e paginação' })
   findAll(
