@@ -46,9 +46,6 @@ Table user_roles {
   Note: 'Permite múltiplos papéis por usuário'
 }
 
-Ref: user_roles.user_id > users.id
-Ref: user_roles.role_id > roles.id
-
 /*************************************************
  * CONFIGURAÇÕES DA CLÍNICA (LOCAIS)
  *************************************************/
