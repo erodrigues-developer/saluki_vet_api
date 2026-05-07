@@ -6,6 +6,7 @@ import {
   IsNotEmpty,
   IsNumber,
   IsOptional,
+  Matches,
   IsString,
   MaxLength,
   MinLength,
@@ -24,10 +25,18 @@ export class CreateUserDto {
   @MaxLength(255)
   email: string;
 
-  @ApiProperty({ example: 'Senha@123', minLength: 6 })
+  @ApiProperty({
+    example: 'Senha@123',
+    minLength: 8,
+    description:
+      'Mínimo de 8 caracteres, com ao menos 1 letra maiúscula, 1 número e 1 símbolo',
+  })
   @IsString()
   @IsNotEmpty()
-  @MinLength(6)
+  @MinLength(8)
+  @Matches(/[A-Z]/, { message: 'Senha deve conter ao menos 1 letra maiúscula' })
+  @Matches(/\d/, { message: 'Senha deve conter ao menos 1 número' })
+  @Matches(/[^A-Za-z0-9]/, { message: 'Senha deve conter ao menos 1 símbolo' })
   password: string;
 
   @ApiProperty({ example: '+55 11 98888-7777', required: false })
