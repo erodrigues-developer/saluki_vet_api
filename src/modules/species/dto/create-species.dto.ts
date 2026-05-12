@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CreateSpeciesDto {
   @ApiProperty({ example: 'Cachorro', description: 'Nome da espécie' })
@@ -7,4 +7,9 @@ export class CreateSpeciesDto {
   @IsNotEmpty()
   @MaxLength(100)
   name: string;
+
+  @ApiProperty({ example: true, required: false, description: 'Status da espécie' })
+  @IsBoolean()
+  @IsOptional()
+  isActive?: boolean;
 }

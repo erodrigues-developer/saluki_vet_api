@@ -8,6 +8,7 @@ const breedFactory = (id = 1): Breed => ({
   id,
   name: 'Bulldog',
   speciesId: 1,
+  isActive: true,
   species: { id: 1, name: 'Cachorro' } as any,
   createdAt: new Date(),
   updatedAt: new Date(),

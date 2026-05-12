@@ -12,7 +12,9 @@ export class CommissionsController {
     if (value === undefined || value === null || value === '') return undefined;
     const parsed = Number(value);
     if (!Number.isInteger(parsed)) {
-      throw new BadRequestException('Validation failed (numeric string is expected)');
+      throw new BadRequestException(
+        'Validation failed (numeric string is expected)',
+      );
     }
     return parsed;
   }
@@ -43,7 +45,8 @@ export class CommissionsController {
 
   @Get('summary')
   @ApiOperation({
-    summary: 'Obter totais pendentes e pagos de comissoes por filtros administrativos',
+    summary:
+      'Obter totais pendentes e pagos de comissoes por filtros administrativos',
   })
   getSummary(
     @Query('status') status?: string,

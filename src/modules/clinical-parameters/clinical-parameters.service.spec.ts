@@ -17,7 +17,10 @@ describe('ClinicalParametersService', () => {
       ensureActiveRecord: jest.fn(),
     };
 
-    service = new ClinicalParametersService(repository, inpatientRecordsService);
+    service = new ClinicalParametersService(
+      repository,
+      inpatientRecordsService,
+    );
   });
 
   it('should require at least one parameter value', async () => {

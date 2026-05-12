@@ -22,7 +22,8 @@ export class FilterBoxesDto {
 
   @ApiPropertyOptional({
     example: false,
-    description: 'Quando true, retorna apenas boxes disponiveis para nova internacao.',
+    description:
+      'Quando true, retorna apenas boxes disponiveis para nova internacao.',
   })
   @Transform(({ value }) => {
     if (value === undefined || value === null || value === '') {

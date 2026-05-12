@@ -530,7 +530,9 @@ export default class SystemSeeder implements Seeder {
       where: { isDefault: true },
     });
     if (defaultLocation && (await stockMovementRepo.count()) === 0) {
-      const seededProducts = await productRepo.find({ where: { trackStock: true } });
+      const seededProducts = await productRepo.find({
+        where: { trackStock: true },
+      });
       const quantitiesByName = new Map([
         ['Vacina V10 Importada', 50],
         ['Vacina Antirrábica', 100],

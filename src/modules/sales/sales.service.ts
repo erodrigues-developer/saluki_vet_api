@@ -91,7 +91,8 @@ export class SalesService {
     return this.dataSource.transaction(async (manager) => {
       const saleRepository = manager.getRepository(Sale);
       const paymentsRepository = manager.getRepository(Payment);
-      const accountsReceivableRepository = manager.getRepository(AccountReceivable);
+      const accountsReceivableRepository =
+        manager.getRepository(AccountReceivable);
 
       const sale = await saleRepository
         .createQueryBuilder('sale')
@@ -104,7 +105,9 @@ export class SalesService {
       }
 
       if (sale.status !== 'PAID') {
-        throw new ConflictException(`Apenas vendas pagas podem ter pagamento estornado.`);
+        throw new ConflictException(
+          `Apenas vendas pagas podem ter pagamento estornado.`,
+        );
       }
 
       await paymentsRepository.delete({ saleId: sale.id });
@@ -208,7 +211,11 @@ export class SalesService {
         sale.status = 'PAID';
         await saleRepository.save(sale);
         await this.createStockMovementsForSale(manager, sale.id, paidAt);
-        await this.commissionsService.calculateForPaidSale(manager, sale, paidAt);
+        await this.commissionsService.calculateForPaidSale(
+          manager,
+          sale,
+          paidAt,
+        );
 
         return {
           saleId: sale.id,

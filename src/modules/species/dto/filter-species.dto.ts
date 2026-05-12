@@ -1,6 +1,14 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
 
 export class FilterSpeciesDto {
   @ApiPropertyOptional({
@@ -35,14 +43,23 @@ export class FilterSpeciesDto {
   limit?: number = 10;
 
   @ApiPropertyOptional({
+    description: 'Filtra por status ativo/inativo',
+    example: true,
+  })
+  @Type(() => Boolean)
+  @IsBoolean()
+  @IsOptional()
+  isActive?: boolean;
+
+  @ApiPropertyOptional({
     description: 'Campo de ordenação',
     example: 'createdAt',
-    enum: ['name', 'createdAt', 'updatedAt'],
+    enum: ['name', 'isActive', 'createdAt', 'updatedAt'],
     default: 'createdAt',
   })
   @IsString()
   @IsOptional()
-  @IsIn(['name', 'createdAt', 'updatedAt'])
+  @IsIn(['name', 'isActive', 'createdAt', 'updatedAt'])
   sortBy?: string = 'createdAt';
 
   @ApiPropertyOptional({

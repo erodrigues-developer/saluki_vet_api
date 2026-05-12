@@ -10,9 +10,7 @@ import {
 
 @Injectable()
 export class CommissionsService {
-  constructor(
-    private readonly commissionsRepository: CommissionsRepository,
-  ) {}
+  constructor(private readonly commissionsRepository: CommissionsRepository) {}
 
   async findAll(filters: CommissionsFilterOptions) {
     return this.commissionsRepository.findPaginated(filters);

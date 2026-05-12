@@ -114,13 +114,11 @@ export class TreatmentMapService {
     return item;
   }
 
-  async execute(
-    id: number,
-    payload: ExecuteTreatmentItemDto,
-    userId?: number,
-  ) {
+  async execute(id: number, payload: ExecuteTreatmentItemDto, userId?: number) {
     const item = await this.findOne(id);
-    await this.inpatientRecordsService.ensureActiveRecord(item.inpatientRecordId);
+    await this.inpatientRecordsService.ensureActiveRecord(
+      item.inpatientRecordId,
+    );
 
     if (item.status === 'EXECUTED') {
       throw new BadRequestException(`Treatment item ${id} already executed`);

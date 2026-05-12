@@ -1,7 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ClinicalParameter } from './entities/clinical-parameter.entity';
@@ -41,7 +38,9 @@ export class ClinicalParametersService {
     const entity = this.clinicalParametersRepository.create({
       ...payload,
       inpatientRecordId,
-      measuredAt: payload.measuredAt ? new Date(payload.measuredAt) : new Date(),
+      measuredAt: payload.measuredAt
+        ? new Date(payload.measuredAt)
+        : new Date(),
       createdByUserId: userId ?? null,
     });
 

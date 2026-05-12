@@ -32,6 +32,7 @@ describe('BreedsController', () => {
     service.create.mockResolvedValue({
       id: 1,
       name: 'Bulldog',
+      isActive: true,
       species: { id: 1, name: 'Cachorro' },
     } as any);
     const result = await controller.create({
@@ -51,6 +52,7 @@ describe('BreedsController', () => {
     service.findOne.mockResolvedValue({
       id: 1,
       name: 'Bulldog',
+      isActive: true,
       species: { id: 1, name: 'Cachorro' },
     } as any);
     const result = await controller.findOne(1);
@@ -61,6 +63,7 @@ describe('BreedsController', () => {
     service.update.mockResolvedValue({
       id: 1,
       name: 'Pug',
+      isActive: true,
       species: { id: 1, name: 'Cachorro' },
     } as any);
     const result = await controller.update(1, { name: 'Pug' } as any);

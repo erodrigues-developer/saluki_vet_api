@@ -15,10 +15,11 @@ export class SuppliersService {
 
   async create(payload: CreateSupplierDto): Promise<Supplier> {
     const normalizedDocument = this.normalizeDocument(payload.document);
-
-    if (normalizedDocument) {
-      await this.assertDocumentUniqueness(normalizedDocument);
+    if (!normalizedDocument) {
+      throw new BadRequestException('CPF/CNPJ é obrigatório.');
     }
+
+    await this.assertDocumentUniqueness(normalizedDocument);
 
     const supplier = this.suppliersRepository.create({
       ...payload,
@@ -119,7 +120,9 @@ export class SuppliersService {
     const existing = await this.suppliersRepository.findOneBy({ document });
 
     if (existing && Number(existing.id) !== ignoreId) {
-      throw new BadRequestException('Document already in use by another supplier');
+      throw new BadRequestException(
+        'Já existe um fornecedor cadastrado com este documento.',
+      );
     }
   }
 }

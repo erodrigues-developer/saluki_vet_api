@@ -219,7 +219,9 @@ export class ConsultationDictationAiService {
           options,
           fallbackTranscript,
         );
-        return this.normalizeClinicalTranscript(transcript || fallbackTranscript);
+        return this.normalizeClinicalTranscript(
+          transcript || fallbackTranscript,
+        );
       } catch (error: any) {
         if (fallbackTranscript.length >= 10) {
           this.logger.error(
@@ -315,8 +317,7 @@ export class ConsultationDictationAiService {
       const { ChatGoogleGenerativeAI } = require('@langchain/google-genai');
       return new ChatGoogleGenerativeAI({
         model:
-          this.configService.get<string>('GEMINI_MODEL') ||
-          'gemini-2.5-flash',
+          this.configService.get<string>('GEMINI_MODEL') || 'gemini-2.5-flash',
         temperature: 0,
         maxRetries: 2,
         apiKey: this.configService.get<string>('GEMINI_API_KEY'),
@@ -353,8 +354,7 @@ export class ConsultationDictationAiService {
   }
 
   private getTimeoutMs() {
-    const rawValue =
-      this.configService.get<string>('AI_TIMEOUT_MS') || '20000';
+    const rawValue = this.configService.get<string>('AI_TIMEOUT_MS') || '20000';
     const parsed = Number(rawValue);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : 20000;
   }

@@ -32,7 +32,8 @@ export class CreateProcedureDto {
 
   @ApiPropertyOptional({
     example: 15,
-    description: 'Percentual de comissao aplicado sobre o faturamento do procedimento',
+    description:
+      'Percentual de comissao aplicado sobre o faturamento do procedimento',
     default: 0,
   })
   @Type(() => Number)

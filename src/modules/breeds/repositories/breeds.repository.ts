@@ -5,9 +5,10 @@ import { Breed } from '../entities/breed.entity';
 export interface BreedsFilterOptions {
   name?: string;
   speciesId?: number;
+  isActive?: boolean;
   page: number;
   limit: number;
-  sortBy?: 'name' | 'species_id' | 'created_at' | 'updated_at';
+  sortBy?: 'name' | 'species_id' | 'is_active' | 'created_at' | 'updated_at';
   sortDirection?: 'ASC' | 'DESC';
 }
 
@@ -34,10 +35,14 @@ export class BreedsRepository extends Repository<Breed> {
     if (filters.speciesId) {
       where.speciesId = filters.speciesId;
     }
+    if (typeof filters.isActive === 'boolean') {
+      where.isActive = filters.isActive;
+    }
 
     const sortableColumns: Record<string, keyof Breed> = {
       name: 'name',
       species_id: 'speciesId',
+      is_active: 'isActive',
       created_at: 'createdAt',
       updated_at: 'updatedAt',
     };

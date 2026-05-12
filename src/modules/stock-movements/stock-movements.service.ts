@@ -43,7 +43,9 @@ export class StockMovementsService {
       .getOne();
 
     if (!product || !product.isActive) {
-      throw new BadRequestException(`Produto ${request.productId} inexistente.`);
+      throw new BadRequestException(
+        `Produto ${request.productId} inexistente.`,
+      );
     }
 
     if (!product.trackStock) {

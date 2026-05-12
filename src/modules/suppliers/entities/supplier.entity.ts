@@ -22,7 +22,9 @@ export class Supplier {
   @Column({ type: 'varchar', length: 255 })
   name: string;
 
-  @ApiPropertyOptional({ example: 'Zoetis Industria de Produtos Veterinarios Ltda' })
+  @ApiPropertyOptional({
+    example: 'Zoetis Industria de Produtos Veterinarios Ltda',
+  })
   @Column({ name: 'legal_name', type: 'varchar', length: 255, nullable: true })
   legalName?: string | null;
 
@@ -42,7 +44,9 @@ export class Supplier {
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive: boolean;
 
-  @ApiPropertyOptional({ example: 'Fornecedor homologado para compras recorrentes' })
+  @ApiPropertyOptional({
+    example: 'Fornecedor homologado para compras recorrentes',
+  })
   @Column({ type: 'text', nullable: true })
   notes?: string | null;
 

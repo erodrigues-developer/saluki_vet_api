@@ -4,7 +4,8 @@ export class UpdateAccountsPayableAddPaymentColumns1772249670366
   implements MigrationInterface
 {
   public async up(queryRunner: QueryRunner): Promise<void> {
-    const accountsPayableExists = await queryRunner.hasTable('accounts_payable');
+    const accountsPayableExists =
+      await queryRunner.hasTable('accounts_payable');
     if (!accountsPayableExists) {
       return;
     }
@@ -62,7 +63,8 @@ export class UpdateAccountsPayableAddPaymentColumns1772249670366
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    const accountsPayableExists = await queryRunner.hasTable('accounts_payable');
+    const accountsPayableExists =
+      await queryRunner.hasTable('accounts_payable');
     if (!accountsPayableExists) {
       return;
     }

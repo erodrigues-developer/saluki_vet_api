@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { ProceduresRepository } from './repositories/procedures.repository';
 import { Procedure } from './entities/procedure.entity';
 import { CreateProcedureDto } from './dto/create-procedure.dto';
@@ -17,9 +21,7 @@ export class ProceduresService {
     const procedure = this.proceduresRepository.create({
       ...payload,
       commissionPercent:
-        payload.commissionPercent !== undefined
-          ? payload.commissionPercent
-          : 0,
+        payload.commissionPercent !== undefined ? payload.commissionPercent : 0,
     });
     return this.proceduresRepository.save(procedure);
   }
@@ -85,7 +87,10 @@ export class ProceduresService {
   }
 
   private async validateConsumption(
-    payload: Pick<CreateProcedureDto, 'consumedProductId' | 'consumptionQuantity'>,
+    payload: Pick<
+      CreateProcedureDto,
+      'consumedProductId' | 'consumptionQuantity'
+    >,
   ) {
     if (!payload.consumedProductId) {
       return;
@@ -98,7 +103,9 @@ export class ProceduresService {
       );
     }
 
-    const product = await this.productsService.findOne(payload.consumedProductId);
+    const product = await this.productsService.findOne(
+      payload.consumedProductId,
+    );
     if (product.isService || !product.trackStock) {
       throw new BadRequestException(
         'Produto consumido deve ser um item fisico com estoque controlado.',

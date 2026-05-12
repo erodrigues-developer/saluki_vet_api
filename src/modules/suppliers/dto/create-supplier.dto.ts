@@ -24,14 +24,14 @@ export class CreateSupplierDto {
   @MaxLength(255)
   legalName?: string;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     example: '12345678000199',
     description: 'CPF/CNPJ do fornecedor (somente numeros)',
   })
   @IsString()
-  @IsOptional()
+  @IsNotEmpty()
   @MaxLength(32)
-  document?: string;
+  document: string;
 
   @ApiPropertyOptional({ example: 'contato@fornecedor.com' })
   @IsEmail()

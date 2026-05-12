@@ -91,7 +91,9 @@ export class InpatientRecordsService {
 
     const entity = this.inpatientRecordsRepository.create({
       ...payload,
-      admissionAt: payload.admissionAt ? new Date(payload.admissionAt) : new Date(),
+      admissionAt: payload.admissionAt
+        ? new Date(payload.admissionAt)
+        : new Date(),
       status: 'ACTIVE',
     });
 

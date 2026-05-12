@@ -93,9 +93,9 @@ describe('SuppliersService', () => {
   });
 
   it('should fail on invalid pagination', async () => {
-    await expect(service.findAll({ page: 0, limit: 20 } as any)).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
+    await expect(
+      service.findAll({ page: 0, limit: 20 } as any),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('should throw when supplier not found', async () => {

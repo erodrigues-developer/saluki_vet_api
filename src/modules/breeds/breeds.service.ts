@@ -37,6 +37,8 @@ export class BreedsService {
     const { data, total } = await this.breedsRepository.findPaginated({
       name: filters.name,
       speciesId: filters.speciesId,
+      isActive:
+        typeof filters.isActive === 'boolean' ? filters.isActive : undefined,
       page,
       limit,
       sortBy:
@@ -46,6 +48,8 @@ export class BreedsService {
             ? 'updated_at'
             : filters.sortBy === 'speciesId'
               ? 'species_id'
+              : filters.sortBy === 'isActive'
+                ? 'is_active'
               : (filters.sortBy as any),
       sortDirection:
         filters.sortDirection?.toLowerCase() === 'asc' ? 'ASC' : 'DESC',

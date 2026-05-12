@@ -1,9 +1,5 @@
 import { Controller, Get, ParseIntPipe, Query } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiOperation,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AccountsReceivableService } from './accounts-receivable.service';
 
 @ApiTags('accounts-receivable')
@@ -16,7 +12,8 @@ export class AccountsReceivableController {
 
   @Get()
   @ApiOperation({
-    summary: 'Listar contas a receber com filtros por status, periodo, cliente e venda',
+    summary:
+      'Listar contas a receber com filtros por status, periodo, cliente e venda',
   })
   findAll(
     @Query('page') page = '1',

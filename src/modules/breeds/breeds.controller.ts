@@ -61,13 +61,14 @@ export class BreedsController {
   })
   @ApiQuery({ name: 'name', required: false, example: 'Bull' })
   @ApiQuery({ name: 'speciesId', required: false, example: 1 })
+  @ApiQuery({ name: 'isActive', required: false, example: true })
   @ApiQuery({ name: 'page', required: false, example: 1 })
   @ApiQuery({ name: 'limit', required: false, example: 10 })
   @ApiQuery({
     name: 'sortBy',
     required: false,
     example: 'createdAt',
-    description: 'name | speciesId | createdAt | updatedAt',
+    description: 'name | speciesId | isActive | createdAt | updatedAt',
   })
   @ApiQuery({
     name: 'sortDirection',

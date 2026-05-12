@@ -29,9 +29,16 @@ describe('SpeciesController', () => {
   });
 
   it('should create a species', async () => {
-    service.create.mockResolvedValue({ id: 1, name: 'Cachorro' } as any);
-    const result = await controller.create({ name: 'Cachorro' } as any);
-    expect(result).toEqual({ id: 1, name: 'Cachorro' });
+    service.create.mockResolvedValue({
+      id: 1,
+      name: 'Cachorro',
+      isActive: true,
+    } as any);
+    const result = await controller.create({
+      name: 'Cachorro',
+      isActive: true,
+    } as any);
+    expect(result).toEqual({ id: 1, name: 'Cachorro', isActive: true });
   });
 
   it('should list species', async () => {
@@ -41,7 +48,11 @@ describe('SpeciesController', () => {
   });
 
   it('should get one species', async () => {
-    service.findOne.mockResolvedValue({ id: 1, name: 'Cachorro' } as any);
+    service.findOne.mockResolvedValue({
+      id: 1,
+      name: 'Cachorro',
+      isActive: true,
+    } as any);
     const result = await controller.findOne(1);
     expect(result.id).toBe(1);
   });

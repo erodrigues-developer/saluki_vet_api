@@ -192,7 +192,9 @@ export class AccountsPayableService {
     }
 
     if (status === 'OVERDUE') {
-      query.andWhere('ap.status = :pendingStatus', { pendingStatus: 'PENDING' });
+      query.andWhere('ap.status = :pendingStatus', {
+        pendingStatus: 'PENDING',
+      });
       query.andWhere('ap.dueDate < CURRENT_DATE');
       return;
     }
@@ -201,7 +203,9 @@ export class AccountsPayableService {
   }
 
   private async ensureSupplierExists(supplierId: number): Promise<void> {
-    const supplier = await this.suppliersRepository.findOneBy({ id: supplierId });
+    const supplier = await this.suppliersRepository.findOneBy({
+      id: supplierId,
+    });
 
     if (!supplier) {
       throw new NotFoundException('Supplier not found');

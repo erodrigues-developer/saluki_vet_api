@@ -11,7 +11,10 @@ describe('CommissionsService', () => {
 
   const calculatedAt = new Date('2026-03-02T18:30:00.000Z');
 
-  const createSut = (saleItems: Partial<SaleItem>[], existingCommission?: Partial<Commission>) => {
+  const createSut = (
+    saleItems: Partial<SaleItem>[],
+    existingCommission?: Partial<Commission>,
+  ) => {
     const saleItemsRepository = {
       find: jest.fn().mockResolvedValue(saleItems),
     };
@@ -53,7 +56,11 @@ describe('CommissionsService', () => {
       },
     ]);
 
-    const result = await service.calculateForPaidSale(manager, sale, calculatedAt);
+    const result = await service.calculateForPaidSale(
+      manager,
+      sale,
+      calculatedAt,
+    );
 
     expect(result).toEqual([
       expect.objectContaining({
@@ -82,7 +89,11 @@ describe('CommissionsService', () => {
       },
     ]);
 
-    const result = await service.calculateForPaidSale(manager, sale, calculatedAt);
+    const result = await service.calculateForPaidSale(
+      manager,
+      sale,
+      calculatedAt,
+    );
 
     expect(result).toEqual([]);
     expect(commissionsRepository.save).not.toHaveBeenCalled();
@@ -104,7 +115,11 @@ describe('CommissionsService', () => {
       { id: 99, saleId: 15, procedureId: 5 } as Commission,
     );
 
-    const result = await service.calculateForPaidSale(manager, sale, calculatedAt);
+    const result = await service.calculateForPaidSale(
+      manager,
+      sale,
+      calculatedAt,
+    );
 
     expect(result).toEqual([]);
     expect(commissionsRepository.findOne).toHaveBeenCalledWith({

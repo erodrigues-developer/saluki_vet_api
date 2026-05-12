@@ -207,9 +207,8 @@ export class EnhanceSalesAndCommissions1772250000003
       }
 
       const refreshedSaleItemsTable = await queryRunner.getTable('sale_items');
-      const productIdColumn = refreshedSaleItemsTable?.findColumnByName(
-        'product_id',
-      );
+      const productIdColumn =
+        refreshedSaleItemsTable?.findColumnByName('product_id');
 
       if (productIdColumn && productIdColumn.isNullable) {
         await queryRunner.changeColumn(

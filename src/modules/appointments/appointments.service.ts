@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { AppointmentsRepository } from './repositories/appointments.repository';
 import { Appointment } from './entities/appointment.entity';
 import { DataSource } from 'typeorm';
@@ -48,7 +52,9 @@ export class AppointmentsService {
 
       const petPayload = payload.pet || {};
       if (!petPayload.name || !petPayload.speciesId) {
-        throw new BadRequestException('Nome e especie do pet sao obrigatorios.');
+        throw new BadRequestException(
+          'Nome e especie do pet sao obrigatorios.',
+        );
       }
 
       const pet = await manager.getRepository(Pet).save(
@@ -119,7 +125,9 @@ export class AppointmentsService {
     appointment.statusId = arrivedStatus.id;
     appointment.status = arrivedStatus;
     appointment.reason = reason;
-    appointment.arrivedAt = payload.arrivedAt ? new Date(payload.arrivedAt) : new Date();
+    appointment.arrivedAt = payload.arrivedAt
+      ? new Date(payload.arrivedAt)
+      : new Date();
     appointment.triageRisk = triage.risk;
     appointment.triageScore = triage.score;
     appointment.triageNotes = triage.notes;
@@ -194,11 +202,23 @@ export class AppointmentsService {
     const red = ['convuls', 'sangr', 'atropel', 'respira', 'desma', 'veneno'];
     const yellow = ['vomit', 'diarre', 'dor', 'febre', 'apat', 'nao come'];
     if (red.some((term) => text.includes(term))) {
-      return { risk: 'VERMELHA', score: 90, notes: 'Sinais de urgencia detectados.' };
+      return {
+        risk: 'VERMELHA',
+        score: 90,
+        notes: 'Sinais de urgencia detectados.',
+      };
     }
     if (yellow.some((term) => text.includes(term))) {
-      return { risk: 'AMARELA', score: 60, notes: 'Sintomas requerem prioridade intermediaria.' };
+      return {
+        risk: 'AMARELA',
+        score: 60,
+        notes: 'Sintomas requerem prioridade intermediaria.',
+      };
     }
-    return { risk: 'VERDE', score: 20, notes: 'Sem sinais criticos no texto informado.' };
+    return {
+      risk: 'VERDE',
+      score: 20,
+      notes: 'Sem sinais criticos no texto informado.',
+    };
   }
 }

@@ -52,7 +52,10 @@ export class ProceduresController {
   @Patch(':id')
   @ApiOperation({ summary: 'Atualiza um procedimento' })
   @ApiOkResponse({ type: Procedure })
-  update(@Param('id', ParseIntPipe) id: number, @Body() payload: UpdateProcedureDto) {
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() payload: UpdateProcedureDto,
+  ) {
     return this.proceduresService.update(id, payload);
   }
 

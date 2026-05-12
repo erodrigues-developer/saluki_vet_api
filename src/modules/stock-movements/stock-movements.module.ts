@@ -11,4 +11,3 @@ import { StockMovementsService } from './stock-movements.service';
   exports: [StockMovementsService],
 })
 export class StockMovementsModule {}
-

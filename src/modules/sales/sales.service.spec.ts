@@ -123,7 +123,10 @@ describe('SalesService - checkout', () => {
     });
     paymentsRepository.findOne.mockResolvedValue(null);
     accountsReceivableRepository.findOne.mockResolvedValue(null);
-    paymentsRepository.save.mockResolvedValue({ id: 300, saleId: saleEntity.id });
+    paymentsRepository.save.mockResolvedValue({
+      id: 300,
+      saleId: saleEntity.id,
+    });
     accountsReceivableRepository.save.mockResolvedValue({
       id: 900,
       saleId: saleEntity.id,
@@ -143,7 +146,9 @@ describe('SalesService - checkout', () => {
       description: 'Recebimento da venda #10',
     });
 
-    expect(checkoutQueryBuilder.setLock).toHaveBeenCalledWith('pessimistic_write');
+    expect(checkoutQueryBuilder.setLock).toHaveBeenCalledWith(
+      'pessimistic_write',
+    );
     expect(paymentsRepository.create).toHaveBeenCalledWith(
       expect.objectContaining({
         saleId: 10,
@@ -192,25 +197,33 @@ describe('SalesService - checkout', () => {
       status: 'PAID',
     });
 
-    await expect(service.checkout(saleEntity.id, checkoutPayload)).rejects.toBeInstanceOf(
-      ConflictException,
-    );
+    await expect(
+      service.checkout(saleEntity.id, checkoutPayload),
+    ).rejects.toBeInstanceOf(ConflictException);
   });
 
   it('should throw BadRequestException when payment method is inactive', async () => {
-    const { service, checkoutQueryBuilder, paymentMethodsRepository } = createSut();
+    const { service, checkoutQueryBuilder, paymentMethodsRepository } =
+      createSut();
     checkoutQueryBuilder.getOne.mockResolvedValue({ ...saleEntity });
-    paymentMethodsRepository.findOne.mockResolvedValue({ id: 1, isActive: false });
+    paymentMethodsRepository.findOne.mockResolvedValue({
+      id: 1,
+      isActive: false,
+    });
 
-    await expect(service.checkout(saleEntity.id, checkoutPayload)).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
+    await expect(
+      service.checkout(saleEntity.id, checkoutPayload),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('should throw BadRequestException when amount is not full', async () => {
-    const { service, checkoutQueryBuilder, paymentMethodsRepository } = createSut();
+    const { service, checkoutQueryBuilder, paymentMethodsRepository } =
+      createSut();
     checkoutQueryBuilder.getOne.mockResolvedValue({ ...saleEntity });
-    paymentMethodsRepository.findOne.mockResolvedValue({ id: 1, isActive: true });
+    paymentMethodsRepository.findOne.mockResolvedValue({
+      id: 1,
+      isActive: true,
+    });
 
     await expect(
       service.checkout(saleEntity.id, {
@@ -231,7 +244,10 @@ describe('SalesService - checkout', () => {
     } = createSut();
 
     checkoutQueryBuilder.getOne.mockResolvedValue({ ...saleEntity });
-    paymentMethodsRepository.findOne.mockResolvedValue({ id: 1, isActive: true });
+    paymentMethodsRepository.findOne.mockResolvedValue({
+      id: 1,
+      isActive: true,
+    });
     paymentsRepository.findOne.mockResolvedValue(null);
     accountsReceivableRepository.findOne.mockResolvedValue(null);
     paymentsRepository.save.mockResolvedValue({ id: 300 });
@@ -239,9 +255,9 @@ describe('SalesService - checkout', () => {
       new Error('forced persistence failure'),
     );
 
-    await expect(service.checkout(saleEntity.id, checkoutPayload)).rejects.toThrow(
-      'forced persistence failure',
-    );
+    await expect(
+      service.checkout(saleEntity.id, checkoutPayload),
+    ).rejects.toThrow('forced persistence failure');
     expect(saleRepository.save).not.toHaveBeenCalled();
   });
 
@@ -255,7 +271,10 @@ describe('SalesService - checkout', () => {
     } = createSut();
 
     checkoutQueryBuilder.getOne.mockResolvedValue({ ...saleEntity });
-    paymentMethodsRepository.findOne.mockResolvedValue({ id: 1, isActive: true });
+    paymentMethodsRepository.findOne.mockResolvedValue({
+      id: 1,
+      isActive: true,
+    });
     paymentsRepository.findOne.mockResolvedValue(null);
     accountsReceivableRepository.findOne.mockResolvedValue(null);
     paymentsRepository.save.mockResolvedValue({ id: 300 });
@@ -266,8 +285,8 @@ describe('SalesService - checkout', () => {
       } as any),
     );
 
-    await expect(service.checkout(saleEntity.id, checkoutPayload)).rejects.toBeInstanceOf(
-      ConflictException,
-    );
+    await expect(
+      service.checkout(saleEntity.id, checkoutPayload),
+    ).rejects.toBeInstanceOf(ConflictException);
   });
 });

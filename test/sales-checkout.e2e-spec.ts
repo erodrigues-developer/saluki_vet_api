@@ -24,7 +24,7 @@ import { Commission } from '../src/modules/commissions/entities/commission.entit
 import { CommissionsService } from '../src/modules/commissions/commissions.service';
 import { CommissionsRepository } from '../src/modules/commissions/repositories/commissions.repository';
 
-// Note: Reusing the same in-memory logic that simulates atomic DB capabilities, 
+// Note: Reusing the same in-memory logic that simulates atomic DB capabilities,
 // but now wrapped properly around HTTP supertest to evaluate pipeline, guards and pipes.
 
 type InMemorySale = {
@@ -215,7 +215,10 @@ class InMemoryCheckoutDataSource {
         ...payload,
       }),
       save: async (payload: Omit<InMemoryAccountReceivable, 'id'>) => {
-        if (payload.saleId && this.failAccountSaveBySaleId.has(payload.saleId)) {
+        if (
+          payload.saleId &&
+          this.failAccountSaveBySaleId.has(payload.saleId)
+        ) {
           this.failAccountSaveBySaleId.delete(payload.saleId);
           throw new Error('forced account receivable failure');
         }
@@ -255,7 +258,9 @@ class InMemoryCheckoutDataSource {
     };
 
     const commissionsRepository = {
-      findOne: async (params: { where: { saleId: number; procedureId: number } }) => {
+      findOne: async (params: {
+        where: { saleId: number; procedureId: number };
+      }) => {
         const commission = txState.commissions.find(
           (item) =>
             item.saleId === params.where.saleId &&
@@ -302,8 +307,20 @@ describe('Sales checkout (e2e integration)', () => {
   beforeEach(async () => {
     dataSource = new InMemoryCheckoutDataSource({
       sales: [
-        { id: 1, status: 'OPEN', totalAmount: 150.5, clientId: 7, veterinarianId: 3 } as any,
-        { id: 2, status: 'OPEN', totalAmount: 200, clientId: null, veterinarianId: 4 } as any,
+        {
+          id: 1,
+          status: 'OPEN',
+          totalAmount: 150.5,
+          clientId: 7,
+          veterinarianId: 3,
+        } as any,
+        {
+          id: 2,
+          status: 'OPEN',
+          totalAmount: 200,
+          clientId: null,
+          veterinarianId: 4,
+        } as any,
         { id: 3, status: 'OPEN', totalAmount: 90, clientId: 4 },
         { id: 4, status: 'OPEN', totalAmount: 99, clientId: 5 },
       ],
@@ -329,8 +346,12 @@ describe('Sales checkout (e2e integration)', () => {
       commissions: [],
     });
 
-    jest.spyOn(JwtAuthGuard.prototype, 'canActivate').mockReturnValue(true as any);
-    jest.spyOn(RolesGuard.prototype, 'canActivate').mockReturnValue(true as any);
+    jest
+      .spyOn(JwtAuthGuard.prototype, 'canActivate')
+      .mockReturnValue(true as any);
+    jest
+      .spyOn(RolesGuard.prototype, 'canActivate')
+      .mockReturnValue(true as any);
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       controllers: [SalesController],
@@ -339,7 +360,7 @@ describe('Sales checkout (e2e integration)', () => {
         CommissionsService,
         {
           provide: SalesRepository,
-          useValue: {}, 
+          useValue: {},
         },
         {
           provide: CommissionsRepository,
@@ -418,8 +439,10 @@ describe('Sales checkout (e2e integration)', () => {
         saleId: 1,
       })
       .expect(HttpStatus.BAD_REQUEST);
-      
-    expect(res.body.message).toEqual(expect.arrayContaining(['property saleId should not exist']));
+
+    expect(res.body.message).toEqual(
+      expect.arrayContaining(['property saleId should not exist']),
+    );
   });
 
   it('should not allow duplicated checkout for already settled sale via HTTP 409', async () => {
@@ -443,13 +466,15 @@ describe('Sales checkout (e2e integration)', () => {
 
     const fulfilledResults = [first, second]
       .filter((result) => result.status === 'fulfilled')
-      .map(r => (r as PromiseFulfilledResult<request.Response>).value.status);
+      .map((r) => (r as PromiseFulfilledResult<request.Response>).value.status);
 
     expect(fulfilledResults).toContain(HttpStatus.CREATED);
     expect(fulfilledResults).toContain(HttpStatus.CONFLICT);
 
     const snapshot = dataSource.getSnapshot();
-    expect(snapshot.payments.filter((item) => item.saleId === 4)).toHaveLength(1);
+    expect(snapshot.payments.filter((item) => item.saleId === 4)).toHaveLength(
+      1,
+    );
     expect(
       snapshot.accountsReceivable.filter((item) => item.saleId === 4),
     ).toHaveLength(1);
@@ -465,7 +490,9 @@ describe('Sales checkout (e2e integration)', () => {
 
     const snapshot = dataSource.getSnapshot();
     expect(snapshot.sales.find((item) => item.id === 3)?.status).toBe('OPEN');
-    expect(snapshot.payments.filter((item) => item.saleId === 3)).toHaveLength(0);
+    expect(snapshot.payments.filter((item) => item.saleId === 3)).toHaveLength(
+      0,
+    );
     expect(
       snapshot.accountsReceivable.filter((item) => item.saleId === 3),
     ).toHaveLength(0);

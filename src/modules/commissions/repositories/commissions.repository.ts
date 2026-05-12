@@ -45,10 +45,13 @@ export class CommissionsRepository extends Repository<Commission> {
       ...filters,
     }).getMany();
 
-    const countByStatus = data.reduce<Record<string, number>>((acc, commission) => {
-      acc[commission.status] = (acc[commission.status] || 0) + 1;
-      return acc;
-    }, {});
+    const countByStatus = data.reduce<Record<string, number>>(
+      (acc, commission) => {
+        acc[commission.status] = (acc[commission.status] || 0) + 1;
+        return acc;
+      },
+      {},
+    );
 
     return data.reduce(
       (acc, commission) => {

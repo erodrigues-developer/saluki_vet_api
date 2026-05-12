@@ -27,6 +27,8 @@ export class SpeciesService {
 
     const { data, total } = await this.speciesRepository.findPaginated({
       name: filters.name,
+      isActive:
+        typeof filters.isActive === 'boolean' ? filters.isActive : undefined,
       page,
       limit,
       sortBy:
@@ -34,6 +36,8 @@ export class SpeciesService {
           ? 'created_at'
           : filters.sortBy === 'updatedAt'
             ? 'updated_at'
+            : filters.sortBy === 'isActive'
+              ? 'is_active'
             : (filters.sortBy as any),
       sortDirection:
         filters.sortDirection?.toLowerCase() === 'asc' ? 'ASC' : 'DESC',

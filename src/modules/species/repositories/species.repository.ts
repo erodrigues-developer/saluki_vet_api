@@ -4,9 +4,10 @@ import { Species } from '../entities/species.entity';
 
 export interface SpeciesFilterOptions {
   name?: string;
+  isActive?: boolean;
   page: number;
   limit: number;
-  sortBy?: 'name' | 'created_at' | 'updated_at';
+  sortBy?: 'name' | 'is_active' | 'created_at' | 'updated_at';
   sortDirection?: 'ASC' | 'DESC';
 }
 
@@ -27,9 +28,12 @@ export class SpeciesRepository extends Repository<Species> {
     qb: SelectQueryBuilder<Species>,
     filters: SpeciesFilterOptions,
   ): void {
-    const { name } = filters;
+    const { name, isActive } = filters;
     if (name) {
       qb.andWhere('species.name ILIKE :name', { name: `%${name}%` });
+    }
+    if (typeof isActive === 'boolean') {
+      qb.andWhere('species.is_active = :isActive', { isActive });
     }
   }
 
@@ -42,6 +46,7 @@ export class SpeciesRepository extends Repository<Species> {
 
     const sortableColumns: Record<string, string> = {
       name: 'name',
+      is_active: 'is_active',
       created_at: 'created_at',
       updated_at: 'updated_at',
     };

@@ -6,6 +6,7 @@ import { Species } from './entities/species.entity';
 const speciesFactory = (id = 1): Species => ({
   id,
   name: 'Cachorro',
+  isActive: true,
   createdAt: new Date(),
   updatedAt: new Date(),
 });
@@ -28,7 +29,7 @@ describe('SpeciesService', () => {
   });
 
   it('should create a species', async () => {
-    const dto = { name: 'Cachorro' };
+    const dto = { name: 'Cachorro', isActive: true };
     const entity = speciesFactory();
     repository.create.mockReturnValue(entity as any);
     repository.save.mockResolvedValue(entity as any);

@@ -60,13 +60,14 @@ export class SpeciesController {
     type: PaginatedSpeciesResponseDto,
   })
   @ApiQuery({ name: 'name', required: false, example: 'Cachorro' })
+  @ApiQuery({ name: 'isActive', required: false, example: true })
   @ApiQuery({ name: 'page', required: false, example: 1 })
   @ApiQuery({ name: 'limit', required: false, example: 10 })
   @ApiQuery({
     name: 'sortBy',
     required: false,
     example: 'createdAt',
-    description: 'name | createdAt | updatedAt',
+    description: 'name | isActive | createdAt | updatedAt',
   })
   @ApiQuery({
     name: 'sortDirection',

@@ -25,7 +25,10 @@ export class CreatePrescriptionDto {
   @IsOptional()
   consultationId?: number;
 
-  @ApiPropertyOptional({ example: 1, description: 'Usado apenas quando admin emite em nome de outro vet.' })
+  @ApiPropertyOptional({
+    example: 1,
+    description: 'Usado apenas quando admin emite em nome de outro vet.',
+  })
   @Type(() => Number)
   @IsInt()
   @Min(1)

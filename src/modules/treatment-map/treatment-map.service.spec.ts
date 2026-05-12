@@ -27,7 +27,9 @@ describe('TreatmentMapService', () => {
         }),
       ),
     };
-    stockMovementsService = { createStockOut: jest.fn().mockResolvedValue(null) };
+    stockMovementsService = {
+      createStockOut: jest.fn().mockResolvedValue(null),
+    };
 
     service = new TreatmentMapService(
       repository,
@@ -50,7 +52,10 @@ describe('TreatmentMapService', () => {
   it('should create a pending treatment item', async () => {
     inpatientRecordsService.ensureActiveRecord.mockResolvedValue({ id: 1 });
     productsRepository.findOneBy.mockResolvedValue({ id: 5, isActive: true });
-    repository.create.mockReturnValue({ inpatientRecordId: 1, status: 'PENDING' });
+    repository.create.mockReturnValue({
+      inpatientRecordId: 1,
+      status: 'PENDING',
+    });
     repository.save.mockResolvedValue({ id: 2 });
     jest.spyOn(service, 'findOne').mockResolvedValue({ id: 2 } as any);
 

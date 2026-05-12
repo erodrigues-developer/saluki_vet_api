@@ -4,6 +4,7 @@ import {
   CreateDateColumn,
   Entity,
   PrimaryGeneratedColumn,
+  RelationCount,
   UpdateDateColumn,
   OneToMany,
 } from 'typeorm';
@@ -26,8 +27,16 @@ export class ProductCategory {
   @Column({ type: 'text', nullable: true })
   description?: string | null;
 
+  @ApiProperty({ example: true })
+  @Column({ name: 'is_active', type: 'boolean', default: true })
+  isActive: boolean;
+
   @OneToMany(() => Product, (product) => product.productCategory)
   products: Product[];
+
+  @ApiProperty({ example: 24, required: false })
+  @RelationCount((category: ProductCategory) => category.products)
+  productsLinked?: number;
 
   @ApiProperty({ example: '2024-07-09T12:00:00Z' })
   @CreateDateColumn({ name: 'created_at', type: 'timestamp' })

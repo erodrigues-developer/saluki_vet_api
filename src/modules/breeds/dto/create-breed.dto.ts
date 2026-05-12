@@ -1,5 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsInt, IsNotEmpty, IsString, MaxLength, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MaxLength,
+  Min,
+} from 'class-validator';
 
 export class CreateBreedDto {
   @ApiProperty({ example: 'Bulldog', description: 'Nome da raça' })
@@ -12,4 +20,13 @@ export class CreateBreedDto {
   @IsInt()
   @Min(1)
   speciesId: number;
+
+  @ApiProperty({
+    example: true,
+    required: false,
+    description: 'Status da raça',
+  })
+  @IsBoolean()
+  @IsOptional()
+  isActive?: boolean;
 }

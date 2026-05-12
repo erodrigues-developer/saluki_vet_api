@@ -37,7 +37,10 @@ describe('Suppliers + AccountsPayable contract (e2e)', () => {
       const isActiveFilter = query?.isActive;
 
       const data = suppliers.filter((supplier) => {
-        if (typeof isActiveFilter === 'boolean' && supplier.isActive !== isActiveFilter) {
+        if (
+          typeof isActiveFilter === 'boolean' &&
+          supplier.isActive !== isActiveFilter
+        ) {
           return false;
         }
 
@@ -64,7 +67,9 @@ describe('Suppliers + AccountsPayable contract (e2e)', () => {
 
   const accountsPayableServiceMock = {
     create: jest.fn(async (dto: any) => {
-      const supplier = suppliers.find((item) => item.id === Number(dto.supplierId));
+      const supplier = suppliers.find(
+        (item) => item.id === Number(dto.supplierId),
+      );
 
       const account = {
         id: accountIdSequence++,
@@ -85,8 +90,12 @@ describe('Suppliers + AccountsPayable contract (e2e)', () => {
   };
 
   beforeAll(async () => {
-    jest.spyOn(JwtAuthGuard.prototype, 'canActivate').mockReturnValue(true as any);
-    jest.spyOn(RolesGuard.prototype, 'canActivate').mockReturnValue(true as any);
+    jest
+      .spyOn(JwtAuthGuard.prototype, 'canActivate')
+      .mockReturnValue(true as any);
+    jest
+      .spyOn(RolesGuard.prototype, 'canActivate')
+      .mockReturnValue(true as any);
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       controllers: [SuppliersController, AccountsPayableController],
@@ -169,6 +178,8 @@ describe('Suppliers + AccountsPayable contract (e2e)', () => {
       })
       .expect(400);
 
-    expect(response.body.message).toContain('property supplierName should not exist');
+    expect(response.body.message).toContain(
+      'property supplierName should not exist',
+    );
   });
 });
