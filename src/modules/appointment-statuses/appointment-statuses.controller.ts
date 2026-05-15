@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Patch,
   Param,
   ParseIntPipe,
   Post,
@@ -52,5 +53,12 @@ export class AppointmentStatusesController {
   @ApiOperation({ summary: 'Remove um status' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.appointmentStatusesService.remove(id);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Atualiza um status de agendamento' })
+  @ApiOkResponse({ type: AppointmentStatus })
+  update(@Param('id', ParseIntPipe) id: number, @Body() payload: any) {
+    return this.appointmentStatusesService.update(id, payload);
   }
 }

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { ProductsRepository } from './repositories/products.repository';
 import { Product } from './entities/product.entity';
 import { ProductCategoriesService } from '../product-categories/product-categories.service';
@@ -15,6 +15,7 @@ export class ProductsService {
   ) {}
 
   async create(payload: any): Promise<Product> {
+    await this.ensureSkuIsUnique(payload.sku);
     if (payload.productCategoryId) {
       await this.productCategoriesService.findOne(payload.productCategoryId);
     }
@@ -88,6 +89,7 @@ export class ProductsService {
 
   async update(id: number, payload: any): Promise<Product> {
     const product = await this.findOne(id);
+    await this.ensureSkuIsUnique(payload.sku, id);
 
     if (
       payload.productCategoryId &&
@@ -102,8 +104,64 @@ export class ProductsService {
 
   async remove(id: number): Promise<void> {
     const product = await this.findOne(id);
+    await this.ensureNoLinkedMovements(product.id);
     // Soft delete
     await this.productsRepository.softRemove(product);
+  }
+
+  private normalizeSku(value: unknown) {
+    const sku = String(value ?? '').trim();
+    return sku.length ? sku : null;
+  }
+
+  private async ensureSkuIsUnique(skuValue: unknown, ignoreProductId?: number) {
+    const normalizedSku = this.normalizeSku(skuValue);
+    if (!normalizedSku) return;
+
+    const qb = this.productsRepository
+      .createQueryBuilder('product')
+      .where('LOWER(product.sku) = LOWER(:sku)', { sku: normalizedSku });
+
+    if (ignoreProductId) {
+      qb.andWhere('product.id != :id', { id: ignoreProductId });
+    }
+
+    const existing = await qb.getOne();
+    if (existing) {
+      throw new ConflictException('SKU já cadastrado.');
+    }
+  }
+
+  private async ensureNoLinkedMovements(productId: number) {
+    const [saleItems, stockMovements, treatmentMap, procedures] =
+      await Promise.all([
+        this.dataSource.manager
+          .createQueryBuilder()
+          .from('sale_items', 'sale_items')
+          .where('sale_items.product_id = :productId', { productId })
+          .getCount(),
+        this.dataSource.manager
+          .createQueryBuilder()
+          .from('stock_movements', 'stock_movements')
+          .where('stock_movements.product_id = :productId', { productId })
+          .getCount(),
+        this.dataSource.manager
+          .createQueryBuilder()
+          .from('treatment_map', 'treatment_map')
+          .where('treatment_map.medicament_id = :productId', { productId })
+          .getCount(),
+        this.dataSource.manager
+          .createQueryBuilder()
+          .from('procedures', 'procedures')
+          .where('procedures.consumed_product_id = :productId', { productId })
+          .getCount(),
+      ]);
+
+    if (saleItems || stockMovements || treatmentMap || procedures) {
+      throw new ConflictException(
+        'Não é possível excluir itens com movimentações vinculadas. Você pode inativá-lo para impedir novos lançamentos.',
+      );
+    }
   }
 
   private async attachCurrentStock(products: Product[]) {

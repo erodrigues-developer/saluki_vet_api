@@ -50,8 +50,8 @@ services:
       nest_saluki_vet_network:
         ipv4_address: 172.52.0.5
     ports:
-      - "5044:5044"
-      - "9600:9600"
+      - "5045:5044"
+      - "9601:9600"
     env_file:
       - .env
 networks:
