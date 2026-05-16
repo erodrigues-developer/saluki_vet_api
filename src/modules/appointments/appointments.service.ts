@@ -154,7 +154,7 @@ export class AppointmentsService {
     }
 
     const reason = payload.reason ?? appointment.reason ?? '';
-    const triage = this.classifyTriage(reason);
+    const triage = this.resolveCheckInTriage(payload, reason);
 
     appointment.statusId = arrivedStatus.id;
     appointment.status = arrivedStatus;
@@ -285,6 +285,62 @@ export class AppointmentsService {
       score: 20,
       notes: 'Sem sinais criticos no texto informado.',
     };
+  }
+
+  private resolveCheckInTriage(payload: any, reason: string) {
+    const selectedRisk = this.normalizeRisk(payload?.triageRisk);
+    if (selectedRisk) {
+      const vitalsNotes = this.buildTriageVitalsNotes(payload);
+      const scoreByRisk: Record<string, number> = {
+        VERDE: 20,
+        AMARELA: 60,
+        VERMELHA: 90,
+        EMERGENCY: 100,
+      };
+      return {
+        risk: selectedRisk,
+        score: scoreByRisk[selectedRisk] ?? 20,
+        notes:
+          vitalsNotes ||
+          `Triagem definida manualmente no check-in (${selectedRisk}).`,
+      };
+    }
+
+    return this.classifyTriage(reason);
+  }
+
+  private normalizeRisk(raw: any): string | null {
+    const value = String(raw || '')
+      .trim()
+      .toUpperCase();
+    if (!value || value === 'PENDING' || value === 'NOT_TRIAGED') return null;
+    if (['VERDE', 'GREEN'].includes(value)) return 'VERDE';
+    if (['AMARELA', 'YELLOW'].includes(value)) return 'AMARELA';
+    if (['VERMELHA', 'RED'].includes(value)) return 'VERMELHA';
+    if (value === 'EMERGENCY') return 'EMERGENCY';
+    return null;
+  }
+
+  private buildTriageVitalsNotes(payload: any): string {
+    const fields: Array<[string, string]> = [];
+    const add = (label: string, value: any) => {
+      if (value === undefined || value === null) return;
+      const text = String(value).trim();
+      if (!text) return;
+      fields.push([label, text]);
+    };
+
+    add('Motivo/Queixa', payload?.reason);
+    add('Peso (kg)', payload?.weightKg);
+    add('Temperatura (°C)', payload?.temperatureC);
+    add('Frequência cardíaca (bpm)', payload?.heartRateBpm);
+    add('Frequência respiratória (irpm)', payload?.respiratoryRateIpm);
+    add('Mucosas', payload?.mucosaStatus);
+    add('Hidratação', payload?.hydrationStatus);
+    add('Dor', payload?.painStatus);
+
+    if (!fields.length) return '';
+    return fields.map(([label, value]) => `${label}: ${value}`).join(' | ');
   }
 
   private async ensureNoVeterinarianConflict(params: {
