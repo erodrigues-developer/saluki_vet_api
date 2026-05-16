@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -18,8 +19,28 @@ export class AppointmentsService {
   ) {}
 
   async create(payload: any): Promise<Appointment> {
+    const startsAt = payload?.startsAt ? new Date(payload.startsAt) : new Date();
+    if (Number.isNaN(startsAt.getTime())) {
+      throw new BadRequestException('Data do agendamento invalida.');
+    }
+    const endsAt = payload?.endsAt
+      ? new Date(payload.endsAt)
+      : new Date(startsAt.getTime() + 30 * 60 * 1000);
+    if (Number.isNaN(endsAt.getTime()) || endsAt <= startsAt) {
+      throw new BadRequestException(
+        'Horario de termino invalido para o agendamento.',
+      );
+    }
+    await this.ensureNoVeterinarianConflict({
+      veterinarianId: payload?.veterinarianId ?? null,
+      startsAt,
+      endsAt,
+    });
+
     const appointment = this.appointmentsRepository.create({
       ...payload,
+      startsAt,
+      endsAt,
     } as any);
     return this.appointmentsRepository.save(appointment as any);
   }
@@ -86,6 +107,19 @@ export class AppointmentsService {
       const endsAt = appointmentPayload.endsAt
         ? new Date(appointmentPayload.endsAt)
         : new Date(startsAt.getTime() + 30 * 60 * 1000);
+      if (Number.isNaN(endsAt.getTime()) || endsAt <= startsAt) {
+        throw new BadRequestException(
+          'Horario de termino invalido para o agendamento.',
+        );
+      }
+      await this.ensureNoVeterinarianConflict({
+        veterinarianId: appointmentPayload.veterinarianId
+          ? Number(appointmentPayload.veterinarianId)
+          : null,
+        startsAt,
+        endsAt,
+        manager,
+      });
 
       const appointment = await manager.getRepository(Appointment).save(
         manager.getRepository(Appointment).create({
@@ -188,7 +222,38 @@ export class AppointmentsService {
 
   async update(id: number, payload: any): Promise<Appointment> {
     const appointment = await this.findOne(id);
-    const merged = this.appointmentsRepository.merge(appointment, payload);
+    const startsAt = payload?.startsAt
+      ? new Date(payload.startsAt)
+      : new Date(appointment.startsAt);
+    if (Number.isNaN(startsAt.getTime())) {
+      throw new BadRequestException('Data do agendamento invalida.');
+    }
+    const endsAt = payload?.endsAt
+      ? new Date(payload.endsAt)
+      : appointment.endsAt
+        ? new Date(appointment.endsAt)
+        : new Date(startsAt.getTime() + 30 * 60 * 1000);
+    if (Number.isNaN(endsAt.getTime()) || endsAt <= startsAt) {
+      throw new BadRequestException(
+        'Horario de termino invalido para o agendamento.',
+      );
+    }
+    const veterinarianId =
+      payload?.veterinarianId !== undefined
+        ? payload.veterinarianId
+        : appointment.veterinarianId;
+    await this.ensureNoVeterinarianConflict({
+      veterinarianId,
+      startsAt,
+      endsAt,
+      excludeAppointmentId: id,
+    });
+
+    const merged = this.appointmentsRepository.merge(appointment, {
+      ...payload,
+      startsAt,
+      endsAt,
+    });
     return this.appointmentsRepository.save(merged);
   }
 
@@ -220,5 +285,52 @@ export class AppointmentsService {
       score: 20,
       notes: 'Sem sinais criticos no texto informado.',
     };
+  }
+
+  private async ensureNoVeterinarianConflict(params: {
+    veterinarianId?: number | null;
+    startsAt: Date;
+    endsAt: Date;
+    excludeAppointmentId?: number;
+    manager?: any;
+  }) {
+    const veterinarianId =
+      params.veterinarianId === null || params.veterinarianId === undefined
+        ? null
+        : Number(params.veterinarianId);
+    if (!veterinarianId) return;
+
+    const qb = (params.manager ?? this.dataSource)
+      .createQueryBuilder(Appointment, 'appointment')
+      .leftJoin('appointment.status', 'status')
+      .where('appointment.veterinarian_id = :veterinarianId', {
+        veterinarianId,
+      })
+      .andWhere(
+        '(status.code IS NULL OR status.code NOT IN (:...blockedStatusCodes))',
+        {
+          blockedStatusCodes: ['CANCELED', 'NO_SHOW'],
+        },
+      )
+      .andWhere(
+        'appointment.starts_at < :newEndsAt AND COALESCE(appointment.ends_at, appointment.starts_at + INTERVAL \'30 minutes\') > :newStartsAt',
+        {
+          newStartsAt: params.startsAt,
+          newEndsAt: params.endsAt,
+        },
+      );
+
+    if (params.excludeAppointmentId) {
+      qb.andWhere('appointment.id != :excludeAppointmentId', {
+        excludeAppointmentId: params.excludeAppointmentId,
+      });
+    }
+
+    const conflict = await qb.getOne();
+    if (!conflict) return;
+
+    throw new ConflictException(
+      'Conflito de horario: ja existe agendamento para este veterinario no periodo informado.',
+    );
   }
 }
