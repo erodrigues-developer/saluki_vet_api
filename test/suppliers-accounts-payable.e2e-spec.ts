@@ -26,6 +26,7 @@ describe('Suppliers + AccountsPayable contract (e2e)', () => {
       const supplier = {
         id: supplierIdSequence++,
         name: dto.name,
+        document: dto.document,
         isActive: dto.isActive ?? true,
       };
 
@@ -143,6 +144,7 @@ describe('Suppliers + AccountsPayable contract (e2e)', () => {
       .post('/api/v1/suppliers')
       .send({
         name: 'Zoetis',
+        document: '12345678000199',
         isActive: true,
       })
       .expect(201);

@@ -92,6 +92,7 @@ export default class SystemSeeder implements Seeder {
       await settingsRepo.insert({
         appointmentSlotDurationMinutes: 30,
         defaultCurrency: 'BRL',
+        timezone: 'America/Sao_Paulo',
         businessHoursJson:
           '{"seg": ["08:00-18:00"], "ter": ["08:00-18:00"], "qua": ["08:00-18:00"], "qui": ["08:00-18:00"], "sex": ["08:00-18:00"], "sab": ["08:00-12:00"]}',
         notes: 'Configuração Inicial Padrão',

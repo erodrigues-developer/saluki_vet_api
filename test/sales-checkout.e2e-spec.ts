@@ -23,6 +23,7 @@ import { Procedure } from '../src/modules/procedures/entities/procedure.entity';
 import { Commission } from '../src/modules/commissions/entities/commission.entity';
 import { CommissionsService } from '../src/modules/commissions/commissions.service';
 import { CommissionsRepository } from '../src/modules/commissions/repositories/commissions.repository';
+import { StockMovementsService } from '../src/modules/stock-movements/stock-movements.service';
 
 // Note: Reusing the same in-memory logic that simulates atomic DB capabilities,
 // but now wrapped properly around HTTP supertest to evaluate pipeline, guards and pipes.
@@ -358,6 +359,12 @@ describe('Sales checkout (e2e integration)', () => {
       providers: [
         SalesService,
         CommissionsService,
+        {
+          provide: StockMovementsService,
+          useValue: {
+            createStockOut: jest.fn(),
+          },
+        },
         {
           provide: SalesRepository,
           useValue: {},

@@ -10,12 +10,14 @@ import { DataSource } from 'typeorm';
 import { Client } from '../clients/entities/client.entity';
 import { Pet } from '../pets/entities/pet.entity';
 import { AppointmentStatus } from '../appointment-statuses/entities/appointment-status.entity';
+import { ClinicSettingsService } from '../clinic-settings/clinic-settings.service';
 
 @Injectable()
 export class AppointmentsService {
   constructor(
     private readonly appointmentsRepository: AppointmentsRepository,
     private readonly dataSource: DataSource,
+    private readonly clinicSettingsService: ClinicSettingsService,
   ) {}
 
   async create(payload: any): Promise<Appointment> {
@@ -144,13 +146,30 @@ export class AppointmentsService {
     });
   }
 
-  async checkIn(id: number, payload: any): Promise<Appointment> {
+  async checkIn(
+    id: number,
+    payload: any,
+    currentUserId?: number,
+  ): Promise<Appointment> {
     const appointment = await this.findOne(id);
     const arrivedStatus = await this.dataSource
       .getRepository(AppointmentStatus)
       .findOne({ where: { code: 'ARRIVED' } });
     if (!arrivedStatus) {
       throw new BadRequestException('Status ARRIVED nao configurado.');
+    }
+    const statusCode = String(appointment.status?.code || '').toUpperCase();
+    if (statusCode === 'CANCELED' || statusCode === 'COMPLETED') {
+      throw new BadRequestException(
+        'Nao e possivel fazer check-in em agendamento cancelado ou finalizado.',
+      );
+    }
+
+    const businessTimeZone = await this.resolveBusinessTimeZone();
+    if (!this.isSameLocalDate(appointment.startsAt, new Date(), businessTimeZone)) {
+      throw new BadRequestException(
+        'Check-in permitido apenas no dia do agendamento.',
+      );
     }
 
     const reason = payload.reason ?? appointment.reason ?? '';
@@ -159,9 +178,8 @@ export class AppointmentsService {
     appointment.statusId = arrivedStatus.id;
     appointment.status = arrivedStatus;
     appointment.reason = reason;
-    appointment.arrivedAt = payload.arrivedAt
-      ? new Date(payload.arrivedAt)
-      : new Date();
+    appointment.arrivedAt = new Date();
+    appointment.checkedInByUserId = currentUserId ?? null;
     appointment.triageRisk = triage.risk;
     appointment.triageScore = triage.score;
     appointment.triageNotes = triage.notes;
@@ -341,6 +359,33 @@ export class AppointmentsService {
 
     if (!fields.length) return '';
     return fields.map(([label, value]) => `${label}: ${value}`).join(' | ');
+  }
+
+  private isSameLocalDate(a: Date, b: Date, timeZone: string): boolean {
+    return (
+      this.toDateKeyInTimeZone(a, timeZone) ===
+      this.toDateKeyInTimeZone(b, timeZone)
+    );
+  }
+
+  private toDateKeyInTimeZone(date: Date, timeZone: string): string {
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    return formatter.format(date);
+  }
+
+  private async resolveBusinessTimeZone(): Promise<string> {
+    try {
+      const timezone = await this.clinicSettingsService.getBusinessTimezone();
+      if (timezone) return timezone;
+    } catch {
+      // Fallback mantém o fluxo mesmo se configurações estiverem indisponíveis.
+    }
+    return process.env.CLINIC_TIMEZONE || 'America/Sao_Paulo';
   }
 
   private async ensureNoVeterinarianConflict(params: {

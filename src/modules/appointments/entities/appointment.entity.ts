@@ -11,6 +11,7 @@ import {
 } from 'typeorm';
 import { AppointmentType } from '../../appointment-types/entities/appointment-type.entity';
 import { AppointmentStatus } from '../../appointment-statuses/entities/appointment-status.entity';
+import { User } from '../../users/entities/user.entity';
 
 @Entity({ name: 'appointments' })
 export class Appointment {
@@ -81,6 +82,14 @@ export class Appointment {
   @ApiProperty({ example: 1, nullable: true })
   @Column({ name: 'created_by_user_id', type: 'bigint', nullable: true })
   createdByUserId?: number | null;
+
+  @ApiProperty({ example: 3, nullable: true })
+  @Column({ name: 'checked_in_by_user_id', type: 'bigint', nullable: true })
+  checkedInByUserId?: number | null;
+
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'checked_in_by_user_id' })
+  checkedInByUser?: User | null;
 
   @ApiProperty({ example: '2024-07-09T12:00:00Z' })
   @CreateDateColumn({ name: 'created_at', type: 'timestamp' })

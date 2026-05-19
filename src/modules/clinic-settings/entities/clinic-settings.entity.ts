@@ -44,6 +44,18 @@ export class ClinicSettings {
   })
   defaultCurrency: string;
 
+  @ApiProperty({
+    example: 'America/Sao_Paulo',
+    description: 'Timezone IANA oficial da clínica',
+  })
+  @Column({
+    name: 'timezone',
+    type: 'varchar',
+    length: 100,
+    default: 'America/Sao_Paulo',
+  })
+  timezone: string;
+
   @ApiProperty({ example: 'Notas da clínica', nullable: true })
   @Column({ type: 'text', nullable: true })
   notes?: string | null;

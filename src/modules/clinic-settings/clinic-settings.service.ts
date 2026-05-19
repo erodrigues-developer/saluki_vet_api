@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ClinicSettingsRepository } from './repositories/clinic-settings.repository';
 import { ClinicSettings } from './entities/clinic-settings.entity';
 import { UpdateClinicSettingsDto } from './dto/update-clinic-settings.dto';
@@ -16,10 +16,18 @@ export class ClinicSettingsService {
       settings = this.clinicSettingsRepository.create({
         appointmentSlotDurationMinutes: 30,
         defaultCurrency: 'BRL',
+        timezone: 'America/Sao_Paulo',
       });
       await this.clinicSettingsRepository.save(settings);
     }
     return settings;
+  }
+
+  async getBusinessTimezone(): Promise<string> {
+    const settings = await this.getSettings();
+    const configured = String(settings.timezone || '').trim();
+    if (configured) return configured;
+    return process.env.CLINIC_TIMEZONE || 'America/Sao_Paulo';
   }
 
   async update(payload: UpdateClinicSettingsDto): Promise<ClinicSettings> {

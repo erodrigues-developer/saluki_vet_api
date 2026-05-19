@@ -25,6 +25,12 @@ export class UpdateClinicSettingsDto {
   @MaxLength(10)
   defaultCurrency?: string;
 
+  @ApiPropertyOptional({ example: 'America/Sao_Paulo' })
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  timezone?: string;
+
   @ApiPropertyOptional({ example: 'Novas notas' })
   @IsString()
   @IsOptional()

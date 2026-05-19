@@ -8,6 +8,7 @@ import {
   Patch,
   Post,
   Query,
+  Req,
 } from '@nestjs/common';
 import {
   ApiOkResponse,
@@ -44,8 +45,12 @@ export class AppointmentsController {
   @Post(':id/check-in')
   @ApiOperation({ summary: 'Registra chegada e classifica triagem' })
   @ApiOkResponse({ type: Appointment })
-  checkIn(@Param('id', ParseIntPipe) id: number, @Body() payload: any) {
-    return this.appointmentsService.checkIn(id, payload);
+  checkIn(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() payload: any,
+    @Req() req: any,
+  ) {
+    return this.appointmentsService.checkIn(id, payload, req.user?.userId);
   }
 
   @Get()

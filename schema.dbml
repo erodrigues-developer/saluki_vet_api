@@ -56,6 +56,7 @@ Table clinic_settings {
   business_hours_json               text   // JSON com horários por dia da semana
   logo_url                          varchar(500)
   default_currency                  varchar(10) // BRL
+  timezone                          varchar(100) [not null, default: 'America/Sao_Paulo'] // IANA timezone da clínica
   notes                             text
   created_at                        datetime [not null]
   updated_at                        datetime [not null]
@@ -158,6 +159,7 @@ Table appointments {
   reason              text
   notes               text
   created_by_user_id  bigint [ref: > users.id]
+  checked_in_by_user_id bigint [ref: > users.id]
   created_at          datetime [not null]
   updated_at          datetime [not null]
   deleted_at          datetime
