@@ -11,6 +11,7 @@ import { Client } from '../clients/entities/client.entity';
 import { Pet } from '../pets/entities/pet.entity';
 import { AppointmentStatus } from '../appointment-statuses/entities/appointment-status.entity';
 import { ClinicSettingsService } from '../clinic-settings/clinic-settings.service';
+import { VeterinarianAvailabilityService } from '../veterinarian-availability/veterinarian-availability.service';
 
 @Injectable()
 export class AppointmentsService {
@@ -18,6 +19,7 @@ export class AppointmentsService {
     private readonly appointmentsRepository: AppointmentsRepository,
     private readonly dataSource: DataSource,
     private readonly clinicSettingsService: ClinicSettingsService,
+    private readonly veterinarianAvailabilityService: VeterinarianAvailabilityService,
   ) {}
 
   async create(payload: any): Promise<Appointment> {
@@ -38,13 +40,19 @@ export class AppointmentsService {
       startsAt,
       endsAt,
     });
+    await this.ensureVeterinarianAvailability({
+      veterinarianId: payload?.veterinarianId ?? null,
+      startsAt,
+      endsAt,
+    });
 
     const appointment = this.appointmentsRepository.create({
       ...payload,
       startsAt,
       endsAt,
     } as any);
-    return this.appointmentsRepository.save(appointment as any);
+    const saved = await this.appointmentsRepository.save(appointment as any);
+    return this.findOne(saved.id);
   }
 
   async quickCreate(payload: any): Promise<Appointment> {
@@ -122,6 +130,13 @@ export class AppointmentsService {
         endsAt,
         manager,
       });
+      await this.ensureVeterinarianAvailability({
+        veterinarianId: appointmentPayload.veterinarianId
+          ? Number(appointmentPayload.veterinarianId)
+          : null,
+        startsAt,
+        endsAt,
+      });
 
       const appointment = await manager.getRepository(Appointment).save(
         manager.getRepository(Appointment).create({
@@ -195,6 +210,7 @@ export class AppointmentsService {
     clientId?: number;
     veterinarianId?: number;
     statusId?: number;
+    late?: boolean | string;
     sortBy?: string;
     sortDirection?: 'asc' | 'desc';
   }) {
@@ -203,6 +219,14 @@ export class AppointmentsService {
     const sortBy = params.sortBy || 'startsAt';
     const sortDirection =
       params.sortDirection?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    const timezone = await this.resolveBusinessTimeZone();
+    const settings = await this.clinicSettingsService.getSettings();
+    const toleranceMinutes = this.resolveLateToleranceMinutes(
+      settings?.checkInToleranceMinutes,
+    );
+    const now = new Date();
+    const lateThreshold = new Date(now.getTime() - toleranceMinutes * 60 * 1000);
+    const lateOnly = this.toBoolean(params.late);
 
     const [data, total] = await this.appointmentsRepository.findPaginated({
       page,
@@ -213,12 +237,22 @@ export class AppointmentsService {
         ? Number(params.veterinarianId)
         : undefined,
       statusId: params.statusId ? Number(params.statusId) : undefined,
+      lateOnly,
+      lateThreshold,
       sortBy,
       sortDirection,
     });
 
+    const dataWithDerived = data.map((item) =>
+      this.withDerivedState(item, {
+        now,
+        timeZone: timezone,
+        toleranceMinutes,
+      }),
+    );
+
     return {
-      data,
+      data: dataWithDerived,
       meta: {
         page,
         limit,
@@ -235,7 +269,16 @@ export class AppointmentsService {
     if (!appointment) {
       throw new NotFoundException(`Appointment ${id} not found`);
     }
-    return appointment;
+    const timezone = await this.resolveBusinessTimeZone();
+    const settings = await this.clinicSettingsService.getSettings();
+    const toleranceMinutes = this.resolveLateToleranceMinutes(
+      settings?.checkInToleranceMinutes,
+    );
+    return this.withDerivedState(appointment, {
+      now: new Date(),
+      timeZone: timezone,
+      toleranceMinutes,
+    });
   }
 
   async update(id: number, payload: any): Promise<Appointment> {
@@ -266,13 +309,44 @@ export class AppointmentsService {
       endsAt,
       excludeAppointmentId: id,
     });
+    await this.ensureVeterinarianAvailability({
+      veterinarianId,
+      startsAt,
+      endsAt,
+    });
+
+    const requestedStatusId =
+      payload?.statusId !== undefined && payload?.statusId !== null
+        ? Number(payload.statusId)
+        : null;
+    if (requestedStatusId && requestedStatusId !== Number(appointment.statusId)) {
+      const requestedStatus = await this.dataSource
+        .getRepository(AppointmentStatus)
+        .findOne({ where: { id: requestedStatusId } });
+      if (!requestedStatus) {
+        throw new BadRequestException('Status de agendamento invalido.');
+      }
+
+      if (this.isNoShowCode(requestedStatus.code)) {
+        const settings = await this.clinicSettingsService.getSettings();
+        const toleranceMinutes = this.resolveLateToleranceMinutes(
+          settings?.checkInToleranceMinutes,
+        );
+        this.assertNoShowAllowed(appointment, toleranceMinutes, new Date());
+      }
+    }
 
     const merged = this.appointmentsRepository.merge(appointment, {
       ...payload,
       startsAt,
       endsAt,
     });
-    return this.appointmentsRepository.save(merged);
+    if (payload?.statusId !== undefined) {
+      // Evita que a relação carregada anteriormente sobrescreva o statusId novo.
+      (merged as any).status = undefined;
+    }
+    const saved = await this.appointmentsRepository.save(merged);
+    return this.findOne(saved.id);
   }
 
   async remove(id: number): Promise<void> {
@@ -388,6 +462,72 @@ export class AppointmentsService {
     return process.env.CLINIC_TIMEZONE || 'America/Sao_Paulo';
   }
 
+  private resolveLateToleranceMinutes(raw: any): number {
+    const value = Number(raw);
+    if (!Number.isFinite(value)) return 10;
+    if (value < 0) return 0;
+    return Math.floor(value);
+  }
+
+  private toBoolean(raw: unknown): boolean {
+    if (typeof raw === 'boolean') return raw;
+    const value = String(raw || '')
+      .trim()
+      .toLowerCase();
+    return ['1', 'true', 'yes', 'sim'].includes(value);
+  }
+
+  private isNoShowCode(code?: string | null): boolean {
+    const normalized = String(code || '')
+      .trim()
+      .toUpperCase();
+    return ['NO_SHOW', 'NOSHOW'].includes(normalized);
+  }
+
+  private assertNoShowAllowed(
+    appointment: Appointment,
+    toleranceMinutes: number,
+    now: Date,
+  ) {
+    const statusCode = String(appointment.status?.code || '').toUpperCase();
+    if (!['SCHEDULED', 'CONFIRMED'].includes(statusCode)) {
+      throw new BadRequestException(
+        'Não compareceu só pode ser marcado para agendamentos agendados ou confirmados.',
+      );
+    }
+
+    const startsAtTs = new Date(appointment.startsAt).getTime();
+    const noShowCutoffTs = startsAtTs + toleranceMinutes * 60 * 1000;
+    if (now.getTime() <= noShowCutoffTs) {
+      throw new BadRequestException(
+        `Não compareceu só pode ser marcado após o horário do agendamento + tolerância de ${toleranceMinutes} min.`,
+      );
+    }
+  }
+
+  private withDerivedState(
+    appointment: Appointment,
+    context: { now: Date; timeZone: string; toleranceMinutes: number },
+  ): Appointment {
+    const statusCode = String(appointment.status?.code || '').toUpperCase();
+    const isLateEligible = ['SCHEDULED', 'CONFIRMED'].includes(statusCode);
+    const thresholdTs =
+      new Date(appointment.startsAt).getTime() + context.toleranceMinutes * 60 * 1000;
+    const lateByMinutesRaw = Math.floor(
+      (context.now.getTime() - thresholdTs) / 60000,
+    );
+    const isLate = isLateEligible && lateByMinutesRaw > 0;
+
+    (appointment as any).derived = {
+      isLate,
+      lateByMinutes: isLate ? lateByMinutesRaw : 0,
+      lateSince: isLate ? new Date(thresholdTs).toISOString() : null,
+      timeZone: context.timeZone,
+      toleranceMinutes: context.toleranceMinutes,
+    };
+    return appointment;
+  }
+
   private async ensureNoVeterinarianConflict(params: {
     veterinarianId?: number | null;
     startsAt: Date;
@@ -433,5 +573,23 @@ export class AppointmentsService {
     throw new ConflictException(
       'Conflito de horario: ja existe agendamento para este veterinario no periodo informado.',
     );
+  }
+
+  private async ensureVeterinarianAvailability(params: {
+    veterinarianId?: number | null;
+    startsAt: Date;
+    endsAt: Date;
+  }) {
+    const veterinarianId =
+      params.veterinarianId === null || params.veterinarianId === undefined
+        ? null
+        : Number(params.veterinarianId);
+    if (!veterinarianId) return;
+
+    await this.veterinarianAvailabilityService.assertAvailableForAppointment({
+      veterinarianId,
+      startsAt: params.startsAt,
+      endsAt: params.endsAt,
+    });
   }
 }

@@ -17,6 +17,7 @@ export class ClinicSettingsService {
         appointmentSlotDurationMinutes: 30,
         defaultCurrency: 'BRL',
         timezone: 'America/Sao_Paulo',
+        checkInToleranceMinutes: 10,
       });
       await this.clinicSettingsRepository.save(settings);
     }

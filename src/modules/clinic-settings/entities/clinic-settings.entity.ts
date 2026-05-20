@@ -56,6 +56,17 @@ export class ClinicSettings {
   })
   timezone: string;
 
+  @ApiProperty({
+    example: 10,
+    description: 'Tolerância em minutos para considerar agendamento atrasado',
+  })
+  @Column({
+    name: 'check_in_tolerance_minutes',
+    type: 'int',
+    default: 10,
+  })
+  checkInToleranceMinutes: number;
+
   @ApiProperty({ example: 'Notas da clínica', nullable: true })
   @Column({ type: 'text', nullable: true })
   notes?: string | null;

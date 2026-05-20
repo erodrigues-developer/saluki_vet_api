@@ -31,6 +31,12 @@ export class UpdateClinicSettingsDto {
   @MaxLength(100)
   timezone?: string;
 
+  @ApiPropertyOptional({ example: 10 })
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  checkInToleranceMinutes?: number;
+
   @ApiPropertyOptional({ example: 'Novas notas' })
   @IsString()
   @IsOptional()

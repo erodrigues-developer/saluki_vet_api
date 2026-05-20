@@ -47,6 +47,7 @@ import { TreatmentMapModule } from './modules/treatment-map/treatment-map.module
 import { PrescriptionsModule } from './modules/prescriptions/prescriptions.module';
 import { ConsultationDictationsModule } from './modules/consultation-dictations/consultation-dictations.module';
 import { StockMovementsModule } from './modules/stock-movements/stock-movements.module';
+import { VeterinarianAvailabilityModule } from './modules/veterinarian-availability/veterinarian-availability.module';
 import configuration from './configs/configuration';
 
 @Module({
@@ -114,6 +115,7 @@ import configuration from './configs/configuration';
     PrescriptionsModule,
     ConsultationDictationsModule,
     StockMovementsModule,
+    VeterinarianAvailabilityModule,
   ],
   controllers: [AppController],
   providers: [

@@ -57,6 +57,7 @@ Table clinic_settings {
   logo_url                          varchar(500)
   default_currency                  varchar(10) // BRL
   timezone                          varchar(100) [not null, default: 'America/Sao_Paulo'] // IANA timezone da clínica
+  check_in_tolerance_minutes        int [not null, default: 10]
   notes                             text
   created_at                        datetime [not null]
   updated_at                        datetime [not null]
