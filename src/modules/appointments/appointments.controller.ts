@@ -53,6 +53,13 @@ export class AppointmentsController {
     return this.appointmentsService.checkIn(id, payload, req.user?.userId);
   }
 
+  @Post(':id/confirm')
+  @ApiOperation({ summary: 'Confirma agendamento (SCHEDULED -> CONFIRMED)' })
+  @ApiOkResponse({ type: Appointment })
+  confirm(@Param('id', ParseIntPipe) id: number) {
+    return this.appointmentsService.confirm(id);
+  }
+
   @Get()
   @ApiOperation({ summary: 'Lista agendamentos com paginação e filtros' })
   findAll(@Query() query: any) {

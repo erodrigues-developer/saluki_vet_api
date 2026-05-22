@@ -170,13 +170,21 @@ export class VeterinarianAvailabilityService {
     await this.absenceRepository.remove(absence);
   }
 
-  async assertAvailableForAppointment(params: { veterinarianId: number; startsAt: Date; endsAt: Date }) {
+  async assertAvailableForAppointment(params: {
+    veterinarianId: number;
+    startsAt: Date;
+    endsAt: Date;
+    timeZone?: string;
+  }) {
     const { veterinarianId, startsAt, endsAt } = params;
-    const weekday = startsAt.getDay();
-    const startDate = this.toDateString(startsAt);
-    const endDate = this.toDateString(endsAt);
-    const startMinutes = startsAt.getHours() * 60 + startsAt.getMinutes();
-    const endMinutes = endsAt.getHours() * 60 + endsAt.getMinutes();
+    const timeZone = params.timeZone || 'America/Sao_Paulo';
+    const startsAtLocal = this.toLocalDateTimeParts(startsAt, timeZone);
+    const endsAtLocal = this.toLocalDateTimeParts(endsAt, timeZone);
+    const weekday = startsAtLocal.weekday;
+    const startDate = startsAtLocal.dateKey;
+    const endDate = endsAtLocal.dateKey;
+    const startMinutes = startsAtLocal.hour * 60 + startsAtLocal.minute;
+    const endMinutes = endsAtLocal.hour * 60 + endsAtLocal.minute;
 
     const [daySchedule, blocks, absences] = await Promise.all([
       this.weeklyRepository.findOne({ where: { veterinarianId, weekday } }),
@@ -220,11 +228,42 @@ export class VeterinarianAvailabilityService {
     }
   }
 
-  private toDateString(value: Date) {
-    const y = value.getFullYear();
-    const m = String(value.getMonth() + 1).padStart(2, '0');
-    const d = String(value.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
+  private toLocalDateTimeParts(value: Date, timeZone: string) {
+    const dateFormatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    const timeFormatter = new Intl.DateTimeFormat('en-GB', {
+      timeZone,
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+    const weekdayRaw = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      weekday: 'short',
+    }).format(value);
+
+    const [year, month, day] = dateFormatter.format(value).split('-');
+    const [hourRaw, minuteRaw] = timeFormatter.format(value).split(':');
+    const weekdayMap: Record<string, number> = {
+      Sun: 0,
+      Mon: 1,
+      Tue: 2,
+      Wed: 3,
+      Thu: 4,
+      Fri: 5,
+      Sat: 6,
+    };
+
+    return {
+      dateKey: `${year}-${month}-${day}`,
+      hour: Number(hourRaw),
+      minute: Number(minuteRaw),
+      weekday: weekdayMap[weekdayRaw] ?? 0,
+    };
   }
 
   private assertDate(value: string, message: string) {

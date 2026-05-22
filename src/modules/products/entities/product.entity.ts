@@ -40,6 +40,14 @@ export class Product {
   @Column({ name: 'is_service', type: 'boolean', default: false })
   isService: boolean;
 
+  @ApiProperty({
+    example: 45,
+    nullable: true,
+    description: 'Duração do serviço em minutos',
+  })
+  @Column({ name: 'duration_minutes', type: 'integer', nullable: true })
+  durationMinutes?: number | null;
+
   @ApiProperty({ example: 'dose', nullable: true })
   @Column({ type: 'varchar', length: 50, nullable: true })
   unit?: string | null;

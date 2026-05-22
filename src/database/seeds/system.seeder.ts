@@ -303,6 +303,68 @@ export default class SystemSeeder implements Seeder {
       if (insertProducts.length > 0) await productRepo.insert(insertProducts);
     }
 
+    const serviceSeeds = [
+      {
+        name: 'Banho',
+        salePrice: 70,
+        costPrice: null,
+        durationMinutes: 60,
+        notes: 'Serviço de banho e secagem',
+      },
+      {
+        name: 'Tosa Higiênica',
+        salePrice: 55,
+        costPrice: null,
+        durationMinutes: 45,
+        notes: 'Tosa em áreas higiênicas',
+      },
+      {
+        name: 'Tosa Completa',
+        salePrice: 120,
+        costPrice: null,
+        durationMinutes: 90,
+        notes: 'Tosa completa conforme padrão da raça',
+      },
+      {
+        name: 'Corte de Unhas',
+        salePrice: 25,
+        costPrice: null,
+        durationMinutes: 15,
+        notes: 'Corte e acabamento de unhas',
+      },
+      {
+        name: 'Limpeza de Ouvidos',
+        salePrice: 35,
+        costPrice: null,
+        durationMinutes: 20,
+        notes: 'Higienização e limpeza de ouvidos',
+      },
+    ];
+
+    const existingServices = await productRepo.find({
+      where: serviceSeeds.map((service) => ({ name: service.name })),
+      select: ['name'],
+    });
+    const existingServiceNames = new Set(existingServices.map((item) => item.name));
+    const missingServices = serviceSeeds
+      .filter((service) => !existingServiceNames.has(service.name))
+      .map((service) => ({
+        ...service,
+        sku: null,
+        isService: true,
+        trackStock: false,
+        isVaccine: false,
+        isActive: true,
+        productCategoryId: null,
+        unit: null,
+        createdAt: now,
+        updatedAt: now,
+      }));
+
+    if (missingServices.length > 0) {
+      await productRepo.insert(missingServices);
+    }
+
     // 8. Procedures
     if ((await procedureRepo.count()) === 0) {
       await procedureRepo.insert([

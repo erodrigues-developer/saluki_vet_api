@@ -10,16 +10,16 @@ import { AuditLog } from '../../modules/audit-logs/entities/audit-log.entity';
 
 @EventSubscriber()
 export class AuditSubscriber implements EntitySubscriberInterface {
-  afterInsert(event: InsertEvent<any>) {
-    this.createAuditLog('CREATE', event, null, event.entity);
+  async afterInsert(event: InsertEvent<any>) {
+    await this.createAuditLog('CREATE', event, null, event.entity);
   }
 
-  afterUpdate(event: UpdateEvent<any>) {
-    this.createAuditLog('UPDATE', event, event.databaseEntity, event.entity);
+  async afterUpdate(event: UpdateEvent<any>) {
+    await this.createAuditLog('UPDATE', event, event.databaseEntity, event.entity);
   }
 
-  afterRemove(event: RemoveEvent<any>) {
-    this.createAuditLog('DELETE', event, event.databaseEntity, null);
+  async afterRemove(event: RemoveEvent<any>) {
+    await this.createAuditLog('DELETE', event, event.databaseEntity, null);
   }
 
   private async createAuditLog(
@@ -44,6 +44,10 @@ export class AuditSubscriber implements EntitySubscriberInterface {
     if (!recordId) return;
 
     try {
+      if (event.queryRunner?.isReleased) {
+        return;
+      }
+
       const auditLog = new AuditLog();
       auditLog.entityName = event.metadata.tableName;
       auditLog.recordId = recordId;
@@ -53,7 +57,14 @@ export class AuditSubscriber implements EntitySubscriberInterface {
       auditLog.userId = userId || null;
 
       await event.manager.save(AuditLog, auditLog);
-    } catch (error) {
+    } catch (error: any) {
+      const isReleasedRunnerError =
+        error?.name === 'QueryRunnerAlreadyReleasedError' ||
+        String(error?.message || '').includes('Query runner already released');
+      if (isReleasedRunnerError) {
+        return;
+      }
+
       // Don't fail the transaction if audit log fails, just log it
       console.error('Failed to create audit log', error);
     }

@@ -55,6 +55,10 @@ export class Appointment {
   @Column({ name: 'ends_at', type: 'timestamp', nullable: true })
   endsAt?: Date | null;
 
+  @ApiProperty({ example: false })
+  @Column({ name: 'is_fit_in', type: 'boolean', default: false })
+  isFitIn: boolean;
+
   @ApiProperty({ example: 'Vacina anual', nullable: true })
   @Column({ type: 'text', nullable: true })
   reason?: string | null;

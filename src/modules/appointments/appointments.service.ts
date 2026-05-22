@@ -23,6 +23,7 @@ export class AppointmentsService {
   ) {}
 
   async create(payload: any): Promise<Appointment> {
+    const isFitIn = this.toBoolean(payload?.isFitIn);
     const startsAt = payload?.startsAt ? new Date(payload.startsAt) : new Date();
     if (Number.isNaN(startsAt.getTime())) {
       throw new BadRequestException('Data do agendamento invalida.');
@@ -35,19 +36,24 @@ export class AppointmentsService {
         'Horario de termino invalido para o agendamento.',
       );
     }
-    await this.ensureNoVeterinarianConflict({
-      veterinarianId: payload?.veterinarianId ?? null,
-      startsAt,
-      endsAt,
-    });
-    await this.ensureVeterinarianAvailability({
-      veterinarianId: payload?.veterinarianId ?? null,
-      startsAt,
-      endsAt,
-    });
+    if (!isFitIn) {
+      await this.ensureNoVeterinarianConflict({
+        veterinarianId: payload?.veterinarianId ?? null,
+        startsAt,
+        endsAt,
+      });
+    }
+    if (!isFitIn) {
+      await this.ensureVeterinarianAvailability({
+        veterinarianId: payload?.veterinarianId ?? null,
+        startsAt,
+        endsAt,
+      });
+    }
 
     const appointment = this.appointmentsRepository.create({
       ...payload,
+      isFitIn,
       startsAt,
       endsAt,
     } as any);
@@ -104,6 +110,7 @@ export class AppointmentsService {
       );
 
       const appointmentPayload = payload.appointment || {};
+      const isFitIn = this.toBoolean(appointmentPayload?.isFitIn);
       if (!appointmentPayload.appointmentTypeId) {
         throw new BadRequestException('Tipo de agendamento e obrigatorio.');
       }
@@ -122,21 +129,25 @@ export class AppointmentsService {
           'Horario de termino invalido para o agendamento.',
         );
       }
-      await this.ensureNoVeterinarianConflict({
-        veterinarianId: appointmentPayload.veterinarianId
-          ? Number(appointmentPayload.veterinarianId)
-          : null,
-        startsAt,
-        endsAt,
-        manager,
-      });
-      await this.ensureVeterinarianAvailability({
-        veterinarianId: appointmentPayload.veterinarianId
-          ? Number(appointmentPayload.veterinarianId)
-          : null,
-        startsAt,
-        endsAt,
-      });
+      if (!isFitIn) {
+        await this.ensureNoVeterinarianConflict({
+          veterinarianId: appointmentPayload.veterinarianId
+            ? Number(appointmentPayload.veterinarianId)
+            : null,
+          startsAt,
+          endsAt,
+          manager,
+        });
+      }
+      if (!isFitIn) {
+        await this.ensureVeterinarianAvailability({
+          veterinarianId: appointmentPayload.veterinarianId
+            ? Number(appointmentPayload.veterinarianId)
+            : null,
+          startsAt,
+          endsAt,
+        });
+      }
 
       const appointment = await manager.getRepository(Appointment).save(
         manager.getRepository(Appointment).create({
@@ -149,6 +160,7 @@ export class AppointmentsService {
             : null,
           startsAt,
           endsAt,
+          isFitIn,
           reason: appointmentPayload.reason ?? null,
           notes: appointmentPayload.notes ?? null,
         }),
@@ -199,6 +211,28 @@ export class AppointmentsService {
     appointment.triageScore = triage.score;
     appointment.triageNotes = triage.notes;
 
+    const saved = await this.appointmentsRepository.save(appointment);
+    return this.findOne(saved.id);
+  }
+
+  async confirm(id: number): Promise<Appointment> {
+    const appointment = await this.findOne(id);
+    const currentStatusCode = String(appointment.status?.code || '').toUpperCase();
+    if (currentStatusCode !== 'SCHEDULED') {
+      throw new BadRequestException(
+        'Somente agendamentos com status Agendado podem ser confirmados.',
+      );
+    }
+
+    const confirmedStatus = await this.dataSource
+      .getRepository(AppointmentStatus)
+      .findOne({ where: { code: 'CONFIRMED' } });
+    if (!confirmedStatus) {
+      throw new BadRequestException('Status CONFIRMED nao configurado.');
+    }
+
+    appointment.statusId = confirmedStatus.id;
+    appointment.status = confirmedStatus;
     const saved = await this.appointmentsRepository.save(appointment);
     return this.findOne(saved.id);
   }
@@ -283,6 +317,10 @@ export class AppointmentsService {
 
   async update(id: number, payload: any): Promise<Appointment> {
     const appointment = await this.findOne(id);
+    const isFitIn =
+      payload?.isFitIn !== undefined
+        ? this.toBoolean(payload?.isFitIn)
+        : this.toBoolean(appointment?.isFitIn);
     const startsAt = payload?.startsAt
       ? new Date(payload.startsAt)
       : new Date(appointment.startsAt);
@@ -303,17 +341,21 @@ export class AppointmentsService {
       payload?.veterinarianId !== undefined
         ? payload.veterinarianId
         : appointment.veterinarianId;
-    await this.ensureNoVeterinarianConflict({
-      veterinarianId,
-      startsAt,
-      endsAt,
-      excludeAppointmentId: id,
-    });
-    await this.ensureVeterinarianAvailability({
-      veterinarianId,
-      startsAt,
-      endsAt,
-    });
+    if (!isFitIn) {
+      await this.ensureNoVeterinarianConflict({
+        veterinarianId,
+        startsAt,
+        endsAt,
+        excludeAppointmentId: id,
+      });
+    }
+    if (!isFitIn) {
+      await this.ensureVeterinarianAvailability({
+        veterinarianId,
+        startsAt,
+        endsAt,
+      });
+    }
 
     const requestedStatusId =
       payload?.statusId !== undefined && payload?.statusId !== null
@@ -338,6 +380,7 @@ export class AppointmentsService {
 
     const merged = this.appointmentsRepository.merge(appointment, {
       ...payload,
+      isFitIn,
       startsAt,
       endsAt,
     });
@@ -586,10 +629,12 @@ export class AppointmentsService {
         : Number(params.veterinarianId);
     if (!veterinarianId) return;
 
+    const timezone = await this.resolveBusinessTimeZone();
     await this.veterinarianAvailabilityService.assertAvailableForAppointment({
       veterinarianId,
       startsAt: params.startsAt,
       endsAt: params.endsAt,
+      timeZone: timezone,
     });
   }
 }

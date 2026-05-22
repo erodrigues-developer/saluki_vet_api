@@ -1,4 +1,9 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { ProductsRepository } from './repositories/products.repository';
 import { Product } from './entities/product.entity';
 import { ProductCategoriesService } from '../product-categories/product-categories.service';
@@ -15,6 +20,7 @@ export class ProductsService {
   ) {}
 
   async create(payload: any): Promise<Product> {
+    this.normalizeDuration(payload);
     await this.ensureSkuIsUnique(payload.sku);
     if (payload.productCategoryId) {
       await this.productCategoriesService.findOne(payload.productCategoryId);
@@ -89,6 +95,7 @@ export class ProductsService {
 
   async update(id: number, payload: any): Promise<Product> {
     const product = await this.findOne(id);
+    this.normalizeDuration(payload, product);
     await this.ensureSkuIsUnique(payload.sku, id);
 
     if (
@@ -112,6 +119,34 @@ export class ProductsService {
   private normalizeSku(value: unknown) {
     const sku = String(value ?? '').trim();
     return sku.length ? sku : null;
+  }
+
+  private normalizeDuration(payload: any, current?: Product) {
+    const nextIsService =
+      payload?.isService !== undefined ? Boolean(payload.isService) : current?.isService;
+
+    if (!nextIsService) {
+      payload.durationMinutes = null;
+      return;
+    }
+
+    const rawDuration =
+      payload?.durationMinutes !== undefined
+        ? payload.durationMinutes
+        : current?.durationMinutes;
+    const parsedDuration = Number(rawDuration);
+
+    if (
+      !Number.isFinite(parsedDuration) ||
+      !Number.isInteger(parsedDuration) ||
+      parsedDuration <= 0
+    ) {
+      throw new BadRequestException(
+        'Duração é obrigatória para serviços e deve ser um número inteiro maior que zero.',
+      );
+    }
+
+    payload.durationMinutes = parsedDuration;
   }
 
   private async ensureSkuIsUnique(skuValue: unknown, ignoreProductId?: number) {
