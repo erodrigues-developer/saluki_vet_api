@@ -4,9 +4,10 @@ import { Module } from '@nestjs/common';
 import { ConsultationsService } from './consultations.service';
 import { ConsultationsController } from './consultations.controller';
 import { ConsultationsRepository } from './repositories/consultations.repository';
+import { ConsultationDictationsModule } from '../consultation-dictations/consultation-dictations.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Consultation])],
+  imports: [TypeOrmModule.forFeature([Consultation]), ConsultationDictationsModule],
   controllers: [ConsultationsController],
   providers: [ConsultationsService, ConsultationsRepository],
   exports: [ConsultationsService],

@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   Query,
+  Req,
 } from '@nestjs/common';
 import {
   ApiOkResponse,
@@ -29,8 +30,8 @@ export class ConsultationsController {
   @Post()
   @ApiOperation({ summary: 'Inicia ou salva uma nova consulta' })
   @ApiOkResponse({ type: Consultation })
-  create(@Body() payload: any) {
-    return this.consultationsService.create(payload);
+  create(@Body() payload: any, @Req() req: any) {
+    return this.consultationsService.create(payload, req.user?.userId);
   }
 
   @Get()
@@ -49,7 +50,28 @@ export class ConsultationsController {
   @Patch(':id')
   @ApiOperation({ summary: 'Atualiza dados da consulta em andamento' })
   @ApiOkResponse({ type: Consultation })
-  update(@Param('id', ParseIntPipe) id: number, @Body() payload: any) {
-    return this.consultationsService.update(id, payload);
+  update(@Param('id', ParseIntPipe) id: number, @Body() payload: any, @Req() req: any) {
+    return this.consultationsService.update(id, payload, req.user?.userId);
+  }
+
+  @Post(':id/finalize')
+  @ApiOperation({ summary: 'Finaliza atendimento e registra prontuário oficial' })
+  @ApiOkResponse({ type: Consultation })
+  finalize(@Param('id', ParseIntPipe) id: number, @Body() payload: any, @Req() req: any) {
+    return this.consultationsService.update(id, {
+      ...payload,
+      recordStatus: 'FINALIZED',
+    }, req.user?.userId);
+  }
+
+  @Post(':id/anamnesis/approve')
+  @ApiOperation({ summary: 'Aprova anamnese e gera apoio clínico consultivo' })
+  @ApiOkResponse({ type: Consultation })
+  approveAnamnesis(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() payload: { anamnesisText?: string },
+    @Req() req: any,
+  ) {
+    return this.consultationsService.approveAnamnesis(id, payload, req.user?.userId);
   }
 }

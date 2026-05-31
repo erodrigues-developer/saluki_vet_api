@@ -48,6 +48,16 @@ export class ConsultationDictationsService {
       );
     }
 
+    if (!hasUploadedAudio) {
+      const existingEquivalent = await this.findEquivalentManualDictation(
+        consultationId,
+        transcriptDraft,
+      );
+      if (existingEquivalent) {
+        return this.findOne(existingEquivalent.id);
+      }
+    }
+
     const entity = this.consultationDictationsRepository.create({
       consultationId,
       createdByUserId: currentUserId ?? null,
@@ -189,6 +199,7 @@ export class ConsultationDictationsService {
       dictation.structuredPayload = structured.payload;
       dictation.processedAt = new Date();
       await this.consultationDictationsRepository.save(dictation);
+      await this.syncConsultationAnamnesisFromDictation(dictation);
     } catch (error: any) {
       dictation.status = 'FAILED';
       dictation.failureReason =
@@ -216,5 +227,79 @@ export class ConsultationDictationsService {
 
   private normalizeFreeText(value: string) {
     return (value || '').replace(/\s+/g, ' ').trim();
+  }
+
+  private async findEquivalentManualDictation(
+    consultationId: number,
+    transcriptDraft: string,
+  ) {
+    const normalizedDraft = this.normalizeFreeText(transcriptDraft);
+    if (!normalizedDraft) return null;
+
+    const recent = await this.consultationDictationsRepository.find({
+      where: {
+        consultationId,
+        captureSource: 'MANUAL_TEXT',
+        status: In(['PENDING', 'PROCESSING', 'COMPLETED']),
+      },
+      order: { createdAt: 'DESC', id: 'DESC' },
+      take: 5,
+    });
+
+    return (
+      recent.find(
+        (item) =>
+          this.normalizeFreeText(
+            item.transcriptDraft || item.transcriptFinal || '',
+          ) === normalizedDraft,
+      ) || null
+    );
+  }
+
+  private async syncConsultationAnamnesisFromDictation(
+    dictation: ConsultationDictation,
+  ) {
+    const consultation = await this.consultationsRepository.findOneBy({
+      id: dictation.consultationId,
+    });
+    if (!consultation) return;
+
+    const transcript = this.normalizeFreeText(
+      dictation.transcriptDraft || dictation.transcriptFinal || '',
+    );
+    if (transcript) {
+      const timestamp = new Date().toISOString();
+      const separator = `\n\n[${timestamp}] ---\n`;
+      const original = String(consultation.originalComplaint || '').trim();
+      const normalizedOriginal = this.normalizeFreeText(original);
+      const normalizedTranscript = this.normalizeFreeText(transcript);
+      if (!normalizedOriginal) {
+        consultation.originalComplaint = transcript;
+      } else if (!normalizedOriginal.includes(normalizedTranscript)) {
+        consultation.originalComplaint = `${original}${separator}${transcript}`;
+      }
+    }
+
+    const structured = dictation.structuredPayload;
+    const organizedText = this.normalizeFreeText(
+      String(
+        dictation.transcriptFinal ||
+          structured?.mainComplaint ||
+          structured?.subjective ||
+          structured?.summary ||
+          '',
+      ),
+    );
+    if (organizedText) {
+      consultation.aiOrganizedComplaint = organizedText;
+      consultation.mainComplaint = organizedText;
+      consultation.assistedAnamnesisSummary = organizedText;
+      consultation.clinicalFindings = organizedText;
+      consultation.anamnesisApproved = false;
+      consultation.anamnesisApprovedAt = null;
+      consultation.anamnesisApprovedByUserId = null;
+    }
+
+    await this.consultationsRepository.save(consultation);
   }
 }

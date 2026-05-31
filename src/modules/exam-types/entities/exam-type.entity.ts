@@ -3,9 +3,12 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
+  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { ExamCategory } from '../../exam-categories/entities/exam-category.entity';
 
 @Entity({ name: 'exam_types' })
 export class ExamType {
@@ -33,6 +36,18 @@ export class ExamType {
     nullable: true,
   })
   defaultPrice?: number | null;
+
+  @ApiProperty({ example: 1, nullable: true })
+  @Column({ name: 'exam_category_id', type: 'bigint', nullable: true })
+  examCategoryId?: number | null;
+
+  @ApiProperty({ example: true })
+  @Column({ name: 'is_active', type: 'boolean', default: true })
+  isActive: boolean;
+
+  @ManyToOne(() => ExamCategory, { nullable: true })
+  @JoinColumn({ name: 'exam_category_id' })
+  examCategory?: ExamCategory | null;
 
   @ApiProperty({ example: '2024-07-09T12:00:00Z' })
   @CreateDateColumn({ name: 'created_at', type: 'timestamp' })

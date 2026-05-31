@@ -10,6 +10,7 @@ import { Product } from '../../modules/products/entities/product.entity';
 import { Procedure } from '../../modules/procedures/entities/procedure.entity';
 import { PaymentMethod } from '../../modules/payment-methods/entities/payment-method.entity';
 import { ExamType } from '../../modules/exam-types/entities/exam-type.entity';
+import { ExamCategory } from '../../modules/exam-categories/entities/exam-category.entity';
 import { Vaccine } from '../../modules/vaccines/entities/vaccine.entity';
 import { Box } from '../../modules/boxes/entities/box.entity';
 import { StockLocation } from '../../modules/stock-locations/entities/stock-location.entity';
@@ -29,6 +30,7 @@ export default class SystemSeeder implements Seeder {
     const procedureRepo = dataSource.getRepository(Procedure);
     const paymentMethodRepo = dataSource.getRepository(PaymentMethod);
     const examTypeRepo = dataSource.getRepository(ExamType);
+    const examCategoryRepo = dataSource.getRepository(ExamCategory);
     const vaccineRepo = dataSource.getRepository(Vaccine);
     const boxRepo = dataSource.getRepository(Box);
     const stockLocationRepo = dataSource.getRepository(StockLocation);
@@ -447,43 +449,198 @@ export default class SystemSeeder implements Seeder {
       ]);
     }
 
-    // 10. Exam Types
-    if ((await examTypeRepo.count()) === 0) {
-      console.log('Seeding Exam Types...');
-      await examTypeRepo.insert([
-        {
-          name: 'Hemograma Completo',
-          description:
-            'Avaliação quantitativa e qualitativa das células sanguíneas',
-          defaultPrice: 85.0,
-          createdAt: now,
-          updatedAt: now,
-        },
-        {
-          name: 'Ultrassom Abdominal',
-          description: 'Exame de imagem da região abdominal',
-          defaultPrice: 150.0,
-          createdAt: now,
-          updatedAt: now,
-        },
-        {
-          name: 'Raio-X (até 3 projeções)',
-          description: 'Exame radiográfico padrão',
-          defaultPrice: 130.0,
-          createdAt: now,
-          updatedAt: now,
-        },
-        {
-          name: 'Perfil Renal',
-          description: 'Avaliação da função renal (Ureia e Creatinina)',
-          defaultPrice: 60.0,
-          createdAt: now,
-          updatedAt: now,
-        },
-      ]);
+    // 10. Exam Categories
+    const examCategorySeeds = [
+      'Laboratorial',
+      'Imagem',
+      'Cardiológico',
+      'Oftalmológico',
+      'Dermatológico',
+      'Infectocontagioso',
+      'Endócrino',
+      'Urina e fezes',
+      'Outros',
+    ];
+
+    const existingExamCategories = await examCategoryRepo.find({
+      where: examCategorySeeds.map((name) => ({ name })),
+    });
+    const existingExamCategoryNames = new Set(
+      existingExamCategories.map((item) => item.name),
+    );
+    const missingExamCategories = examCategorySeeds
+      .filter((name) => !existingExamCategoryNames.has(name))
+      .map((name) => ({
+        name,
+        isActive: true,
+        createdAt: now,
+        updatedAt: now,
+      }));
+
+    if (missingExamCategories.length > 0) {
+      console.log('Seeding Exam Categories...');
+      await examCategoryRepo.insert(missingExamCategories);
     }
 
-    // 11. Vaccines
+    const examCategories = await examCategoryRepo.find({
+      where: examCategorySeeds.map((name) => ({ name })),
+    });
+    const examCategoryByName = new Map(
+      examCategories.map((category) => [category.name, category]),
+    );
+
+    // 11. Exam Types
+    const examTypeSeeds = [
+      {
+        name: 'Hemograma completo',
+        category: 'Laboratorial',
+        description:
+          'Avaliação quantitativa e qualitativa das células sanguíneas',
+        defaultPrice: 85.0,
+      },
+      {
+        name: 'Bioquímica sérica',
+        category: 'Laboratorial',
+      },
+      {
+        name: 'Ureia',
+        category: 'Laboratorial',
+      },
+      {
+        name: 'Creatinina',
+        category: 'Laboratorial',
+      },
+      {
+        name: 'ALT/TGP',
+        category: 'Laboratorial',
+      },
+      {
+        name: 'AST/TGO',
+        category: 'Laboratorial',
+      },
+      {
+        name: 'Glicemia',
+        category: 'Endócrino',
+      },
+      {
+        name: 'Urinálise',
+        category: 'Urina e fezes',
+      },
+      {
+        name: 'Parasitológico de fezes',
+        category: 'Urina e fezes',
+      },
+      {
+        name: 'Ultrassonografia abdominal',
+        category: 'Imagem',
+        description: 'Exame de imagem da região abdominal',
+        defaultPrice: 150.0,
+      },
+      {
+        name: 'Radiografia',
+        category: 'Imagem',
+        description: 'Exame radiográfico padrão',
+        defaultPrice: 130.0,
+      },
+      {
+        name: 'Teste rápido para cinomose',
+        category: 'Infectocontagioso',
+      },
+      {
+        name: 'Teste para leishmaniose',
+        category: 'Infectocontagioso',
+      },
+      {
+        name: 'PCR',
+        category: 'Infectocontagioso',
+      },
+    ];
+
+    const legacyExamTypeRenameMap: Record<string, string> = {
+      'Hemograma Completo': 'Hemograma completo',
+      'Ultrassom Abdominal': 'Ultrassonografia abdominal',
+      'Raio-X (até 3 projeções)': 'Radiografia',
+    };
+    const legacyExamTypes = await examTypeRepo.find({
+      where: Object.keys(legacyExamTypeRenameMap).map((name) => ({ name })),
+    });
+    for (const legacyExamType of legacyExamTypes) {
+      const targetName = legacyExamTypeRenameMap[legacyExamType.name];
+      if (!targetName) continue;
+      const targetExists = await examTypeRepo
+        .createQueryBuilder('examType')
+        .where('LOWER(TRIM(examType.name)) = LOWER(TRIM(:name))', {
+          name: targetName,
+        })
+        .getOne();
+      if (!targetExists) {
+        await examTypeRepo.update(legacyExamType.id, {
+          name: targetName,
+          updatedAt: now,
+        });
+      }
+    }
+
+    const normalizedExamTypeNames = examTypeSeeds.map((item) =>
+      item.name.trim().toLowerCase(),
+    );
+    const existingExamTypes = await examTypeRepo
+      .createQueryBuilder('examType')
+      .where('LOWER(TRIM(examType.name)) IN (:...names)', {
+        names: normalizedExamTypeNames,
+      })
+      .getMany();
+    const existingExamTypeNames = new Set(
+      existingExamTypes.map((item) => item.name.trim().toLowerCase()),
+    );
+    const missingExamTypes = examTypeSeeds
+      .filter((item) => !existingExamTypeNames.has(item.name.trim().toLowerCase()))
+      .map((item) => ({
+        name: item.name,
+        description: item.description ?? null,
+        defaultPrice: item.defaultPrice ?? null,
+        examCategoryId: examCategoryByName.get(item.category)?.id ?? null,
+        createdAt: now,
+        updatedAt: now,
+      }));
+
+    if (missingExamTypes.length > 0) {
+      console.log('Seeding Exam Types...');
+      await examTypeRepo.insert(missingExamTypes);
+    }
+
+    const examTypeCategoryMap: Record<string, string> = {
+      'Hemograma completo': 'Laboratorial',
+      'Bioquímica sérica': 'Laboratorial',
+      Ureia: 'Laboratorial',
+      Creatinina: 'Laboratorial',
+      'ALT/TGP': 'Laboratorial',
+      'AST/TGO': 'Laboratorial',
+      Glicemia: 'Endócrino',
+      Urinálise: 'Urina e fezes',
+      'Parasitológico de fezes': 'Urina e fezes',
+      'Ultrassonografia abdominal': 'Imagem',
+      Radiografia: 'Imagem',
+      'Teste rápido para cinomose': 'Infectocontagioso',
+      'Teste para leishmaniose': 'Infectocontagioso',
+      PCR: 'Infectocontagioso',
+    };
+    const examTypesToRelate = await examTypeRepo.find({
+      where: Object.keys(examTypeCategoryMap).map((name) => ({ name })),
+    });
+    for (const examType of examTypesToRelate) {
+      const desiredCategoryName = examTypeCategoryMap[examType.name];
+      const desiredCategoryId =
+        examCategoryByName.get(desiredCategoryName)?.id ?? null;
+      if (desiredCategoryId && examType.examCategoryId !== desiredCategoryId) {
+        await examTypeRepo.update(examType.id, {
+          examCategoryId: desiredCategoryId,
+          updatedAt: now,
+        });
+      }
+    }
+
+    // 12. Vaccines
     if ((await vaccineRepo.count()) === 0) {
       console.log('Seeding Vaccines...');
       await vaccineRepo.insert([
@@ -524,7 +681,7 @@ export default class SystemSeeder implements Seeder {
       ]);
     }
 
-    // 12. Boxes (Inpatient)
+    // 13. Boxes (Inpatient)
     if ((await boxRepo.count()) === 0) {
       console.log('Seeding Boxes...');
       await boxRepo.insert([

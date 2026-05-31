@@ -12,6 +12,17 @@ export type StructuredDraft = {
   payload: ConsultationDictationStructuredPayload;
 };
 
+type ConsultiveSupportInput = {
+  anamnesis: string;
+  weightKg?: number | null;
+  temperatureC?: number | null;
+  heartRateBpm?: number | null;
+  respiratoryRateIpm?: number | null;
+  mucosaStatus?: string | null;
+  hydrationStatus?: string | null;
+  painStatus?: string | null;
+};
+
 type TranscriptionOptions = {
   fileName?: string | null;
   mimeType?: string | null;
@@ -123,65 +134,137 @@ export class ConsultationDictationAiService {
     }
 
     try {
-      const structuredLlm = (await this.getModel()).withStructuredOutput(
-        consultationDictationSchema,
-        {
-          name: 'consultation_dictation_extraction',
-          strict: true,
-        },
-      );
-
       const prompt = ChatPromptTemplate.fromMessages([
-        [
-          'system',
-          [
-            'Voce e um veterinario clinico senior e redator tecnico de prontuario.',
-            'Transforme relato bruto em texto clinico profissional, objetivo e acionavel.',
-            'Retorne somente JSON valido no schema solicitado.',
-            'Nao invente dados: se a informacao nao estiver explicita ou nao puder ser inferida com seguranca, use null.',
-            'Evite repeticao literal da fala do tutor; sintetize em linguagem tecnica veterinaria.',
-            'Nao repetir "tutor relata" em todos os campos; prefira sintese clinica direta.',
-            'Cada campo deve agregar informacao nova e coerente com os demais, sem contradicoes temporais ou clinicas.',
-            'Priorize especificidade: inicio, duracao, progressao, frequencia, intensidade, fatores associados e impacto funcional quando disponiveis.',
-            'Nao emitir diagnostico definitivo na anamnese; em assessment, usar hipotese ou impressao clinica com cautela.',
-            'Quando houver incerteza, explicite como "a esclarecer" ou retorne null conforme o caso.',
-            'Escreva frases curtas, tecnicas e prontas para prontuario; evite generalidades vagas.',
-            'subjective: historia clinica organizada da queixa e anamnese, sem redundancia.',
-            'objective: apenas achados objetivos de exame fisico/observacao; se ausentes, null.',
-            'assessment: interpretacao clinica e hipoteses diferenciais sem conclusao absoluta.',
-            'plan: conduta proposta, exames complementares, monitorizacao e retorno quando citados; sem extrapolar dados ausentes.',
-            'mainComplaint: problema principal em 1 frase clinica com tempo/evolucao quando houver.',
-            'clinicalFindings: sintese dos achados relevantes que sustentam a avaliacao.',
-            'diagnosis: diagnostico ou suspeita principal somente se houver base suficiente; caso contrario, null.',
-            'treatmentPlan: plano terapeutico objetivo e verificavel apenas com dados presentes.',
-            'notes: lacunas, riscos, pendencias e observacoes adicionais uteis.',
-            'summary: resumo executivo em ate 280 caracteres, tecnico e informativo.',
-            'transcriptFinal: normalize ruido, repeticoes e pontuacao preservando o sentido clinico.',
-            'keywords: 4 a 8 termos clinicos curtos, em minusculo, sem duplicidade e sem acentos desnecessarios.',
-          ].join(' '),
-        ],
         [
           'human',
           [
-            'Estruture o ditado clinico abaixo para os campos da consulta.',
-            'A saida deve ser profissional e diferenciada por campo, sem repetir o mesmo texto.',
-            'Se faltar dado para algum campo, use null.',
+            'Você é um assistente de prontuário veterinário especializado em transformar transcrições de consultas em anamnese clínica.',
             '',
+            'Sua tarefa é converter uma conversa bruta entre médico-veterinário e tutor em uma ANAMNESE VETERINÁRIA TÉCNICA, SINTÉTICA E ORGANIZADA.',
+            '',
+            'A saída NÃO deve parecer uma conversa.',
+            'A saída NÃO deve manter perguntas e respostas.',
+            'A saída NÃO deve reproduzir falas literalmente, exceto quando uma informação específica precisar ser preservada com fidelidade.',
+            'A saída deve ser uma síntese clínica adequada para prontuário veterinário.',
+            '',
+            'CONCEITO:',
+            'Anamnese é o registro organizado da história clínica relatada pelo tutor e conduzida pelo médico-veterinário. Ela deve reunir, em linguagem técnica e objetiva, as informações relevantes sobre o motivo da consulta, início, evolução, sinais clínicos, hábitos, exposições, histórico preventivo e demais dados pertinentes.',
+            '',
+            'REGRAS PRINCIPAIS:',
+            '- Transforme a conversa em síntese clínica.',
+            '- Não escreva em formato de diálogo.',
+            '- Não use “perguntou”, “respondeu”, “o veterinário disse” ou “o tutor falou” repetidamente.',
+            '- Use preferencialmente expressões como “Tutor relata”, “Tutor refere”, “Segundo tutor”, “Tutor nega”, “Foi relatado”.',
+            '- Não invente informações.',
+            '- Não complete lacunas com suposições.',
+            '- Não diagnostique.',
+            '- Não sugira tratamento.',
+            '- Não recomende exames, exceto se isso tiver sido mencionado explicitamente na conversa.',
+            '- Não cite doenças, hipóteses ou suspeitas se elas não foram mencionadas na transcrição.',
+            '- Não obrigue o preenchimento de todos os tópicos.',
+            '- Organize somente as informações disponíveis.',
+            '- Se uma informação não foi mencionada, omita do texto final.',
+            '- Use “não informado” somente quando a ausência da informação for importante para o contexto clínico.',
+            '- Preserve negações relevantes.',
+            '- Preserve incertezas usando termos como “aproximadamente”, “sem precisão”, “tutor não soube precisar”, “aparentemente” ou “não foi possível confirmar pela transcrição”.',
+            '- Remova cumprimentos, hesitações, repetições, interrupções e trechos sem valor clínico.',
+            '- Corrija a linguagem para padrão técnico, sem alterar o sentido original.',
+            '- A anamnese deve ser útil mesmo quando a transcrição for parcial.',
+            '',
+            'ESTILO DA ANAMNESE:',
+            '- Texto em português do Brasil.',
+            '- Linguagem clínica veterinária.',
+            '- Tom objetivo, técnico e profissional.',
+            '- Frases claras e bem organizadas.',
+            '- Sem excesso de detalhes irrelevantes.',
+            '- Sem linguagem informal.',
+            '- Sem perguntas.',
+            '- Sem estrutura de entrevista.',
+            '- Sem diagnóstico final.',
+            '',
+            'FORMATO DE SAÍDA:',
+            'Retorne uma anamnese organizada em texto puro, com os blocos abaixo.',
+            'Não use JSON.',
+            'Não use tabela.',
+            'Não use markdown complexo.',
+            'Não mantenha blocos vazios.',
+            'Omitir qualquer bloco sem informação relevante.',
+            '',
+            '1. Queixa principal:',
+            'Uma frase curta sintetizando o motivo da consulta.',
+            '',
+            '2. História do problema atual:',
+            'Texto clínico corrido descrevendo início, duração, evolução, intensidade, frequência, progressão, melhora/piora e sinais associados, apenas se mencionados.',
+            '',
+            '3. Alimentação e ingestão hídrica:',
+            'Síntese do que foi relatado sobre apetite, aceitação alimentar, mudança de alimento e ingestão de água.',
+            '',
+            '4. Urina e fezes:',
+            'Síntese do que foi relatado sobre micção e evacuação.',
+            '',
+            '5. Sinais associados:',
+            'Síntese ou lista objetiva dos sinais clínicos relevantes mencionados, evitando repetir o que já foi bem descrito na história do problema atual.',
+            '',
+            '6. Exposições e fatores de risco:',
+            'Síntese sobre ambiente, acesso à rua, quintal, contato com outros animais, produtos químicos, venenos, lixo, plantas, alimento diferente, medicamentos administrados em casa, pulgas, carrapatos, mosquitos ou outros fatores mencionados.',
+            '',
+            '7. Histórico preventivo e médico:',
+            'Síntese sobre vacinação, vermifugação, antiparasitários, repelentes, castração, doenças anteriores, medicações contínuas, alergias, cirurgias ou internações, quando mencionados.',
+            '',
+            '8. Informações negadas relevantes:',
+            'Liste apenas negativas clinicamente úteis.',
+            'Exemplo:',
+            '- Tutor nega vômitos.',
+            '- Tutor nega contato conhecido com produtos químicos ou venenos.',
+            '- Tutor nega mudança alimentar recente.',
+            '',
+            '9. Informações incertas ou pouco precisas:',
+            'Liste apenas informações importantes que foram relatadas de forma imprecisa.',
+            'Exemplo:',
+            '- Tutor não soube precisar a data da última vermifugação.',
+            '- Duração dos sinais relatada de forma aproximada.',
+            '',
+            '10. Anamnese consolidada para prontuário:',
+            'Escreva um parágrafo único, técnico e natural, pronto para ser salvo no prontuário.',
+            'Esse parágrafo deve sintetizar os principais achados da anamnese sem parecer transcrição e sem repetir “não informado” desnecessariamente.',
+            '',
+            'CRITÉRIO MAIS IMPORTANTE:',
+            'A entrada é uma conversa. A saída deve ser uma anamnese clínica. Portanto, reestruture, sintetize e normalize a linguagem, mantendo fidelidade ao conteúdo original.',
+            '',
+            'TRANSCRIÇÃO DA CONSULTA:',
+            '"""',
             '{transcriptDraft}',
+            '"""',
           ].join('\n'),
         ],
       ]);
 
-      const chain = prompt.pipe(structuredLlm);
-      const response = await chain.invoke({
-        transcriptDraft: cleanedTranscript,
-      });
+      const chain = prompt.pipe(await this.getModel());
+      const response = await chain.invoke({ transcriptDraft: cleanedTranscript });
+      const organizedText = this.normalizeClinicalTranscript(
+        this.extractTextFromMessageContent((response as any)?.content),
+      );
+      if (!organizedText) {
+        return this.buildStructuredDraftFallback(cleanedTranscript);
+      }
 
       return {
-        cleanedTranscript: this.normalizeClinicalTranscript(
-          response.transcriptFinal || cleanedTranscript,
-        ),
-        payload: this.mapResponseToPayload(response),
+        cleanedTranscript: organizedText,
+        payload: {
+          summary: organizedText.slice(0, 280),
+          subjective: organizedText,
+          objective: null,
+          assessment: null,
+          plan: null,
+          mainComplaint: organizedText,
+          clinicalFindings: organizedText,
+          diagnosis: null,
+          treatmentPlan: null,
+          notes: null,
+          weightKg: null,
+          temperatureC: null,
+          keywords: [],
+        },
       };
     } catch (error: any) {
       this.logger.error(
@@ -239,6 +322,118 @@ export class ConsultationDictationAiService {
       `Audio transcription via LangChain ainda nao esta habilitada para provider ${provider.toUpperCase()}. Falling back to local transcript draft.`,
     );
     return fallbackTranscript;
+  }
+
+  async buildConsultiveSupport(input: ConsultiveSupportInput) {
+    const anamnesis = this.normalizeClinicalTranscript(input.anamnesis || '');
+    if (!anamnesis) {
+      return [
+        'Apoio clínico da IA',
+        '',
+        'Sugestões consultivas geradas a partir da anamnese, triagem e sinais registrados. Não representam diagnóstico e devem ser revisadas pelo médico-veterinário antes de serem usadas no prontuário.',
+        '',
+        'Não há dados clínicos suficientes para sugerir possibilidades específicas com segurança. Recomenda-se revisar a anamnese, exame físico e sinais vitais antes de formular hipóteses diferenciais.',
+      ].join('\n');
+    }
+
+    if (!this.isConfigured()) {
+      return [
+        'Apoio clínico da IA',
+        '',
+        'Sugestões consultivas geradas a partir da anamnese, triagem e sinais registrados. Não representam diagnóstico e devem ser revisadas pelo médico-veterinário antes de serem usadas no prontuário.',
+        '',
+        'Não há dados clínicos suficientes para sugerir possibilidades específicas com segurança. Recomenda-se revisar a anamnese, exame físico e sinais vitais antes de formular hipóteses diferenciais.',
+      ].join('\n');
+    }
+
+    const vitals = [
+      input.weightKg != null ? `Peso: ${input.weightKg} kg` : null,
+      input.temperatureC != null ? `Temperatura: ${input.temperatureC} °C` : null,
+      input.heartRateBpm != null ? `FC: ${input.heartRateBpm} bpm` : null,
+      input.respiratoryRateIpm != null ? `FR: ${input.respiratoryRateIpm} irpm` : null,
+      input.mucosaStatus ? `Mucosas: ${input.mucosaStatus}` : null,
+      input.hydrationStatus ? `Hidratação: ${input.hydrationStatus}` : null,
+      input.painStatus ? `Dor: ${input.painStatus}` : null,
+    ]
+      .filter(Boolean)
+      .join(' | ');
+
+    try {
+      const response = await (await this.getModel()).invoke([
+        new HumanMessage(
+          [
+            'Você é um assistente clínico veterinário de apoio à decisão.',
+            '',
+            'Sua tarefa é analisar os dados já registrados em uma consulta veterinária e gerar uma lista consultiva com possíveis hipóteses diferenciais ou possibilidades clínicas a considerar pelo médico-veterinário.',
+            '',
+            'IMPORTANTE:',
+            '- Não dê diagnóstico definitivo.',
+            '- Não afirme que o animal “tem” determinada doença.',
+            '- Não use linguagem conclusiva.',
+            '- Não substitua a avaliação do médico-veterinário.',
+            '- Não invente sinais clínicos, exames, histórico ou achados físicos.',
+            '- Use somente as informações fornecidas.',
+            '- Se houver poucos dados, gere menos sugestões.',
+            '- Se os dados forem insuficientes, informe que não há elementos suficientes para sugerir possibilidades clínicas relevantes.',
+            '- O número máximo de possibilidades é 4.',
+            '- Não é obrigatório gerar 4 opções. Gere apenas as opções coerentes com o contexto.',
+            '- Priorize hipóteses clinicamente relevantes, seguras e úteis para orientar o raciocínio.',
+            '- Evite sugestões muito genéricas quando houver informações suficientes para algo mais direcionado.',
+            '- Sempre apresente como possibilidades clínicas ou diagnósticos diferenciais, nunca como diagnóstico confirmado.',
+            '- Não recomende tratamento.',
+            '- Não prescreva medicamentos.',
+            '- Não use termos como “diagnóstico confirmado”, “diagnóstico provável”, “IA detectou” ou “o animal apresenta”.',
+            '- Use termos como “possibilidade”, “compatível com”, “pode ser considerado”, “dados sugerem considerar” e “pontos que sustentam”.',
+            '- A porcentagem deve representar apenas uma estimativa heurística de compatibilidade com os dados disponíveis, e não uma probabilidade diagnóstica real.',
+            '- A soma das porcentagens não precisa obrigatoriamente ser 100%, pois as possibilidades podem coexistir ou exigir investigação complementar.',
+            '- Se os dados forem limitados, use porcentagens mais conservadoras.',
+            '- Não inclua exames complementares como recomendação direta. Se necessário, mencione apenas de forma descritiva na frase: “dependeria de correlação com exame físico e exames complementares”.',
+            '',
+            'FORMATO DA RESPOSTA:',
+            '- Responda somente em markdown.',
+            '- Não escreva título como “Apoio clínico da IA”.',
+            '- Não escreva introdução longa.',
+            '- Não use tabela.',
+            '- Gere apenas uma lista numerada.',
+            '- Cada item deve conter:',
+            '  - nome da possibilidade clínica;',
+            '  - porcentagem estimada;',
+            '  - pequena descrição em 1 ou 2 frases.',
+            '- Seja objetivo e adequado para exibição em um card de interface.',
+            '',
+            'FORMATO OBRIGATÓRIO:',
+            '',
+            '1. **[Nome da possibilidade clínica] — [porcentagem]%**  ',
+            '   [Descrição curta explicando por que essa possibilidade pode ser considerada com base nos dados registrados.]',
+            '',
+            '2. **[Nome da possibilidade clínica] — [porcentagem]%**  ',
+            '   [Descrição curta explicando por que essa possibilidade pode ser considerada com base nos dados registrados.]',
+            '',
+            'Se não houver dados suficientes, responda exatamente neste formato:',
+            '',
+            '- Não há dados clínicos suficientes para sugerir possibilidades específicas com segurança. É necessário revisar a anamnese, sinais vitais e exame físico antes de formular hipóteses diferenciais.',
+            '',
+            'DADOS DA CONSULTA:',
+            '"""',
+            `Anamnese:\n${anamnesis}`,
+            vitals ? `\nSinais vitais e triagem:\n${vitals}` : '',
+            '"""',
+          ].join('\n'),
+        ),
+      ]);
+
+      return this.normalizeClinicalTranscript(
+        this.extractTextFromMessageContent((response as any)?.content),
+      );
+    } catch (_error) {
+      return [
+        'Apoio clínico da IA',
+        '',
+        'Sugestões consultivas geradas a partir da anamnese, triagem e sinais registrados. Não representam diagnóstico e devem ser revisadas pelo médico-veterinário antes de serem usadas no prontuário.',
+        '',
+        'Não há dados clínicos suficientes para sugerir possibilidades específicas com segurança. Recomenda-se revisar a anamnese, exame físico e sinais vitais antes de formular hipóteses diferenciais.',
+      ].join('\n');
+    }
   }
 
   private async transcribeAudioWithGemini(

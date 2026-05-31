@@ -10,6 +10,7 @@ describe('ConsultationDictationsService', () => {
 
   const consultationRepository = {
     findOneBy: jest.fn(),
+    save: jest.fn(),
   };
 
   const dictationRepository = {
@@ -27,6 +28,7 @@ describe('ConsultationDictationsService', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    consultationRepository.save.mockImplementation(async (payload: any) => payload);
     consultationDictationAiService.buildStructuredDraft.mockResolvedValue({
       cleanedTranscript:
         'Tutor relata vomito e apatia desde ontem. Ao exame temperatura 39,4 e desidratacao leve. Suspeita de gastroenterite aguda. Conduta com antiemetico, dieta leve e retorno em 48 horas.',
@@ -179,6 +181,10 @@ describe('ConsultationDictationsService', () => {
     dictationRepository.save.mockImplementation(
       async (payload: any) => payload,
     );
+    consultationRepository.findOneBy.mockResolvedValue({
+      id: 12,
+      originalComplaint: '',
+    });
 
     await service.processPendingQueue(5);
 
@@ -197,6 +203,13 @@ describe('ConsultationDictationsService', () => {
           treatmentPlan: expect.stringContaining('retorno'),
           temperatureC: 39.4,
         }),
+      }),
+    );
+    expect(consultationRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        aiOrganizedComplaint: 'Vomito e apatia desde ontem.',
+        mainComplaint: 'Vomito e apatia desde ontem.',
+        assistedAnamnesisSummary: 'Vomito e apatia desde ontem.',
       }),
     );
   });
