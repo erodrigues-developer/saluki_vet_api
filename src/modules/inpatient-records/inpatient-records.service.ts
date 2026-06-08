@@ -14,6 +14,8 @@ import { FilterInpatientRecordsDto } from './dto/filter-inpatient-records.dto';
 import { ClinicalParameter } from '../clinical-parameters/entities/clinical-parameter.entity';
 import { TreatmentMap } from '../treatment-map/entities/treatment-map.entity';
 import { DischargeInpatientRecordDto } from './dto/discharge-inpatient-record.dto';
+import { TransferInpatientRecordDto } from './dto/transfer-inpatient-record.dto';
+import { InpatientRecordTransfer } from './entities/inpatient-record-transfer.entity';
 
 @Injectable()
 export class InpatientRecordsService {
@@ -30,9 +32,16 @@ export class InpatientRecordsService {
     private readonly clinicalParametersRepository: Repository<ClinicalParameter>,
     @InjectRepository(TreatmentMap)
     private readonly treatmentMapRepository: Repository<TreatmentMap>,
+    @InjectRepository(InpatientRecordTransfer)
+    private readonly inpatientRecordTransfersRepository: Repository<InpatientRecordTransfer>,
   ) {}
 
   async create(payload: CreateInpatientRecordDto): Promise<InpatientRecord> {
+    const reason = String(payload.reason || '').trim();
+    if (!reason) {
+      throw new BadRequestException('Clinical reason is required');
+    }
+
     const pet = await this.petsRepository.findOne({
       where: { id: payload.petId },
       relations: {
@@ -44,6 +53,12 @@ export class InpatientRecordsService {
 
     if (!pet) {
       throw new NotFoundException(`Pet ${payload.petId} not found`);
+    }
+
+    if (!pet.client || !pet.client.id) {
+      throw new BadRequestException(
+        'Pet must be linked to a client before admission',
+      );
     }
 
     const box = await this.boxesRepository.findOneBy({ id: payload.boxId });
@@ -74,6 +89,17 @@ export class InpatientRecordsService {
     }
 
     if (payload.consultationId) {
+      const existingForConsultation = await this.inpatientRecordsRepository.findOne({
+        where: {
+          consultationId: payload.consultationId,
+        },
+      });
+      if (existingForConsultation) {
+        throw new BadRequestException(
+          `Consultation ${payload.consultationId} has already been used for another inpatient record`,
+        );
+      }
+
       const consultation = await this.consultationsRepository.findOneBy({
         id: payload.consultationId,
       });
@@ -91,6 +117,7 @@ export class InpatientRecordsService {
 
     const entity = this.inpatientRecordsRepository.create({
       ...payload,
+      reason,
       admissionAt: payload.admissionAt
         ? new Date(payload.admissionAt)
         : new Date(),
@@ -126,6 +153,12 @@ export class InpatientRecordsService {
 
     if (filters.petId) {
       query.andWhere('record.petId = :petId', { petId: filters.petId });
+    }
+
+    if (filters.consultationId) {
+      query.andWhere('record.consultationId = :consultationId', {
+        consultationId: filters.consultationId,
+      });
     }
 
     query
@@ -164,7 +197,12 @@ export class InpatientRecordsService {
       throw new NotFoundException(`Inpatient record ${id} not found`);
     }
 
-    const [latestClinicalParameters, pendingTreatments, executedTreatments] =
+    const [
+      latestClinicalParameters,
+      pendingTreatments,
+      executedTreatments,
+      transferHistory,
+    ] =
       await Promise.all([
         this.clinicalParametersRepository.find({
           where: { inpatientRecordId: id },
@@ -189,6 +227,17 @@ export class InpatientRecordsService {
             status: 'EXECUTED',
           },
         }),
+        this.inpatientRecordTransfersRepository.find({
+          where: { inpatientRecordId: id },
+          relations: {
+            fromBox: true,
+            toBox: true,
+          },
+          order: {
+            transferredAt: 'DESC',
+            id: 'DESC',
+          },
+        }),
       ]);
 
     return {
@@ -198,6 +247,7 @@ export class InpatientRecordsService {
         pending: pendingTreatments,
         executed: executedTreatments,
       },
+      transferHistory,
     };
   }
 
@@ -238,5 +288,87 @@ export class InpatientRecordsService {
 
     const saved = await this.inpatientRecordsRepository.save(record);
     return this.findOne(saved.id);
+  }
+
+  async transfer(id: number, payload: TransferInpatientRecordDto) {
+    const reason = String(payload.reason || '').trim();
+    if (!reason) {
+      throw new BadRequestException('Transfer reason is required');
+    }
+
+    const transferredRecordId = await this.inpatientRecordsRepository.manager.transaction(
+      async (manager) => {
+        const recordsRepository = manager.getRepository(InpatientRecord);
+        const boxesRepository = manager.getRepository(Box);
+        const transfersRepository = manager.getRepository(InpatientRecordTransfer);
+
+        const record = await recordsRepository.findOne({
+          where: { id },
+          relations: {
+            pet: true,
+            box: true,
+          },
+        });
+
+        if (!record) {
+          throw new NotFoundException(`Inpatient record ${id} not found`);
+        }
+
+        if (record.status !== 'ACTIVE') {
+          throw new BadRequestException(
+            `Inpatient record ${id} is not active anymore`,
+          );
+        }
+
+        if (Number(record.boxId) === Number(payload.boxId)) {
+          throw new BadRequestException(
+            'Transfer target must be different from the current box',
+          );
+        }
+
+        const targetBox = await boxesRepository.findOneBy({ id: payload.boxId });
+        if (!targetBox || !targetBox.isActive) {
+          throw new NotFoundException(`Box ${payload.boxId} not found`);
+        }
+
+        const activeForBox = await recordsRepository.findOne({
+          where: {
+            boxId: payload.boxId,
+            status: 'ACTIVE',
+          },
+        });
+        if (activeForBox && Number(activeForBox.id) !== Number(record.id)) {
+          throw new BadRequestException(`Box ${payload.boxId} is already occupied`);
+        }
+
+        const previousBoxLabel = record.box?.name || `Box ${record.boxId}`;
+        const targetBoxLabel = targetBox.name || `Box ${payload.boxId}`;
+        const transferTimestamp = payload.transferredAt
+          ? new Date(payload.transferredAt)
+          : new Date();
+
+        const transfer = transfersRepository.create({
+          inpatientRecordId: Number(record.id),
+          fromBoxId: Number(record.boxId),
+          toBoxId: Number(payload.boxId),
+          reason,
+          transferredAt: transferTimestamp,
+        });
+
+        await transfersRepository.save(transfer);
+
+        record.boxId = Number(payload.boxId);
+        record.box = targetBox;
+        const transferNote = `Transferência de leito: ${previousBoxLabel} -> ${targetBoxLabel}. Motivo: ${reason}`;
+        record.notes = record.notes
+          ? `${record.notes}\n\n${transferNote}`
+          : transferNote;
+
+        await recordsRepository.save(record);
+        return Number(record.id);
+      },
+    );
+
+    return this.findOne(transferredRecordId);
   }
 }

@@ -23,6 +23,13 @@ export class FilterInpatientRecordsDto {
   @IsOptional()
   petId?: number;
 
+  @ApiPropertyOptional({ example: 1 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  consultationId?: number;
+
   @ApiPropertyOptional({ example: 1, default: 1 })
   @Type(() => Number)
   @IsInt()

@@ -8,11 +8,13 @@ import { Pet } from '../pets/entities/pet.entity';
 import { Consultation } from '../consultations/entities/consultation.entity';
 import { ClinicalParameter } from '../clinical-parameters/entities/clinical-parameter.entity';
 import { TreatmentMap } from '../treatment-map/entities/treatment-map.entity';
+import { InpatientRecordTransfer } from './entities/inpatient-record-transfer.entity';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       InpatientRecord,
+      InpatientRecordTransfer,
       Box,
       Pet,
       Consultation,

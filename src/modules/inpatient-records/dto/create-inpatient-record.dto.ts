@@ -34,8 +34,9 @@ export class CreateInpatientRecordDto {
 
   @ApiPropertyOptional({ example: 'Pos-operatorio ortopedico' })
   @IsString()
-  @IsOptional()
-  reason?: string;
+  @IsNotEmpty()
+  @MaxLength(4000)
+  reason: string;
 
   @ApiPropertyOptional({ example: '2026-04-05T15:30:00.000Z' })
   @IsDateString()

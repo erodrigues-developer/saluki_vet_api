@@ -23,6 +23,7 @@ import { InpatientRecord } from './entities/inpatient-record.entity';
 import { CreateInpatientRecordDto } from './dto/create-inpatient-record.dto';
 import { FilterInpatientRecordsDto } from './dto/filter-inpatient-records.dto';
 import { DischargeInpatientRecordDto } from './dto/discharge-inpatient-record.dto';
+import { TransferInpatientRecordDto } from './dto/transfer-inpatient-record.dto';
 
 @ApiTags('Inpatient Records')
 @ApiBearerAuth()
@@ -69,5 +70,17 @@ export class InpatientRecordsController {
     @Body() payload: DischargeInpatientRecordDto,
   ) {
     return this.inpatientRecordsService.discharge(id, payload);
+  }
+
+  @Patch(':id/transfer')
+  @ApiOperation({ summary: 'Transfere o paciente para outro leito vazio' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiOkResponse({ type: InpatientRecord })
+  @ApiBadRequestResponse({ description: 'Leito de destino invalido ou ocupado' })
+  transfer(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() payload: TransferInpatientRecordDto,
+  ) {
+    return this.inpatientRecordsService.transfer(id, payload);
   }
 }

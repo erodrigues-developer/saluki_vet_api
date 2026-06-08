@@ -8,7 +8,7 @@ import { Box } from '../boxes/entities/box.entity';
 import { Pet } from '../pets/entities/pet.entity';
 import { Consultation } from '../consultations/entities/consultation.entity';
 import { TreatmentMap } from '../treatment-map/entities/treatment-map.entity';
-import { InpatientRecordsService } from '../inpatient-records/inpatient-records.service';
+import { InpatientRecordsModule } from '../inpatient-records/inpatient-records.module';
 
 @Module({
   imports: [
@@ -20,9 +20,10 @@ import { InpatientRecordsService } from '../inpatient-records/inpatient-records.
       Consultation,
       TreatmentMap,
     ]),
+    InpatientRecordsModule,
   ],
   controllers: [ClinicalParametersController],
-  providers: [ClinicalParametersService, InpatientRecordsService],
+  providers: [ClinicalParametersService],
   exports: [ClinicalParametersService],
 })
 export class ClinicalParametersModule {}

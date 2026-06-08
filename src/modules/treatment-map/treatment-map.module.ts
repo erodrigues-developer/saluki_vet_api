@@ -11,7 +11,7 @@ import { Box } from '../boxes/entities/box.entity';
 import { Pet } from '../pets/entities/pet.entity';
 import { Consultation } from '../consultations/entities/consultation.entity';
 import { ClinicalParameter } from '../clinical-parameters/entities/clinical-parameter.entity';
-import { InpatientRecordsService } from '../inpatient-records/inpatient-records.service';
+import { InpatientRecordsModule } from '../inpatient-records/inpatient-records.module';
 import { StockMovementsModule } from '../stock-movements/stock-movements.module';
 
 @Module({
@@ -26,10 +26,11 @@ import { StockMovementsModule } from '../stock-movements/stock-movements.module'
       Consultation,
       ClinicalParameter,
     ]),
+    InpatientRecordsModule,
     StockMovementsModule,
   ],
   controllers: [TreatmentMapController, TreatmentMapActionsController],
-  providers: [TreatmentMapService, InpatientRecordsService],
+  providers: [TreatmentMapService],
   exports: [TreatmentMapService],
 })
 export class TreatmentMapModule {}
