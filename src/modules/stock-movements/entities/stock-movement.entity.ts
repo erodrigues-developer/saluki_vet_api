@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { Product } from '../../products/entities/product.entity';
 import { StockLocation } from '../../stock-locations/entities/stock-location.entity';
+import { User } from '../../users/entities/user.entity';
 
 @Entity({ name: 'stock_movements' })
 export class StockMovement {
@@ -74,6 +75,18 @@ export class StockMovement {
   @ApiProperty({ example: 'Ajuste de inventário', nullable: true })
   @Column({ type: 'text', nullable: true })
   notes?: string | null;
+
+  @ApiProperty({ example: 'Perda', nullable: true })
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  reason?: string | null;
+
+  @ApiProperty({ example: 10, nullable: true })
+  @Column({ name: 'created_by_user_id', type: 'bigint', nullable: true })
+  createdByUserId?: number | null;
+
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'created_by_user_id' })
+  createdByUser?: User | null;
 
   @ApiProperty({ example: '2024-07-09T12:00:00Z' })
   @CreateDateColumn({ name: 'created_at', type: 'timestamp' })

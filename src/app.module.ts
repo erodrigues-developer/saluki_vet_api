@@ -48,6 +48,7 @@ import { PrescriptionsModule } from './modules/prescriptions/prescriptions.modul
 import { ConsultationDictationsModule } from './modules/consultation-dictations/consultation-dictations.module';
 import { AiConversationsModule } from './modules/ai-conversations/ai-conversations.module';
 import { StockMovementsModule } from './modules/stock-movements/stock-movements.module';
+import { StockLocationsModule } from './modules/stock-locations/stock-locations.module';
 import { VeterinarianAvailabilityModule } from './modules/veterinarian-availability/veterinarian-availability.module';
 import { ExamCategoriesModule } from './modules/exam-categories/exam-categories.module';
 import { ExamTypesModule } from './modules/exam-types/exam-types.module';
@@ -119,6 +120,7 @@ import configuration from './configs/configuration';
     PrescriptionsModule,
     ConsultationDictationsModule,
     AiConversationsModule,
+    StockLocationsModule,
     StockMovementsModule,
     VeterinarianAvailabilityModule,
     ExamCategoriesModule,

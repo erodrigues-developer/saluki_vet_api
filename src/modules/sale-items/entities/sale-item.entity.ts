@@ -33,6 +33,10 @@ export class SaleItem {
   product?: Product | null;
 
   @ApiProperty({ example: 1, required: false, nullable: true })
+  @Column({ name: 'stock_location_id', type: 'bigint', nullable: true })
+  stockLocationId?: number | null;
+
+  @ApiProperty({ example: 1, required: false, nullable: true })
   @Column({ name: 'procedure_id', type: 'bigint', nullable: true })
   procedureId?: number | null;
 

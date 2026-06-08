@@ -74,17 +74,36 @@ export class SalesService {
   }
 
   async cancel(id: number): Promise<Sale> {
-    const sale = await this.salesRepository.findOne({ where: { id } });
-    if (!sale) {
-      throw new NotFoundException(`Sale with ID ${id} not found`);
-    }
+    return this.dataSource.transaction(async (manager) => {
+      const saleRepository = manager.getRepository(Sale);
 
-    if (sale.status === 'CANCELED') {
-      throw new ConflictException(`Venda #${sale.id} ja esta cancelada.`);
-    }
+      const sale = await saleRepository
+        .createQueryBuilder('sale')
+        .setLock('pessimistic_write')
+        .where('sale.id = :id', { id })
+        .getOne();
 
-    sale.status = 'CANCELED';
-    return this.salesRepository.save(sale);
+      if (!sale) {
+        throw new NotFoundException(`Sale with ID ${id} not found`);
+      }
+
+      if (sale.status === 'CANCELED') {
+        throw new ConflictException(`Venda #${sale.id} ja esta cancelada.`);
+      }
+
+      if (sale.status === 'PAID') {
+        await this.stockMovementsService.reverseSaleMovements({
+          manager,
+          saleId: sale.id,
+          occurredAt: new Date(),
+          referenceType: 'SALE_CANCELLATION',
+          notes: `Estorno de estoque pelo cancelamento da venda #${sale.id}`,
+        });
+      }
+
+      sale.status = 'CANCELED';
+      return saleRepository.save(sale);
+    });
   }
 
   async undoCheckout(id: number): Promise<Sale> {
@@ -112,6 +131,13 @@ export class SalesService {
 
       await paymentsRepository.delete({ saleId: sale.id });
       await accountsReceivableRepository.delete({ saleId: sale.id });
+      await this.stockMovementsService.reverseSaleMovements({
+        manager,
+        saleId: sale.id,
+        occurredAt: new Date(),
+        referenceType: 'SALE_CHECKOUT_UNDO',
+        notes: `Estorno de estoque pela reabertura da venda #${sale.id}`,
+      });
 
       sale.status = 'OPEN';
       return saleRepository.save(sale);
@@ -252,17 +278,36 @@ export class SalesService {
       relations: ['product'],
     });
 
-    for (const item of items) {
-      if (!item.productId || !item.product?.trackStock) {
-        continue;
-      }
-      await this.stockMovementsService.createStockOut(manager, {
+    const defaultLocation = await this.stockMovementsService.ensureSaleItemsHaveStock(
+      manager,
+      items.map((item) => ({
         productId: item.productId,
         quantity: Number(item.quantity),
+      })),
+    );
+
+    const groupedItems = new Map<number, number>();
+    for (const item of items) {
+      if (!item.productId || !item.product?.trackStock || item.product?.isService) {
+        continue;
+      }
+
+      groupedItems.set(
+        item.productId,
+        Number((groupedItems.get(item.productId) || 0) + Number(item.quantity)),
+      );
+    }
+
+    for (const [productId, quantity] of groupedItems.entries()) {
+      await this.stockMovementsService.createStockOut(manager, {
+        productId,
+        stockLocationId: defaultLocation.id,
+        quantity,
         referenceType: 'SALE',
-        referenceId: item.id,
+        referenceId: saleId,
         occurredAt,
         notes: `Baixa automatica da venda #${saleId}`,
+        reason: 'Venda',
       });
     }
   }

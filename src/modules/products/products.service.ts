@@ -412,23 +412,16 @@ export class ProductsService {
         'Estoque atual deve ser um numero maior ou igual a zero.',
       );
     }
-
-    const currentStock = await this.stockMovementsService.getCurrentStock(
-      manager,
-      product.id,
-    );
-    const difference = Number((desiredStock - currentStock).toFixed(3));
-
-    if (difference === 0) {
-      return;
-    }
+    const defaultLocation =
+      await this.stockMovementsService.getDefaultStockLocation(manager);
 
     await this.stockMovementsService.createStockAdjustment(manager, {
       productId: product.id,
-      quantity: Math.abs(difference),
-      direction: difference > 0 ? 'IN' : 'OUT',
+      stockLocationId: defaultLocation.id,
+      countedStock: desiredStock,
       referenceType,
       referenceId,
+      reason: 'Ajuste via cadastro de produto',
       notes: 'Ajuste de estoque via cadastro de produto.',
     });
   }
