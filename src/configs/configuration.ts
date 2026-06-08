@@ -11,6 +11,7 @@ export default () => ({
       secretAccessKey: process.env.AWS_S3_SECRET_ACCESS_KEY,
       region: process.env.AWS_S3_REGION ?? 'us-east-1',
       bucket: process.env.AWS_S3_BUCKET ?? 'template-dev',
+      publicBaseUrl: process.env.AWS_S3_PUBLIC_BASE_URL,
     },
   },
   logs: {

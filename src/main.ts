@@ -4,10 +4,13 @@ import { RequestMethod, ValidationPipe, VersioningType } from '@nestjs/common';
 import { useContainer } from 'class-validator';
 import { NewrelicInterceptor } from './modules/utils/interceptors/newrelic.interceptor';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import * as express from 'express';
+import { join } from 'path';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors();
+  app.use('/uploads', express.static(join(process.cwd(), 'uploads')));
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

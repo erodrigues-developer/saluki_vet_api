@@ -4,11 +4,16 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ProductsRepository } from './repositories/products.repository';
 import { Product } from './entities/product.entity';
 import { ProductCategoriesService } from '../product-categories/product-categories.service';
-import { DataSource } from 'typeorm';
+import { DataSource, EntityManager } from 'typeorm';
 import { StockMovementsService } from '../stock-movements/stock-movements.service';
+import { S3Service } from '../s3/services/s3.service';
+import { mkdir, writeFile } from 'fs/promises';
+import { randomUUID } from 'crypto';
+import { extname, join } from 'path';
 
 @Injectable()
 export class ProductsService {
@@ -17,16 +22,29 @@ export class ProductsService {
     private readonly productCategoriesService: ProductCategoriesService,
     private readonly dataSource: DataSource,
     private readonly stockMovementsService: StockMovementsService,
+    private readonly s3Service: S3Service,
+    private readonly configService: ConfigService,
   ) {}
 
   async create(payload: any): Promise<Product> {
     this.normalizeDuration(payload);
+    this.normalizeInventoryFields(payload);
     await this.ensureSkuIsUnique(payload.sku);
+    await this.ensureBarcodeIsUnique(payload.barcode);
     if (payload.productCategoryId) {
       await this.productCategoriesService.findOne(payload.productCategoryId);
     }
-    const product = this.productsRepository.create({ ...payload } as any);
-    return this.productsRepository.save(product as any);
+
+    const { currentStock, ...productPayload } = payload;
+    const createdId = await this.dataSource.transaction(async (manager) => {
+      const repository = manager.getRepository(Product);
+      const product = repository.create({ ...productPayload } as any);
+      const saved = await repository.save(product as any);
+      await this.syncCurrentStock(manager, saved, currentStock, 'PRODUCT', saved.id);
+      return saved.id;
+    });
+
+    return this.findOne(createdId);
   }
 
   async findAll(params: {
@@ -94,9 +112,18 @@ export class ProductsService {
   }
 
   async update(id: number, payload: any): Promise<Product> {
-    const product = await this.findOne(id);
+    const product = await this.productsRepository.findOne({
+      where: { id },
+      relations: ['productCategory'],
+    });
+    if (!product) {
+      throw new NotFoundException(`Product ${id} not found`);
+    }
+
     this.normalizeDuration(payload, product);
+    this.normalizeInventoryFields(payload, product);
     await this.ensureSkuIsUnique(payload.sku, id);
+    await this.ensureBarcodeIsUnique(payload.barcode, id);
 
     if (
       payload.productCategoryId &&
@@ -105,8 +132,15 @@ export class ProductsService {
       await this.productCategoriesService.findOne(payload.productCategoryId);
     }
 
-    const merged = this.productsRepository.merge(product, payload);
-    return this.productsRepository.save(merged);
+    const { currentStock, ...productPayload } = payload;
+    await this.dataSource.transaction(async (manager) => {
+      const repository = manager.getRepository(Product);
+      const merged = repository.merge(product, productPayload);
+      await repository.save(merged);
+      await this.syncCurrentStock(manager, merged, currentStock, 'PRODUCT', id);
+    });
+
+    return this.findOne(id);
   }
 
   async remove(id: number): Promise<void> {
@@ -116,9 +150,71 @@ export class ProductsService {
     await this.productsRepository.softRemove(product);
   }
 
+  async uploadImage(
+    file: {
+      buffer?: Buffer;
+      originalname?: string;
+      mimetype?: string;
+      size?: number;
+    },
+    requestBaseUrl: string,
+  ) {
+    if (!file?.buffer?.length) {
+      throw new BadRequestException('Arquivo de imagem recebido sem conteudo.');
+    }
+
+    if (!file.mimetype?.startsWith('image/')) {
+      throw new BadRequestException('Envie apenas arquivos de imagem.');
+    }
+
+    if (Number(file.size || 0) > 5 * 1024 * 1024) {
+      throw new BadRequestException(
+        'A imagem deve ter no maximo 5 MB para upload.',
+      );
+    }
+
+    const extension = this.resolveFileExtension(
+      file.originalname,
+      file.mimetype,
+    );
+    const fileName = `${randomUUID()}${extension}`;
+    const key = `products/${fileName}`;
+
+    if (this.isProductionUpload()) {
+      const uploaded = await this.s3Service.uploadBinaryFile({
+        buffer: file.buffer,
+        key,
+        contentType: file.mimetype,
+        cacheControl: 'public, max-age=31536000, immutable',
+      });
+
+      return {
+        imgUrl: uploaded.url,
+      };
+    }
+
+    const uploadsDir = join(process.cwd(), 'uploads', 'products');
+    await mkdir(uploadsDir, { recursive: true });
+    await writeFile(join(uploadsDir, fileName), file.buffer);
+
+    return {
+      imgUrl: `${requestBaseUrl.replace(/\/+$/, '')}/uploads/products/${fileName}`,
+    };
+  }
+
   private normalizeSku(value: unknown) {
     const sku = String(value ?? '').trim();
     return sku.length ? sku : null;
+  }
+
+  private normalizeBarcode(value: unknown) {
+    const barcode = String(value ?? '').trim();
+    return barcode.length ? barcode : null;
+  }
+
+  private normalizeImgUrl(value: unknown) {
+    const imgUrl = String(value ?? '').trim();
+    return imgUrl.length ? imgUrl : null;
   }
 
   private normalizeDuration(payload: any, current?: Product) {
@@ -149,6 +245,64 @@ export class ProductsService {
     payload.durationMinutes = parsedDuration;
   }
 
+  private normalizeInventoryFields(payload: any, current?: Product) {
+    const nextIsService =
+      payload?.isService !== undefined ? Boolean(payload.isService) : current?.isService;
+    const nextTrackStock =
+      payload?.trackStock !== undefined
+        ? Boolean(payload.trackStock)
+        : current?.trackStock ?? true;
+
+    payload.sku = this.normalizeSku(payload?.sku ?? current?.sku);
+    payload.barcode = this.normalizeBarcode(payload?.barcode ?? current?.barcode);
+    payload.imgUrl = this.normalizeImgUrl(payload?.imgUrl ?? current?.imgUrl);
+
+    if (payload?.productCategoryId === '') {
+      payload.productCategoryId = null;
+    }
+
+    if (nextIsService) {
+      payload.trackStock = false;
+      payload.unit = null;
+      payload.minimumStock = null;
+      payload.currentStock = null;
+      payload.barcode = null;
+      return;
+    }
+
+    if (!nextTrackStock) {
+      payload.unit = null;
+      payload.minimumStock = null;
+      payload.currentStock = null;
+      return;
+    }
+
+    payload.unit = String(payload?.unit ?? current?.unit ?? 'un').trim() || 'un';
+
+    const rawMinimumStock =
+      payload?.minimumStock !== undefined
+        ? payload.minimumStock
+        : current?.minimumStock;
+
+    if (
+      rawMinimumStock === null ||
+      rawMinimumStock === undefined ||
+      rawMinimumStock === ''
+    ) {
+      payload.minimumStock = 0;
+      return;
+    }
+
+    const minimumStock = Number(rawMinimumStock);
+    if (!Number.isFinite(minimumStock) || minimumStock < 0) {
+      throw new BadRequestException(
+        'Estoque minimo deve ser um numero maior ou igual a zero.',
+      );
+    }
+
+    payload.minimumStock = minimumStock;
+  }
+
   private async ensureSkuIsUnique(skuValue: unknown, ignoreProductId?: number) {
     const normalizedSku = this.normalizeSku(skuValue);
     if (!normalizedSku) return;
@@ -164,6 +318,29 @@ export class ProductsService {
     const existing = await qb.getOne();
     if (existing) {
       throw new ConflictException('SKU já cadastrado.');
+    }
+  }
+
+  private async ensureBarcodeIsUnique(
+    barcodeValue: unknown,
+    ignoreProductId?: number,
+  ) {
+    const normalizedBarcode = this.normalizeBarcode(barcodeValue);
+    if (!normalizedBarcode) return;
+
+    const qb = this.productsRepository
+      .createQueryBuilder('product')
+      .where('LOWER(product.barcode) = LOWER(:barcode)', {
+        barcode: normalizedBarcode,
+      });
+
+    if (ignoreProductId) {
+      qb.andWhere('product.id != :id', { id: ignoreProductId });
+    }
+
+    const existing = await qb.getOne();
+    if (existing) {
+      throw new ConflictException('Código de barras já cadastrado.');
     }
   }
 
@@ -211,5 +388,68 @@ export class ProductsService {
           : null,
       })),
     );
+  }
+
+  private async syncCurrentStock(
+    manager: EntityManager,
+    product: Product,
+    desiredStockValue: unknown,
+    referenceType: string,
+    referenceId: number,
+  ) {
+    if (
+      desiredStockValue === undefined ||
+      desiredStockValue === null ||
+      product.isService ||
+      !product.trackStock
+    ) {
+      return;
+    }
+
+    const desiredStock = Number(desiredStockValue);
+    if (!Number.isFinite(desiredStock) || desiredStock < 0) {
+      throw new BadRequestException(
+        'Estoque atual deve ser um numero maior ou igual a zero.',
+      );
+    }
+
+    const currentStock = await this.stockMovementsService.getCurrentStock(
+      manager,
+      product.id,
+    );
+    const difference = Number((desiredStock - currentStock).toFixed(3));
+
+    if (difference === 0) {
+      return;
+    }
+
+    await this.stockMovementsService.createStockAdjustment(manager, {
+      productId: product.id,
+      quantity: Math.abs(difference),
+      direction: difference > 0 ? 'IN' : 'OUT',
+      referenceType,
+      referenceId,
+      notes: 'Ajuste de estoque via cadastro de produto.',
+    });
+  }
+
+  private isProductionUpload() {
+    return this.configService.get<string>('NODE_ENV') === 'production';
+  }
+
+  private resolveFileExtension(originalName?: string, mimeType?: string) {
+    const originalExtension = extname(String(originalName || '')).toLowerCase();
+    if (originalExtension) {
+      return originalExtension;
+    }
+
+    const mimeToExtension: Record<string, string> = {
+      'image/jpeg': '.jpg',
+      'image/png': '.png',
+      'image/webp': '.webp',
+      'image/gif': '.gif',
+    };
+
+    return mimeToExtension[String(mimeType || '').toLowerCase()] || '.bin';
   }
 }

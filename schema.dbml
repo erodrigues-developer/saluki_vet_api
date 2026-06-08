@@ -246,11 +246,14 @@ Table products {
   product_category_id bigint [ref: > product_categories.id]
   name               varchar(255) [not null]
   sku                varchar(100)
+  barcode            varchar(100)
+  img_url            text
   is_service         boolean [not null, default: false] // serviço x produto físico
   unit               varchar(50) // un, ml, kg, dose...
   sale_price         decimal(10,2) [not null, default: 0]
   cost_price         decimal(10,2)
   track_stock        boolean [not null, default: true]
+  minimum_stock      decimal(10,3)
   is_vaccine         boolean [not null, default: false]
   notes              text
   is_active          boolean [not null, default: true]
@@ -271,7 +274,7 @@ Table stock_movements {
   id               bigint [pk, increment]
   product_id       bigint [not null, ref: > products.id]
   stock_location_id bigint [not null, ref: > stock_locations.id]
-  movement_type    varchar(20) [not null] // IN, OUT, ADJUSTMENT
+  movement_type    varchar(20) [not null] // IN, OUT, ADJUSTMENT_IN, ADJUSTMENT_OUT
   quantity         decimal(10,3) [not null]
   unit_cost        decimal(10,2)
   occurred_at      datetime [not null]

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -8,13 +9,20 @@ import {
   Patch,
   Post,
   Query,
+  Req,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import {
+  ApiBody,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
   ApiBearerAuth,
+  ApiConsumes,
 } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import { ProductsService } from './products.service';
 import { Product } from './entities/product.entity';
 
@@ -32,6 +40,47 @@ export class ProductsController {
   @ApiOkResponse({ type: Product })
   create(@Body() payload: any) {
     return this.productsService.create(payload);
+  }
+
+  @Post('upload-image')
+  @ApiOperation({ summary: 'Faz upload de imagem de produto' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+      required: ['file'],
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: {
+        fileSize: 5 * 1024 * 1024,
+      },
+    }),
+  )
+  uploadImage(
+    @UploadedFile()
+    file?: {
+      buffer?: Buffer;
+      originalname?: string;
+      mimetype?: string;
+      size?: number;
+    },
+    @Req() req?: any,
+  ) {
+    if (!file) {
+      throw new BadRequestException('Arquivo de imagem nao enviado.');
+    }
+
+    const requestBaseUrl = `${req?.protocol || 'http'}://${req?.get?.('host') || 'localhost:3000'}`;
+    return this.productsService.uploadImage(file, requestBaseUrl);
   }
 
   @Get()

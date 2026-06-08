@@ -248,11 +248,15 @@ export default class SystemSeeder implements Seeder {
         insertProducts.push({
           name: 'Vacina V10 Importada',
           productCategoryId: vacCat.id,
+          barcode: '7891000000001',
+          imgUrl: 'https://placehold.co/600x600?text=Vacina+V10',
           costPrice: 35.0,
+          minimumStock: 10,
           salePrice: 90.0,
           isService: false,
           trackStock: true,
           isVaccine: true,
+          unit: 'dose',
           createdAt: now,
           updatedAt: now,
         });
@@ -260,11 +264,15 @@ export default class SystemSeeder implements Seeder {
         insertProducts.push({
           name: 'Vacina Antirrábica',
           productCategoryId: vacCat.id,
+          barcode: '7891000000002',
+          imgUrl: 'https://placehold.co/600x600?text=Antirrabica',
           costPrice: 15.0,
+          minimumStock: 15,
           salePrice: 60.0,
           isService: false,
           trackStock: true,
           isVaccine: true,
+          unit: 'dose',
           createdAt: now,
           updatedAt: now,
         });
@@ -272,10 +280,14 @@ export default class SystemSeeder implements Seeder {
         insertProducts.push({
           name: 'Bravecto 10-20kg',
           productCategoryId: medCat.id,
+          barcode: '7891000000003',
+          imgUrl: 'https://placehold.co/600x600?text=Bravecto',
           costPrice: 150.0,
+          minimumStock: 5,
           salePrice: 220.0,
           isService: false,
           trackStock: true,
+          unit: 'un',
           createdAt: now,
           updatedAt: now,
         });
@@ -283,10 +295,14 @@ export default class SystemSeeder implements Seeder {
         insertProducts.push({
           name: 'Simparic 20-40kg',
           productCategoryId: medCat.id,
+          barcode: '7891000000004',
+          imgUrl: 'https://placehold.co/600x600?text=Simparic',
           costPrice: 130.0,
+          minimumStock: 5,
           salePrice: 195.0,
           isService: false,
           trackStock: true,
+          unit: 'un',
           createdAt: now,
           updatedAt: now,
         });
@@ -294,10 +310,14 @@ export default class SystemSeeder implements Seeder {
         insertProducts.push({
           name: 'Ração Premier Cães Adultos 15kg',
           productCategoryId: racCat.id,
+          barcode: '7891000000005',
+          imgUrl: 'https://placehold.co/600x600?text=Racao+Premier',
           costPrice: 180.0,
+          minimumStock: 3,
           salePrice: 249.9,
           isService: false,
           trackStock: true,
+          unit: 'saco',
           createdAt: now,
           updatedAt: now,
         });
@@ -353,6 +373,7 @@ export default class SystemSeeder implements Seeder {
       .map((service) => ({
         ...service,
         sku: null,
+        imgUrl: null,
         isService: true,
         trackStock: false,
         isVaccine: false,
@@ -727,19 +748,19 @@ export default class SystemSeeder implements Seeder {
           updatedAt: now,
         },
         {
-          name: 'Armário Recepção (Vendas)',
+          name: 'Sala de Vacinas',
           isDefault: false,
           createdAt: now,
           updatedAt: now,
         },
         {
-          name: 'Consultório 1',
+          name: 'Farmácia',
           isDefault: false,
           createdAt: now,
           updatedAt: now,
         },
         {
-          name: 'Bloco Cirúrgico',
+          name: 'Internação',
           isDefault: false,
           createdAt: now,
           updatedAt: now,

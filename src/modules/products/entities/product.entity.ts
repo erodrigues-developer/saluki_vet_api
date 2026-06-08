@@ -36,6 +36,17 @@ export class Product {
   @Column({ type: 'varchar', length: 100, nullable: true })
   sku?: string | null;
 
+  @ApiProperty({ example: '7891234567890', nullable: true })
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  barcode?: string | null;
+
+  @ApiProperty({
+    example: 'https://cdn.example.com/products/vacina-v10.png',
+    nullable: true,
+  })
+  @Column({ name: 'img_url', type: 'text', nullable: true })
+  imgUrl?: string | null;
+
   @ApiProperty({ example: false, description: 'Serviço vs Produto físico' })
   @Column({ name: 'is_service', type: 'boolean', default: false })
   isService: boolean;
@@ -75,6 +86,16 @@ export class Product {
   @ApiProperty({ example: true, description: 'Rastrear estoque' })
   @Column({ name: 'track_stock', type: 'boolean', default: true })
   trackStock: boolean;
+
+  @ApiProperty({ example: 5, nullable: true, description: 'Estoque mínimo' })
+  @Column({
+    name: 'minimum_stock',
+    type: 'decimal',
+    precision: 10,
+    scale: 3,
+    nullable: true,
+  })
+  minimumStock?: number | null;
 
   @ApiProperty({ example: true, description: 'Produto é uma vacina?' })
   @Column({ name: 'is_vaccine', type: 'boolean', default: false })

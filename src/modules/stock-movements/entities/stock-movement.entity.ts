@@ -33,7 +33,10 @@ export class StockMovement {
   @JoinColumn({ name: 'stock_location_id' })
   stockLocation?: StockLocation;
 
-  @ApiProperty({ example: 'IN' })
+  @ApiProperty({
+    example: 'IN',
+    description: 'IN | OUT | ADJUSTMENT_IN | ADJUSTMENT_OUT',
+  })
   @Column({ name: 'movement_type', type: 'varchar', length: 20 })
   movementType: string;
 

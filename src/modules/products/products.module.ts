@@ -6,11 +6,13 @@ import { ProductsController } from './products.controller';
 import { ProductsRepository } from './repositories/products.repository';
 import { ProductCategoriesModule } from '../product-categories/product-categories.module';
 import { StockMovementsModule } from '../stock-movements/stock-movements.module';
+import { S3Module } from '../s3/s3.module';
 
 @Module({
   imports: [
     ProductCategoriesModule,
     StockMovementsModule,
+    S3Module,
     TypeOrmModule.forFeature([Product]),
   ],
   controllers: [ProductsController],
