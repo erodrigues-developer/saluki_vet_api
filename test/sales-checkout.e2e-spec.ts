@@ -53,11 +53,15 @@ type InMemoryAccountReceivable = {
   id: number;
   saleId: number | null;
   clientId: number | null;
+  paymentMethodId?: number | null;
   description: string;
   amount: number;
+  paidAmount?: number | null;
   dueDate: string | Date;
   paidAt: Date | null;
   status: string;
+  originType?: string;
+  notes?: string | null;
 };
 
 type InMemorySaleItem = {

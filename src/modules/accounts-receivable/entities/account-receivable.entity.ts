@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { Sale } from '../../sales/entities/sale.entity';
 import { Client } from '../../clients/entities/client.entity';
+import { PaymentMethod } from '../../payment-methods/entities/payment-method.entity';
 
 @Entity({ name: 'accounts_receivable' })
 export class AccountReceivable {
@@ -33,6 +34,14 @@ export class AccountReceivable {
   @JoinColumn({ name: 'client_id' })
   client?: Client;
 
+  @ApiProperty({ example: 1, nullable: true })
+  @Column({ name: 'payment_method_id', type: 'bigint', nullable: true })
+  paymentMethodId?: number | null;
+
+  @ManyToOne(() => PaymentMethod, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'payment_method_id' })
+  paymentMethod?: PaymentMethod | null;
+
   @ApiProperty({ example: 'Fatura 001' })
   @Column({ type: 'varchar', length: 255 })
   description: string;
@@ -45,6 +54,16 @@ export class AccountReceivable {
   @Column({ name: 'due_date', type: 'date' })
   dueDate: Date;
 
+  @ApiProperty({ example: 250.0, nullable: true })
+  @Column({
+    name: 'paid_amount',
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+  })
+  paidAmount?: number | null;
+
   @ApiProperty({ example: '2024-07-10T14:00:00Z', nullable: true })
   @Column({ name: 'paid_at', type: 'timestamp', nullable: true })
   paidAt?: Date | null;
@@ -52,6 +71,23 @@ export class AccountReceivable {
   @ApiProperty({ example: 'PENDING' })
   @Column({ type: 'varchar', length: 20, default: 'PENDING' })
   status: string;
+
+  @ApiProperty({ example: 'MANUAL' })
+  @Column({ name: 'origin_type', type: 'varchar', length: 20, default: 'MANUAL' })
+  originType: string;
+
+  @ApiProperty({ example: 'Receber em até 5 dias', nullable: true })
+  @Column({ type: 'text', nullable: true })
+  notes?: string | null;
+
+  @ApiProperty({ example: 'https://s3.../boleto.pdf', nullable: true })
+  @Column({
+    name: 'document_url',
+    type: 'varchar',
+    length: 500,
+    nullable: true,
+  })
+  documentUrl?: string | null;
 
   @ApiProperty({ example: '2024-07-09T12:00:00Z' })
   @CreateDateColumn({ name: 'created_at', type: 'timestamp' })

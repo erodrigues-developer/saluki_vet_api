@@ -524,11 +524,16 @@ Table accounts_receivable {
   id              bigint [pk, increment]
   sale_id         bigint [ref: > sales.id]
   client_id       bigint [ref: > clients.id]
+  payment_method_id bigint [ref: > payment_methods.id]
   description     varchar(255) [not null]
   amount          decimal(10,2) [not null]
   due_date        date [not null]
+  paid_amount     decimal(10,2)
   paid_at         datetime
+  origin_type     varchar(20) [not null, default: 'MANUAL'] // MANUAL, SALE
   status          varchar(20) [not null, default: 'PENDING']
+  notes           text
+  document_url    varchar(500)
   created_at      datetime [not null]
   updated_at      datetime [not null]
 }

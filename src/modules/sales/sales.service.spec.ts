@@ -77,7 +77,9 @@ describe('SalesService - checkout', () => {
       calculateForPaidSale: jest.fn().mockResolvedValue([]),
     };
     const stockMovementsService = {
+      ensureSaleItemsHaveStock: jest.fn().mockResolvedValue(null),
       createStockOut: jest.fn().mockResolvedValue(null),
+      reverseSaleMovements: jest.fn().mockResolvedValue(undefined),
     };
 
     const service = new SalesService(
@@ -160,7 +162,10 @@ describe('SalesService - checkout', () => {
       expect.objectContaining({
         saleId: 10,
         clientId: 7,
+        paymentMethodId: 1,
+        paidAmount: 150.5,
         status: 'PAID',
+        originType: 'SALE',
         description: 'Recebimento da venda #10',
         dueDate: new Date('2026-03-02T00:00:00.000Z'),
       }),

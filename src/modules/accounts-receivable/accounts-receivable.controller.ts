@@ -1,37 +1,120 @@
-import { Controller, Get, ParseIntPipe, Query } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AccountsReceivableService } from './accounts-receivable.service';
+import { CreateAccountReceivableDto } from './dto/create-account-receivable.dto';
+import { UpdateAccountReceivableDto } from './dto/update-account-receivable.dto';
+import { ReceiveAccountReceivableDto } from './dto/receive-account-receivable.dto';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 
-@ApiTags('accounts-receivable')
-@ApiBearerAuth()
+@ApiTags('Accounts Receivable')
+@ApiBearerAuth('jwt')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('ADMIN')
 @Controller('accounts-receivable')
 export class AccountsReceivableController {
   constructor(
     private readonly accountsReceivableService: AccountsReceivableService,
   ) {}
 
-  @Get()
+  @Post()
+  @ApiOperation({ summary: 'Cadastrar nova conta a receber' })
+  create(@Body() dto: CreateAccountReceivableDto) {
+    return this.accountsReceivableService.create(dto);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Atualizar conta a receber' })
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateAccountReceivableDto,
+  ) {
+    return this.accountsReceivableService.update(id, dto);
+  }
+
+  @Get('dashboard')
   @ApiOperation({
-    summary:
-      'Listar contas a receber com filtros por status, periodo, cliente e venda',
+    summary: 'Obter dados de resumo do dashboard operacional de contas a receber',
   })
-  findAll(
-    @Query('page') page = '1',
-    @Query('limit') limit = '10',
-    @Query('status') status?: string,
-    @Query('clientId', new ParseIntPipe({ optional: true })) clientId?: number,
-    @Query('saleId', new ParseIntPipe({ optional: true })) saleId?: number,
+  getDashboard(
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
+    @Query('status') status?: string,
+    @Query('originType') originType?: string,
+    @Query('clientId') clientId?: string,
   ) {
-    return this.accountsReceivableService.findAll({
-      page: Number(page) || 1,
-      limit: Number(limit) || 10,
-      status,
-      clientId,
-      saleId,
+    return this.accountsReceivableService.getDashboardMetrics({
       startDate,
       endDate,
+      status,
+      originType,
+      clientId: this.parseOptionalInt(clientId, 'clientId'),
     });
+  }
+
+  @Get()
+  @ApiOperation({
+    summary: 'Listar contas a receber com filtros',
+  })
+  findAll(
+    @Query('search') search?: string,
+    @Query('status') status?: string,
+    @Query('clientId') clientId?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('originType') originType?: string,
+  ) {
+    return this.accountsReceivableService.findAll({
+      search,
+      status,
+      clientId: this.parseOptionalInt(clientId, 'clientId'),
+      startDate,
+      endDate,
+      originType,
+    });
+  }
+
+  @Patch(':id/receive')
+  @ApiOperation({ summary: 'Registrar recebimento de uma conta' })
+  markAsReceived(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: ReceiveAccountReceivableDto,
+  ) {
+    return this.accountsReceivableService.markAsReceived(id, dto);
+  }
+
+  @Patch(':id/undo-receive')
+  @ApiOperation({ summary: 'Estornar recebimento de uma conta manual' })
+  undoReceive(@Param('id', ParseIntPipe) id: number) {
+    return this.accountsReceivableService.undoReceive(id);
+  }
+
+  private parseOptionalInt(
+    value: string | undefined,
+    fieldName: string,
+  ): number | undefined {
+    if (value === undefined || value === null || value === '') {
+      return undefined;
+    }
+
+    const parsed = Number.parseInt(value, 10);
+
+    if (Number.isNaN(parsed)) {
+      throw new BadRequestException(`${fieldName} must be a numeric string`);
+    }
+
+    return parsed;
   }
 }

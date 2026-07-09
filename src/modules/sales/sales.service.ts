@@ -224,11 +224,15 @@ export class SalesService {
         const accountReceivable = accountsReceivableRepository.create({
           saleId: sale.id,
           clientId: sale.clientId ?? null,
+          paymentMethodId: payload.paymentMethodId,
           description: `Recebimento da venda #${sale.id}`,
           dueDate: dueDateObj,
           paidAt,
           amount: requestedAmount,
+          paidAmount: requestedAmount,
           status: 'PAID',
+          originType: 'SALE',
+          notes: payload.notes,
         });
 
         const savedAccountReceivable =
