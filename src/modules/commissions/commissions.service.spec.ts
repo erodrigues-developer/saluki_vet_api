@@ -33,7 +33,7 @@ describe('CommissionsService', () => {
       }),
     };
 
-    const service = new CommissionsService({} as any);
+    const service = new CommissionsService({} as any, {} as any);
 
     return {
       service,
@@ -123,10 +123,10 @@ describe('CommissionsService', () => {
 
     expect(result).toEqual([]);
     expect(commissionsRepository.findOne).toHaveBeenCalledWith({
-      where: {
+      where: expect.objectContaining({
         saleId: 15,
         procedureId: 5,
-      },
+      }),
     });
     expect(commissionsRepository.save).not.toHaveBeenCalled();
   });

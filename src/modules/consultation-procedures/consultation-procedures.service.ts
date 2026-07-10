@@ -20,7 +20,21 @@ export class ConsultationProceduresService {
   ): Promise<ConsultationProcedure[]> {
     return this.consultationProceduresRepository.find({
       where: { consultationId },
+      order: { id: 'ASC' },
     });
+  }
+
+  async update(
+    id: number,
+    payload: Partial<ConsultationProcedure>,
+  ): Promise<ConsultationProcedure> {
+    const cp = await this.consultationProceduresRepository.findOne({
+      where: { id },
+    });
+    if (!cp) throw new NotFoundException('Not found');
+
+    Object.assign(cp, payload);
+    return this.consultationProceduresRepository.save(cp);
   }
 
   async remove(id: number): Promise<void> {

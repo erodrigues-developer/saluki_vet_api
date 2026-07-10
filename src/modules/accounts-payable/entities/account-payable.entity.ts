@@ -9,6 +9,8 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Supplier } from '../../suppliers/entities/supplier.entity';
+import { User } from '../../users/entities/user.entity';
+import { PaymentMethod } from '../../payment-methods/entities/payment-method.entity';
 
 @Entity({ name: 'accounts_payable' })
 export class AccountPayable {
@@ -46,6 +48,20 @@ export class AccountPayable {
   })
   supplier?: Supplier | null;
 
+  @ApiProperty({ example: 7, nullable: true })
+  @Column({ name: 'beneficiary_user_id', type: 'bigint', nullable: true })
+  beneficiaryUserId?: number | null;
+
+  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'beneficiary_user_id' })
+  @ApiProperty({
+    type: () => User,
+    required: false,
+    nullable: true,
+    description: 'Profissional beneficiário quando a conta tem origem em comissão',
+  })
+  beneficiaryUser?: User | null;
+
   @ApiProperty({ example: 150.5, nullable: true })
   @Column({
     name: 'paid_amount',
@@ -65,6 +81,14 @@ export class AccountPayable {
   })
   paymentMethod?: string | null;
 
+  @ApiProperty({ example: 1, nullable: true })
+  @Column({ name: 'payment_method_id', type: 'bigint', nullable: true })
+  paymentMethodId?: number | null;
+
+  @ManyToOne(() => PaymentMethod, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'payment_method_id' })
+  paymentMethodRelation?: PaymentMethod | null;
+
   @ApiProperty({ example: 'https://s3.../doc.pdf', nullable: true })
   @Column({
     name: 'document_url',
@@ -81,6 +105,14 @@ export class AccountPayable {
   @ApiProperty({ example: 'PENDING' })
   @Column({ type: 'varchar', length: 20, default: 'PENDING' })
   status: string;
+
+  @ApiProperty({ example: 'COMMISSION_PAYOUT' })
+  @Column({ name: 'origin_type', type: 'varchar', length: 30, default: 'MANUAL' })
+  originType: string;
+
+  @ApiProperty({ example: 42, nullable: true })
+  @Column({ name: 'origin_reference_id', type: 'bigint', nullable: true })
+  originReferenceId?: number | null;
 
   @ApiProperty({ example: 'Multa de 2%', nullable: true })
   @Column({ type: 'text', nullable: true })

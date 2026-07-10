@@ -16,6 +16,7 @@ import { Appointment } from '../appointments/entities/appointment.entity';
 import { Consultation } from '../consultations/entities/consultation.entity';
 import { ConsultationProcedure } from '../consultation-procedures/entities/consultation-procedure.entity';
 import { Sale } from '../sales/entities/sale.entity';
+import { FileStorageService } from '../file-storage/file-storage.service';
 
 @Injectable()
 export class PetsService {
@@ -25,6 +26,7 @@ export class PetsService {
     private readonly speciesService: SpeciesService,
     private readonly breedsService: BreedsService,
     private readonly dataSource: DataSource,
+    private readonly fileStorageService: FileStorageService,
   ) {}
 
   async create(payload: CreatePetDto): Promise<Pet> {
@@ -237,6 +239,28 @@ export class PetsService {
     const merged = this.petsRepository.merge(pet, payload);
     const saved = await this.petsRepository.save(merged);
     return this.findOne(saved.id);
+  }
+
+  async uploadPhoto(
+    file: {
+      buffer?: Buffer;
+      originalname?: string;
+      mimetype?: string;
+      size?: number;
+    },
+    requestBaseUrl: string,
+  ) {
+    const uploaded = await this.fileStorageService.uploadBinaryFile(file, {
+      folder: 'pets/photos',
+      requestBaseUrl,
+      allowedMimePrefixes: ['image/'],
+      maxFileSizeBytes: 5 * 1024 * 1024,
+    });
+
+    return {
+      photoUrl: uploaded.fileUrl,
+      photoStorageKey: uploaded.storageKey,
+    };
   }
 
   async remove(id: number): Promise<void> {

@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
 } from '@nestjs/common';
 import {
@@ -32,6 +33,13 @@ export class ConsultationProceduresController {
   @ApiOkResponse({ type: ConsultationProcedure })
   create(@Body() payload: any) {
     return this.consultationProceduresService.create(payload);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Atualiza um procedimento da consulta' })
+  @ApiOkResponse({ type: ConsultationProcedure })
+  update(@Param('id', ParseIntPipe) id: number, @Body() payload: any) {
+    return this.consultationProceduresService.update(id, payload);
   }
 
   @Get('consultation/:consultationId')

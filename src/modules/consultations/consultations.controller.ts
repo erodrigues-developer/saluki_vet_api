@@ -64,6 +64,23 @@ export class ConsultationsController {
     }, req.user?.userId);
   }
 
+  @Post(':id/finalize-and-bill')
+  @ApiOperation({
+    summary:
+      'Finaliza o atendimento, conclui o agendamento relacionado e prepara a venda para cobrança',
+  })
+  finalizeAndBill(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() payload: any,
+    @Req() req: any,
+  ) {
+    return this.consultationsService.finalizeAndBill(
+      id,
+      payload,
+      req.user?.userId,
+    );
+  }
+
   @Post(':id/anamnesis/approve')
   @ApiOperation({ summary: 'Aprova anamnese e gera apoio clínico consultivo' })
   @ApiOkResponse({ type: Consultation })

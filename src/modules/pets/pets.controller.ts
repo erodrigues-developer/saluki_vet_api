@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -10,8 +11,13 @@ import {
   Patch,
   Post,
   Query,
+  Req,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import {
+  ApiBody,
+  ApiConsumes,
   ApiBadRequestResponse,
   ApiCreatedResponse,
   ApiNoContentResponse,
@@ -23,6 +29,8 @@ import {
   ApiTags,
   ApiBearerAuth,
 } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import { PetsService } from './pets.service';
 import { CreatePetDto } from './dto/create-pet.dto';
 import { UpdatePetDto } from './dto/update-pet.dto';
@@ -48,6 +56,44 @@ export class PetsController {
   @ApiBadRequestResponse({ description: 'Payload inválido' })
   create(@Body() createPetDto: CreatePetDto) {
     return this.petsService.create(createPetDto);
+  }
+
+  @Post('upload-photo')
+  @ApiOperation({ summary: 'Faz upload de foto do pet' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+      },
+      required: ['file'],
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: {
+        fileSize: 5 * 1024 * 1024,
+      },
+    }),
+  )
+  uploadPhoto(
+    @UploadedFile()
+    file?: {
+      buffer?: Buffer;
+      originalname?: string;
+      mimetype?: string;
+      size?: number;
+    },
+    @Req() req?: any,
+  ) {
+    if (!file) {
+      throw new BadRequestException('Arquivo de imagem não enviado.');
+    }
+
+    const requestBaseUrl = `${req?.protocol || 'http'}://${req?.get?.('host') || 'localhost:3000'}`;
+    return this.petsService.uploadPhoto(file, requestBaseUrl);
   }
 
   @Get()

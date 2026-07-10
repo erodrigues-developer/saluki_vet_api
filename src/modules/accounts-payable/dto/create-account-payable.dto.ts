@@ -18,12 +18,12 @@ export class CreateAccountPayableDto {
   @MaxLength(255)
   description: string;
 
-  @ApiProperty({ example: 1, description: 'ID do fornecedor vinculado' })
+  @ApiPropertyOptional({ example: 1, description: 'ID do fornecedor vinculado' })
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  @IsNotEmpty()
-  supplierId: number;
+  supplierId?: number;
 
   @ApiPropertyOptional({ example: 'Custos Fixos' })
   @IsString()
@@ -50,4 +50,24 @@ export class CreateAccountPayableDto {
   @IsString()
   @IsOptional()
   documentUrl?: string;
+
+  @ApiPropertyOptional({ example: 7, description: 'Profissional beneficiário' })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  beneficiaryUserId?: number;
+
+  @ApiPropertyOptional({ example: 'COMMISSION_PAYOUT' })
+  @IsString()
+  @IsOptional()
+  @MaxLength(30)
+  originType?: string;
+
+  @ApiPropertyOptional({ example: 12 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  originReferenceId?: number;
 }

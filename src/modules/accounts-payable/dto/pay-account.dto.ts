@@ -1,11 +1,15 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsInt,
   IsNotEmpty,
   IsNumber,
   IsDateString,
+  IsOptional,
   IsString,
   MaxLength,
+  Min,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class PayAccountDto {
   @ApiProperty({ example: '2024-07-15T12:00:00Z' })
@@ -20,7 +24,14 @@ export class PayAccountDto {
 
   @ApiProperty({ example: 'PIX' })
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   @MaxLength(50)
-  paymentMethod: string;
+  paymentMethod?: string;
+
+  @ApiPropertyOptional({ example: 1 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  paymentMethodId?: number;
 }

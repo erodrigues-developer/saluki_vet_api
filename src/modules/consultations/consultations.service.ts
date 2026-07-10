@@ -1,16 +1,27 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { DataSource, EntityManager } from 'typeorm';
 import { ConsultationsRepository } from './repositories/consultations.repository';
 import {
   Consultation,
   ConsultationAiReviewAuditItem,
 } from './entities/consultation.entity';
+import { ConsultationProcedure } from '../consultation-procedures/entities/consultation-procedure.entity';
 import { ConsultationDictationAiService } from '../consultation-dictations/consultation-dictation-ai.service';
+import { SalesService } from '../sales/sales.service';
+import { Appointment } from '../appointments/entities/appointment.entity';
+import { AppointmentStatus } from '../appointment-statuses/entities/appointment-status.entity';
 
 @Injectable()
 export class ConsultationsService {
   constructor(
     private readonly consultationsRepository: ConsultationsRepository,
     private readonly consultationDictationAiService: ConsultationDictationAiService,
+    private readonly salesService: SalesService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async approveAnamnesis(
@@ -108,7 +119,11 @@ export class ConsultationsService {
     return consultation;
   }
 
-  async update(id: number, payload: any, currentUserId?: number): Promise<Consultation> {
+  async update(
+    id: number,
+    payload: any,
+    currentUserId?: number,
+  ): Promise<Consultation> {
     const consultation = await this.findOne(id);
     this.applyOriginalComplaintFallback(payload, consultation);
     this.applyAnamnesisApprovalAudit(payload, consultation, currentUserId);
@@ -121,13 +136,142 @@ export class ConsultationsService {
     return this.consultationsRepository.save(merged);
   }
 
+  async finalizeAndBill(id: number, payload: any, currentUserId?: number) {
+    return this.dataSource.transaction(async (manager) => {
+      const consultationRepository = manager.getRepository(Consultation);
+      const consultation = await consultationRepository
+        .createQueryBuilder('consultation')
+        .setLock('pessimistic_write')
+        .where('consultation.id = :id', { id })
+        .getOne();
+
+      if (!consultation) {
+        throw new NotFoundException(`Consultation ${id} not found`);
+      }
+
+      this.applyOriginalComplaintFallback(payload, consultation);
+      this.applyAnamnesisApprovalAudit(payload, consultation, currentUserId);
+      this.validateFinalizationPayload(
+        { ...payload, recordStatus: 'FINALIZED' },
+        consultation,
+      );
+
+      const merged = consultationRepository.merge(consultation, {
+        ...payload,
+        recordStatus: 'FINALIZED',
+      });
+      merged.recordStatus = 'FINALIZED';
+      merged.finalizedAt = new Date();
+
+      const savedConsultation = await consultationRepository.save(merged);
+      await this.markAppointmentAsCompleted(
+        manager,
+        savedConsultation.appointmentId ?? null,
+      );
+      await this.syncBillingItemsFromPayload(
+        manager,
+        savedConsultation.id,
+        payload,
+      );
+
+      const sale = await this.createSaleFromConsultationIfBillable(
+        manager,
+        savedConsultation,
+      );
+
+      return {
+        consultation: savedConsultation,
+        saleId: sale?.id ?? null,
+        saleStatus: sale?.status ?? null,
+        totalAmount: Number(sale?.totalAmount || 0),
+        shouldOpenCheckout:
+          sale?.status === 'OPEN' && Number(sale.totalAmount || 0) > 0,
+      };
+    });
+  }
+
+  private async createSaleFromConsultationIfBillable(
+    manager: EntityManager,
+    consultation: Consultation,
+  ) {
+    try {
+      return await this.salesService.createOrSyncFromConsultation(
+        manager,
+        consultation,
+      );
+    } catch (error) {
+      if (
+        error instanceof BadRequestException &&
+        error.message ===
+          'Adicione ao menos um procedimento cobrável antes de finalizar e cobrar.'
+      ) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  private async syncBillingItemsFromPayload(
+    manager: EntityManager,
+    consultationId: number,
+    payload: any,
+  ) {
+    const rawItems =
+      payload?.billingItems ||
+      payload?.consultationBillingItems ||
+      payload?.consultationProcedures;
+    if (!Array.isArray(rawItems)) return;
+
+    const repository = manager.getRepository(ConsultationProcedure);
+
+    for (const item of rawItems) {
+      const procedureId = Number(item?.procedureId || 0);
+      if (!procedureId) continue;
+
+      const quantity = Math.max(0, Number(item?.quantity || 0));
+      const unitPrice = this.normalizeMoney(item?.unitPrice || 0);
+      const totalPrice = this.normalizeMoney(
+        item?.totalPrice ?? quantity * unitPrice,
+      );
+
+      const existingId = Number(item?.id || 0);
+      const existing = existingId
+        ? await repository.findOne({
+            where: { id: existingId, consultationId },
+          })
+        : null;
+
+      const consultationProcedure =
+        existing ||
+        repository.create({
+          consultationId,
+        });
+
+      consultationProcedure.procedureId = procedureId;
+      consultationProcedure.quantity = quantity;
+      consultationProcedure.unitPrice = unitPrice;
+      consultationProcedure.totalPrice = totalPrice;
+
+      await repository.save(consultationProcedure);
+    }
+  }
+
+  private normalizeMoney(value: unknown) {
+    const amount = Number(value || 0);
+    if (!Number.isFinite(amount)) return 0;
+    return Math.round(amount * 100) / 100;
+  }
+
   private resolveRecordStatus(payload: any, consultation?: Consultation) {
     return String(payload?.recordStatus || consultation?.recordStatus || 'DRAFT')
       .trim()
       .toUpperCase();
   }
 
-  private applyOriginalComplaintFallback(payload: any, consultation?: Consultation) {
+  private applyOriginalComplaintFallback(
+    payload: any,
+    consultation?: Consultation,
+  ) {
     if (payload?.originalComplaint) return;
     if (consultation?.originalComplaint) return;
     const transcriptDraft = String(payload?.transcriptDraft || '').trim();
@@ -143,13 +287,19 @@ export class ConsultationsService {
     const merged = { ...(consultation || {}), ...(payload || {}) };
     const hasValue = (value: unknown) => String(value || '').trim().length > 0;
 
-    if (!merged.petId) throw new BadRequestException('Paciente é obrigatório para finalizar.');
-    if (!merged.clientId) throw new BadRequestException('Tutor é obrigatório para finalizar.');
+    if (!merged.petId)
+      throw new BadRequestException('Paciente é obrigatório para finalizar.');
+    if (!merged.clientId)
+      throw new BadRequestException('Tutor é obrigatório para finalizar.');
     if (!merged.veterinarianId) {
-      throw new BadRequestException('Veterinário responsável é obrigatório para finalizar.');
+      throw new BadRequestException(
+        'Veterinário responsável é obrigatório para finalizar.',
+      );
     }
     if (!merged.visitDate) {
-      throw new BadRequestException('Data/hora do atendimento é obrigatória para finalizar.');
+      throw new BadRequestException(
+        'Data/hora do atendimento é obrigatória para finalizar.',
+      );
     }
     if (!hasValue(merged.mainComplaint) && !hasValue(merged.clinicalFindings)) {
       throw new BadRequestException(
@@ -157,7 +307,9 @@ export class ConsultationsService {
       );
     }
     if (!hasValue(merged.treatmentPlan) && !hasValue(merged.notes)) {
-      throw new BadRequestException('Conduta ou justificativa clínica é obrigatória para finalizar.');
+      throw new BadRequestException(
+        'Conduta ou justificativa clínica é obrigatória para finalizar.',
+      );
     }
     if (hasValue(merged.aiOrganizedComplaint) && !merged.anamnesisApproved) {
       throw new BadRequestException(
@@ -176,12 +328,20 @@ export class ConsultationsService {
     const exams = getLineValue('Exames');
     const inpatient = /Encaminhar para internação:\s*Sim/i.test(notes);
     if (/Prescrição:/i.test(notes) && !prescription) {
-      throw new BadRequestException('Prescrição não pode estar vazia ao finalizar.');
+      throw new BadRequestException(
+        'Prescrição não pode estar vazia ao finalizar.',
+      );
     }
     if (/Exames:/i.test(notes) && !exams) {
-      throw new BadRequestException('Exames solicitados precisam de descrição mínima.');
+      throw new BadRequestException(
+        'Exames solicitados precisam de descrição mínima.',
+      );
     }
-    if (inpatient && !hasValue(getLineValue('Motivo internação')) && !hasValue(exams)) {
+    if (
+      inpatient &&
+      !hasValue(getLineValue('Motivo internação')) &&
+      !hasValue(exams)
+    ) {
       throw new BadRequestException(
         'Encaminhamento para internação exige motivo/observação mínima.',
       );
@@ -229,5 +389,39 @@ export class ConsultationsService {
       payload.consultiveSupportText = null;
       payload.consultiveSupportGeneratedAt = null;
     }
+  }
+
+  private async markAppointmentAsCompleted(
+    manager: EntityManager,
+    appointmentId?: number | null,
+  ) {
+    if (!appointmentId) return;
+
+    const appointmentRepository = manager.getRepository(Appointment);
+    const appointment = await appointmentRepository.findOne({
+      where: { id: appointmentId },
+      relations: ['status'],
+    });
+
+    if (!appointment) {
+      return;
+    }
+
+    const currentStatusCode = String(appointment.status?.code || '').toUpperCase();
+    if (currentStatusCode === 'CANCELED' || currentStatusCode === 'COMPLETED') {
+      return;
+    }
+
+    const completedStatus = await manager.getRepository(AppointmentStatus).findOne({
+      where: { code: 'COMPLETED' },
+    });
+
+    if (!completedStatus) {
+      throw new BadRequestException('Status COMPLETED nao configurado.');
+    }
+
+    appointment.statusId = completedStatus.id;
+    appointment.status = completedStatus;
+    await appointmentRepository.save(appointment);
   }
 }

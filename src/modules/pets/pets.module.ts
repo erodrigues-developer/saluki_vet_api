@@ -7,6 +7,7 @@ import { PetsRepository } from './repositories/pets.repository';
 import { ClientsModule } from '../clients/clients.module';
 import { SpeciesModule } from '../species/species.module';
 import { BreedsModule } from '../breeds/breeds.module';
+import { FileStorageModule } from '../file-storage/file-storage.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { BreedsModule } from '../breeds/breeds.module';
     ClientsModule,
     SpeciesModule,
     BreedsModule,
+    FileStorageModule,
   ],
   controllers: [PetsController],
   providers: [PetsService, PetsRepository],

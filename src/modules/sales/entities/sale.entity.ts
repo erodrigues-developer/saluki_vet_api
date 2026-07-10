@@ -13,6 +13,8 @@ import { Client } from '../../clients/entities/client.entity';
 import { User } from '../../users/entities/user.entity';
 import { SaleItem } from '../../sale-items/entities/sale-item.entity';
 import { Payment } from '../../payments/entities/payment.entity';
+import { Consultation } from '../../consultations/entities/consultation.entity';
+import { Appointment } from '../../appointments/entities/appointment.entity';
 
 @Entity({ name: 'sales' })
 export class Sale {
@@ -35,6 +37,22 @@ export class Sale {
   @ManyToOne(() => User)
   @JoinColumn({ name: 'veterinarian_id' })
   veterinarian: User;
+
+  @ApiProperty({ example: 1, nullable: true })
+  @Column({ name: 'consultation_id', type: 'bigint', nullable: true })
+  consultationId?: number | null;
+
+  @ManyToOne(() => Consultation, { nullable: true })
+  @JoinColumn({ name: 'consultation_id' })
+  consultation?: Consultation | null;
+
+  @ApiProperty({ example: 1, nullable: true })
+  @Column({ name: 'appointment_id', type: 'bigint', nullable: true })
+  appointmentId?: number | null;
+
+  @ManyToOne(() => Appointment, { nullable: true })
+  @JoinColumn({ name: 'appointment_id' })
+  appointment?: Appointment | null;
 
   @ApiProperty({ example: '2024-07-20T10:00:00Z' })
   @Column({ name: 'sale_date', type: 'timestamp' })

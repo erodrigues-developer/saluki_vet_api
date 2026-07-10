@@ -4,12 +4,15 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Sale } from '../../sales/entities/sale.entity';
 import { Consultation } from '../../consultations/entities/consultation.entity';
 import { Procedure } from '../../procedures/entities/procedure.entity';
+import { Appointment } from '../../appointments/entities/appointment.entity';
+import { CommissionPayoutItem } from './commission-payout-item.entity';
 
 @Entity({ name: 'commissions' })
 export class Commission {
@@ -42,6 +45,14 @@ export class Commission {
   consultation?: Consultation;
 
   @ApiProperty({ example: 1, nullable: true })
+  @Column({ name: 'appointment_id', type: 'bigint', nullable: true })
+  appointmentId?: number | null;
+
+  @ManyToOne(() => Appointment, { nullable: true })
+  @JoinColumn({ name: 'appointment_id' })
+  appointment?: Appointment | null;
+
+  @ApiProperty({ example: 1, nullable: true })
   @Column({ name: 'grooming_session_id', type: 'bigint', nullable: true })
   groomingSessionId?: number | null;
 
@@ -56,6 +67,14 @@ export class Commission {
   @ApiProperty({ example: 25.5 })
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   amount: number;
+
+  @ApiProperty({ example: 'SALE', nullable: true })
+  @Column({ name: 'origin_type', type: 'varchar', length: 30, nullable: true })
+  originType?: string | null;
+
+  @ApiProperty({ example: 15, nullable: true })
+  @Column({ name: 'origin_reference_id', type: 'bigint', nullable: true })
+  originReferenceId?: number | null;
 
   @ApiProperty({ example: 150, nullable: true })
   @Column({
@@ -85,7 +104,30 @@ export class Commission {
   @Column({ name: 'paid_at', type: 'timestamp', nullable: true })
   paidAt?: Date | null;
 
+  @ApiProperty({ example: '2024-07-10T12:00:00Z', nullable: true })
+  @Column({ name: 'canceled_at', type: 'timestamp', nullable: true })
+  canceledAt?: Date | null;
+
+  @ApiProperty({ example: 10, nullable: true })
+  @Column({
+    name: 'reversal_of_commission_id',
+    type: 'bigint',
+    nullable: true,
+  })
+  reversalOfCommissionId?: number | null;
+
+  @ManyToOne(() => Commission, { nullable: true })
+  @JoinColumn({ name: 'reversal_of_commission_id' })
+  reversalOfCommission?: Commission | null;
+
   @ApiProperty({ example: 'PENDING' })
   @Column({ type: 'varchar', length: 20, default: 'PENDING' })
   status: string;
+
+  @ApiProperty({ example: 'Estorno pela reabertura da venda', nullable: true })
+  @Column({ type: 'text', nullable: true })
+  notes?: string | null;
+
+  @OneToMany(() => CommissionPayoutItem, (payoutItem) => payoutItem.commission)
+  payoutItems?: CommissionPayoutItem[];
 }

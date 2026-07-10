@@ -117,6 +117,19 @@ export class Pet {
   @Column({ type: 'text', nullable: true })
   notes?: string | null;
 
+  @ApiProperty({ example: 'https://cdn.example.com/pets/thor.jpg', required: false })
+  @Column({ name: 'photo_url', type: 'varchar', length: 500, nullable: true })
+  photoUrl?: string | null;
+
+  @ApiProperty({ example: 'pets/photos/thor.jpg', required: false })
+  @Column({
+    name: 'photo_storage_key',
+    type: 'varchar',
+    length: 500,
+    nullable: true,
+  })
+  photoStorageKey?: string | null;
+
   @ApiProperty({ example: true })
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive: boolean;

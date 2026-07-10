@@ -5,9 +5,14 @@ import { ConsultationsService } from './consultations.service';
 import { ConsultationsController } from './consultations.controller';
 import { ConsultationsRepository } from './repositories/consultations.repository';
 import { ConsultationDictationsModule } from '../consultation-dictations/consultation-dictations.module';
+import { SalesModule } from '../sales/sales.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Consultation]), ConsultationDictationsModule],
+  imports: [
+    TypeOrmModule.forFeature([Consultation]),
+    ConsultationDictationsModule,
+    SalesModule,
+  ],
   controllers: [ConsultationsController],
   providers: [ConsultationsService, ConsultationsRepository],
   exports: [ConsultationsService],

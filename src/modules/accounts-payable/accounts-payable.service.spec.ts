@@ -4,11 +4,16 @@ import { AccountPayable } from './entities/account-payable.entity';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Supplier } from '../suppliers/entities/supplier.entity';
+import { User } from '../users/entities/user.entity';
+import { PaymentMethod } from '../payment-methods/entities/payment-method.entity';
+import { CommissionsService } from '../commissions/commissions.service';
 
 describe('AccountsPayableService', () => {
   let service: AccountsPayableService;
   let repository: Repository<AccountPayable>;
   let suppliersRepository: Repository<Supplier>;
+  let usersRepository: Repository<User>;
+  let paymentMethodsRepository: Repository<PaymentMethod>;
 
   const mockDate = new Date('2024-07-15T12:00:00Z');
 
@@ -62,6 +67,19 @@ describe('AccountsPayableService', () => {
     findOneBy: jest.fn(),
   };
 
+  const mockUsersRepository = {
+    findOneBy: jest.fn(),
+  };
+
+  const mockPaymentMethodsRepository = {
+    findOne: jest.fn(),
+  };
+
+  const mockCommissionsService = {
+    markPayoutAsPaidByAccountPayable: jest.fn(),
+    reopenPayoutByAccountPayable: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -74,6 +92,18 @@ describe('AccountsPayableService', () => {
           provide: getRepositoryToken(Supplier),
           useValue: mockSuppliersRepository,
         },
+        {
+          provide: getRepositoryToken(User),
+          useValue: mockUsersRepository,
+        },
+        {
+          provide: getRepositoryToken(PaymentMethod),
+          useValue: mockPaymentMethodsRepository,
+        },
+        {
+          provide: CommissionsService,
+          useValue: mockCommissionsService,
+        },
       ],
     }).compile();
 
@@ -83,6 +113,10 @@ describe('AccountsPayableService', () => {
     );
     suppliersRepository = module.get<Repository<Supplier>>(
       getRepositoryToken(Supplier),
+    );
+    usersRepository = module.get<Repository<User>>(getRepositoryToken(User));
+    paymentMethodsRepository = module.get<Repository<PaymentMethod>>(
+      getRepositoryToken(PaymentMethod),
     );
   });
 
@@ -114,6 +148,7 @@ describe('AccountsPayableService', () => {
       expect(repository.create).toHaveBeenCalledWith({
         ...dto,
         status: 'PENDING',
+        originType: 'MANUAL',
       });
       expect(repository.save).toHaveBeenCalled();
       expect(result.status).toEqual('PENDING');
@@ -186,8 +221,9 @@ describe('AccountsPayableService', () => {
       expect(repository.save).toHaveBeenCalledWith({
         ...mockAccount,
         status: 'PAID',
-        paidAt: dto.paidAt,
+        paidAt: new Date(dto.paidAt),
         paidAmount: dto.paidAmount,
+        paymentMethodId: null,
         paymentMethod: dto.paymentMethod,
       });
     });
@@ -226,6 +262,7 @@ describe('AccountsPayableService', () => {
         status: 'PENDING',
         paidAt: null,
         paidAmount: null,
+        paymentMethodId: null,
         paymentMethod: null,
       });
     });

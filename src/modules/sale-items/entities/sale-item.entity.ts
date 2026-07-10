@@ -65,4 +65,12 @@ export class SaleItem {
   @ApiProperty({ example: 140.0 })
   @Column({ name: 'total_price', type: 'decimal', precision: 10, scale: 2 })
   totalPrice: number;
+
+  @ApiProperty({ example: 'CONSULTATION_PROCEDURE', nullable: true })
+  @Column({ name: 'origin_type', type: 'varchar', length: 50, nullable: true })
+  originType?: string | null;
+
+  @ApiProperty({ example: 1, nullable: true })
+  @Column({ name: 'origin_reference_id', type: 'bigint', nullable: true })
+  originReferenceId?: number | null;
 }

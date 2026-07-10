@@ -80,6 +80,21 @@ export class CreatePetDto {
   @IsOptional()
   notes?: string;
 
+  @ApiProperty({
+    example: 'https://cdn.example.com/pets/thor.jpg',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(500)
+  photoUrl?: string | null;
+
+  @ApiProperty({ example: 'pets/photos/thor.jpg', required: false })
+  @IsString()
+  @IsOptional()
+  @MaxLength(500)
+  photoStorageKey?: string | null;
+
   @ApiProperty({ example: true, required: false, default: true })
   @IsBoolean()
   @IsOptional()

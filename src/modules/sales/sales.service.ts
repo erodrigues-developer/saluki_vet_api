@@ -4,12 +4,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { DataSource, EntityManager, QueryFailedError } from 'typeorm';
 import {
-  SalesRepository,
   SalesFilterOptions,
+  SalesRepository,
 } from './repositories/sales.repository';
 import { Sale } from './entities/sale.entity';
-import { DataSource, QueryFailedError } from 'typeorm';
 import { CheckoutSaleDto } from './dto/checkout-sale.dto';
 import { CheckoutSaleResponseDto } from './dto/checkout-sale-response.dto';
 import { Payment } from '../payments/entities/payment.entity';
@@ -18,6 +18,16 @@ import { AccountReceivable } from '../accounts-receivable/entities/account-recei
 import { CommissionsService } from '../commissions/commissions.service';
 import { SaleItem } from '../sale-items/entities/sale-item.entity';
 import { StockMovementsService } from '../stock-movements/stock-movements.service';
+import { Consultation } from '../consultations/entities/consultation.entity';
+import { ConsultationProcedure } from '../consultation-procedures/entities/consultation-procedure.entity';
+import { Procedure } from '../procedures/entities/procedure.entity';
+
+type ConsultationSaleSource = Pick<
+  Consultation,
+  'id' | 'clientId' | 'veterinarianId' | 'appointmentId' | 'visitDate'
+> & {
+  finalizedAt?: Date | null;
+};
 
 @Injectable()
 export class SalesService {
@@ -38,21 +48,15 @@ export class SalesService {
   }
 
   async findOne(id: number): Promise<Sale> {
-    const sale = await this.salesRepository.findOne({
-      where: { id },
-      relations: [
-        'client',
-        'veterinarian',
-        'items',
-        'items.product',
-        'items.procedure',
-        'payments',
-        'payments.paymentMethod',
-      ],
-    });
+    const sale = await this.loadSaleWithDetails(
+      this.salesRepository.manager as EntityManager,
+      id,
+    );
+
     if (!sale) {
       throw new NotFoundException(`Sale with ID ${id} not found`);
     }
+
     return sale;
   }
 
@@ -71,6 +75,118 @@ export class SalesService {
       throw new NotFoundException(`Sale with ID ${id} not found`);
     }
     await this.salesRepository.remove(sale);
+  }
+
+  async createOrSyncFromConsultation(
+    manager: EntityManager,
+    consultation: ConsultationSaleSource,
+  ): Promise<Sale> {
+    const consultationProceduresRepository =
+      manager.getRepository(ConsultationProcedure);
+    const saleRepository = manager.getRepository(Sale);
+    const saleItemsRepository = manager.getRepository(SaleItem);
+
+    const consultationProcedures = await consultationProceduresRepository.find({
+      where: { consultationId: consultation.id },
+      order: { id: 'ASC' },
+    });
+
+    const billableProcedures = consultationProcedures.filter((item) => {
+      const quantity = Number(item.quantity || 0);
+      const totalPrice = this.normalizeMoney(item.totalPrice || 0);
+      return quantity > 0 && totalPrice > 0;
+    });
+
+    const existingSale = await saleRepository
+      .createQueryBuilder('sale')
+      .setLock('pessimistic_write')
+      .where('sale.consultationId = :consultationId', {
+        consultationId: consultation.id,
+      })
+      .andWhere('sale.status IN (:...statuses)', {
+        statuses: ['OPEN', 'PAID'],
+      })
+      .orderBy(`CASE WHEN sale.status = 'OPEN' THEN 0 ELSE 1 END`, 'ASC')
+      .addOrderBy('sale.id', 'DESC')
+      .getOne();
+
+    if (existingSale?.status === 'PAID') {
+      return (
+        (await this.loadSaleWithDetails(manager, existingSale.id)) || existingSale
+      );
+    }
+
+    if (!billableProcedures.length) {
+      throw new BadRequestException(
+        'Adicione ao menos um procedimento cobrável antes de finalizar e cobrar.',
+      );
+    }
+
+    const sale =
+      existingSale ||
+      saleRepository.create({
+        consultationId: consultation.id,
+        appointmentId: consultation.appointmentId ?? null,
+        status: 'OPEN',
+      });
+
+    sale.clientId = consultation.clientId ?? null;
+    sale.veterinarianId = consultation.veterinarianId;
+    sale.consultationId = consultation.id;
+    sale.appointmentId = consultation.appointmentId ?? null;
+    sale.saleDate =
+      consultation.finalizedAt ||
+      consultation.visitDate ||
+      sale.saleDate ||
+      new Date();
+    sale.discountAmount = this.normalizeMoney(sale.discountAmount || 0);
+
+    const savedSale = await saleRepository.save(sale);
+
+    await saleItemsRepository.delete({
+      saleId: savedSale.id,
+      originType: 'CONSULTATION_PROCEDURE',
+    });
+
+    const generatedItems = billableProcedures.map((item) =>
+      saleItemsRepository.create({
+        saleId: savedSale.id,
+        procedureId: item.procedureId,
+        quantity: Number(item.quantity || 0),
+        unitPrice: this.normalizeMoney(item.unitPrice || 0),
+        discountAmount: 0,
+        totalPrice: this.normalizeMoney(item.totalPrice || 0),
+        originType: 'CONSULTATION_PROCEDURE',
+        originReferenceId: item.id,
+      }),
+    );
+
+    if (generatedItems.length) {
+      await saleItemsRepository.save(generatedItems);
+    }
+
+    const allItems = await saleItemsRepository.find({
+      where: { saleId: savedSale.id },
+    });
+    const subtotal = allItems.reduce(
+      (sum, item) =>
+        Number(sum) + Number(item.quantity || 0) * Number(item.unitPrice || 0),
+      0,
+    );
+    const itemsTotal = allItems.reduce(
+      (sum, item) => Number(sum) + Number(item.totalPrice || 0),
+      0,
+    );
+
+    savedSale.subtotal = this.normalizeMoney(subtotal);
+    savedSale.totalAmount = Math.max(
+      0,
+      this.normalizeMoney(itemsTotal - Number(savedSale.discountAmount || 0)),
+    );
+
+    await saleRepository.save(savedSale);
+
+    return (await this.loadSaleWithDetails(manager, savedSale.id)) || savedSale;
   }
 
   async cancel(id: number): Promise<Sale> {
@@ -99,6 +215,12 @@ export class SalesService {
           referenceType: 'SALE_CANCELLATION',
           notes: `Estorno de estoque pelo cancelamento da venda #${sale.id}`,
         });
+        await this.commissionsService.handleSaleCheckoutReversal(
+          manager,
+          sale,
+          new Date(),
+          `Comissão cancelada pelo cancelamento da venda #${sale.id}.`,
+        );
       }
 
       sale.status = 'CANCELED';
@@ -138,6 +260,12 @@ export class SalesService {
         referenceType: 'SALE_CHECKOUT_UNDO',
         notes: `Estorno de estoque pela reabertura da venda #${sale.id}`,
       });
+      await this.commissionsService.handleSaleCheckoutReversal(
+        manager,
+        sale,
+        new Date(),
+        `Comissão ajustada pela reabertura do checkout da venda #${sale.id}.`,
+      );
 
       sale.status = 'OPEN';
       return saleRepository.save(sale);
@@ -218,7 +346,6 @@ export class SalesService {
 
         const savedPayment = await paymentsRepository.save(payment);
         const dueDateObj = new Date(paidAt);
-        // Force the time to midnight for consistency with a DATE column
         dueDateObj.setUTCHours(0, 0, 0, 0);
 
         const accountReceivable = accountsReceivableRepository.create({
@@ -273,32 +400,37 @@ export class SalesService {
   }
 
   private async createStockMovementsForSale(
-    manager: any,
+    manager: EntityManager,
     saleId: number,
     occurredAt: Date,
   ) {
     const items = await manager.getRepository(SaleItem).find({
       where: { saleId },
-      relations: ['product'],
+      relations: ['product', 'procedure'],
     });
 
-    const defaultLocation = await this.stockMovementsService.ensureSaleItemsHaveStock(
-      manager,
-      items.map((item) => ({
-        productId: item.productId,
-        quantity: Number(item.quantity),
-      })),
-    );
+    const stockRequests = await this.buildSaleStockRequests(manager, items);
+    if (!stockRequests.length) {
+      return;
+    }
+
+    const defaultLocation =
+      await this.stockMovementsService.ensureSaleItemsHaveStock(
+        manager,
+        stockRequests,
+      );
 
     const groupedItems = new Map<number, number>();
-    for (const item of items) {
-      if (!item.productId || !item.product?.trackStock || item.product?.isService) {
+    for (const item of stockRequests) {
+      if (!item.productId) {
         continue;
       }
 
       groupedItems.set(
         item.productId,
-        Number((groupedItems.get(item.productId) || 0) + Number(item.quantity)),
+        Number(
+          (groupedItems.get(item.productId) || 0) + Number(item.quantity || 0),
+        ),
       );
     }
 
@@ -314,6 +446,80 @@ export class SalesService {
         reason: 'Venda',
       });
     }
+  }
+
+  private async buildSaleStockRequests(
+    manager: EntityManager,
+    items: SaleItem[],
+  ): Promise<Array<{ productId?: number | null; quantity: number }>> {
+    const requests: Array<{ productId?: number | null; quantity: number }> = [];
+    const procedureIds = Array.from(
+      new Set(
+        items
+          .map((item) => (item.procedureId ? Number(item.procedureId) : null))
+          .filter((value): value is number => Boolean(value)),
+      ),
+    );
+
+    const procedures = procedureIds.length
+      ? await manager.getRepository(Procedure).find({
+          where: procedureIds.map((id) => ({ id })),
+        })
+      : [];
+    const proceduresMap = new Map(procedures.map((item) => [Number(item.id), item]));
+
+    for (const item of items) {
+      if (item.productId) {
+        requests.push({
+          productId: item.productId,
+          quantity: Number(item.quantity || 0),
+        });
+      }
+
+      if (!item.procedureId) {
+        continue;
+      }
+
+      const procedure = proceduresMap.get(Number(item.procedureId));
+      const consumedProductId = procedure?.consumedProductId
+        ? Number(procedure.consumedProductId)
+        : null;
+      const consumptionQuantity = Number(procedure?.consumptionQuantity || 0);
+
+      if (!consumedProductId || consumptionQuantity <= 0) {
+        continue;
+      }
+
+      requests.push({
+        productId: consumedProductId,
+        quantity: Number(item.quantity || 0) * consumptionQuantity,
+      });
+    }
+
+    return requests.filter(
+      (item) =>
+        Number(item.productId || 0) > 0 && Number(item.quantity || 0) > 0,
+    );
+  }
+
+  private async loadSaleWithDetails(
+    manager: EntityManager,
+    id: number,
+  ): Promise<Sale | null> {
+    return manager.getRepository(Sale).findOne({
+      where: { id },
+      relations: [
+        'client',
+        'veterinarian',
+        'consultation',
+        'appointment',
+        'items',
+        'items.product',
+        'items.procedure',
+        'payments',
+        'payments.paymentMethod',
+      ],
+    });
   }
 
   private isAccountsReceivableSaleDuplicate(error: unknown): boolean {

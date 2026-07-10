@@ -58,6 +58,10 @@ export class CommissionsRepository extends Repository<Commission> {
         const amount = Number(commission.amount || 0);
         if (commission.status === 'PAID') {
           acc.paidTotal += amount;
+        } else if (commission.status === 'SCHEDULED') {
+          acc.scheduledTotal += amount;
+        } else if (commission.status === 'CANCELED') {
+          acc.canceledTotal += amount;
         } else {
           acc.pendingTotal += amount;
         }
@@ -65,7 +69,9 @@ export class CommissionsRepository extends Repository<Commission> {
       },
       {
         pendingTotal: 0,
+        scheduledTotal: 0,
         paidTotal: 0,
+        canceledTotal: 0,
         countByStatus,
       },
     );
@@ -75,7 +81,10 @@ export class CommissionsRepository extends Repository<Commission> {
     return this.createQueryBuilder('commission')
       .leftJoinAndSelect('commission.user', 'user')
       .leftJoinAndSelect('commission.sale', 'sale')
-      .leftJoinAndSelect('commission.procedure', 'procedure');
+      .leftJoinAndSelect('commission.procedure', 'procedure')
+      .leftJoinAndSelect('commission.payoutItems', 'payoutItem')
+      .leftJoinAndSelect('payoutItem.payout', 'payout')
+      .leftJoinAndSelect('payout.accountPayable', 'accountPayable');
   }
 
   private applyFilters(
