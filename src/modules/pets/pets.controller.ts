@@ -90,6 +90,14 @@ export class PetsController {
     return this.petsService.findOne(id);
   }
 
+  @Get(':id/history')
+  @ApiOperation({ summary: 'Retorna histórico consolidado do pet' })
+  @ApiParam({ name: 'id', type: Number, example: 1 })
+  @ApiOkResponse({ description: 'Histórico consolidado do pet' })
+  getHistory(@Param('id', ParseIntPipe) id: number) {
+    return this.petsService.getHistory(id);
+  }
+
   @Patch(':id')
   @ApiOperation({ summary: 'Atualiza um pet' })
   @ApiParam({ name: 'id', type: Number, example: 1 })

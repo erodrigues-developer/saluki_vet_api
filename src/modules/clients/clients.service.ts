@@ -8,10 +8,15 @@ import { ClientsRepository } from './repositories/clients.repository';
 import { CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
 import { FilterClientsDto } from './dto/filter-clients.dto';
+import { DataSource } from 'typeorm';
+import { Pet } from '../pets/entities/pet.entity';
 
 @Injectable()
 export class ClientsService {
-  constructor(private readonly clientsRepository: ClientsRepository) {}
+  constructor(
+    private readonly clientsRepository: ClientsRepository,
+    private readonly dataSource: DataSource,
+  ) {}
 
   async create(payload: CreateClientDto): Promise<Client> {
     const client = this.clientsRepository.create(payload);
@@ -63,6 +68,22 @@ export class ClientsService {
       throw new NotFoundException(`Client ${id} not found`);
     }
     return client;
+  }
+
+  async findPets(id: number) {
+    await this.findOne(id);
+
+    const petsRepository = this.dataSource.getRepository(Pet);
+    return {
+      data: await petsRepository.find({
+        where: { clientId: id },
+        relations: ['species', 'breed'],
+        order: {
+          updatedAt: 'DESC',
+          id: 'DESC',
+        },
+      }),
+    };
   }
 
   async update(id: number, payload: UpdateClientDto): Promise<Client> {

@@ -53,6 +53,8 @@ import { VeterinarianAvailabilityModule } from './modules/veterinarian-availabil
 import { ExamCategoriesModule } from './modules/exam-categories/exam-categories.module';
 import { ExamTypesModule } from './modules/exam-types/exam-types.module';
 import { ExamRequestsModule } from './modules/exam-requests/exam-requests.module';
+import { ConsultationAttachmentsModule } from './modules/consultation-attachments/consultation-attachments.module';
+import { ExamResultsModule } from './modules/exam-results/exam-results.module';
 import configuration from './configs/configuration';
 
 @Module({
@@ -126,6 +128,8 @@ import configuration from './configs/configuration';
     ExamCategoriesModule,
     ExamTypesModule,
     ExamRequestsModule,
+    ConsultationAttachmentsModule,
+    ExamResultsModule,
   ],
   controllers: [AppController],
   providers: [

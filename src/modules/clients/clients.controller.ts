@@ -100,6 +100,14 @@ export class ClientsController {
     return this.clientsService.findOne(id);
   }
 
+  @Get(':id/pets')
+  @ApiOperation({ summary: 'Lista pets associados ao cliente' })
+  @ApiParam({ name: 'id', type: Number, example: 1 })
+  @ApiOkResponse({ description: 'Pets associados ao cliente' })
+  findPets(@Param('id', ParseIntPipe) id: number) {
+    return this.clientsService.findPets(id);
+  }
+
   @Patch(':id')
   @ApiOperation({ summary: 'Atualiza um cliente' })
   @ApiParam({ name: 'id', type: Number, example: 1 })
