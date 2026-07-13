@@ -55,6 +55,7 @@ import { ExamTypesModule } from './modules/exam-types/exam-types.module';
 import { ExamRequestsModule } from './modules/exam-requests/exam-requests.module';
 import { ConsultationAttachmentsModule } from './modules/consultation-attachments/consultation-attachments.module';
 import { ExamResultsModule } from './modules/exam-results/exam-results.module';
+import { ReportsModule } from './modules/reports/reports.module';
 import configuration from './configs/configuration';
 
 @Module({
@@ -130,6 +131,7 @@ import configuration from './configs/configuration';
     ExamRequestsModule,
     ConsultationAttachmentsModule,
     ExamResultsModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [
