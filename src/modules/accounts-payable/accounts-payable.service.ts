@@ -1,24 +1,35 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { AccountPayable } from './entities/account-payable.entity';
 import { CreateAccountPayableDto } from './dto/create-account-payable.dto';
 import { PayAccountDto } from './dto/pay-account.dto';
 import { Supplier } from '../suppliers/entities/supplier.entity';
-import { UpdateAccountPayableDto } from './dto/update-account-payable.dto';
+import {
+  UpdateAccountPayableWithScopeDto,
+} from './dto/update-account-payable.dto';
 import { User } from '../users/entities/user.entity';
 import { PaymentMethod } from '../payment-methods/entities/payment-method.entity';
 import { CommissionsService } from '../commissions/commissions.service';
+import { AccountPayableRecurrence } from './entities/account-payable-recurrence.entity';
+import { ClinicSettingsService } from '../clinic-settings/clinic-settings.service';
 
 @Injectable()
 export class AccountsPayableService {
+  private readonly logger = new Logger(AccountsPayableService.name);
+  private isSyncingRecurrences = false;
+
   constructor(
     @InjectRepository(AccountPayable)
     private readonly repository: Repository<AccountPayable>,
+    @InjectRepository(AccountPayableRecurrence)
+    private readonly recurrencesRepository: Repository<AccountPayableRecurrence>,
     @InjectRepository(Supplier)
     private readonly suppliersRepository: Repository<Supplier>,
     @InjectRepository(User)
@@ -26,6 +37,7 @@ export class AccountsPayableService {
     @InjectRepository(PaymentMethod)
     private readonly paymentMethodsRepository: Repository<PaymentMethod>,
     private readonly commissionsService: CommissionsService,
+    private readonly clinicSettingsService: ClinicSettingsService,
   ) {}
 
   async create(dto: CreateAccountPayableDto): Promise<AccountPayable> {
@@ -34,25 +46,58 @@ export class AccountsPayableService {
       dto.supplierId,
       dto.beneficiaryUserId,
     );
+    this.ensureRecurringOriginAllowed(dto);
+    this.ensureRecurrencePayload(dto.recurrence);
     await this.ensureRelatedParties(dto.supplierId, dto.beneficiaryUserId);
+
+    if (dto.recurrence?.enabled) {
+      const recurrence = await this.createRecurrenceFromDto(dto);
+      await this.ensureRecurrenceWindow(recurrence.id);
+      const created = await this.repository.findOne({
+        where: {
+          recurrenceId: recurrence.id,
+          recurrenceSequence: 1,
+        },
+        relations: {
+          recurrence: true,
+          supplier: true,
+          beneficiaryUser: true,
+          paymentMethodRelation: true,
+        },
+      });
+
+      if (!created) {
+        throw new NotFoundException('Unable to create recurring account');
+      }
+
+      return created;
+    }
 
     const entity = this.repository.create({
       ...dto,
       status: 'PENDING',
       originType: dto.originType || 'MANUAL',
+      recurrenceId: null,
+      recurrenceSequence: null,
+      isRecurrenceGenerated: false,
     });
     return this.repository.save(entity);
   }
 
   async update(
     id: number,
-    dto: UpdateAccountPayableDto & {
+    dto: UpdateAccountPayableWithScopeDto & {
       beneficiaryUserId?: number | null;
       originType?: string;
       originReferenceId?: number | null;
     },
   ): Promise<AccountPayable> {
-    const entity = await this.repository.findOneBy({ id });
+    const entity = await this.repository.findOne({
+      where: { id },
+      relations: {
+        recurrence: true,
+      },
+    });
     if (!entity) throw new NotFoundException('Account not found');
 
     this.ensureManualAccountHasCounterparty(
@@ -62,9 +107,28 @@ export class AccountsPayableService {
         ? dto.beneficiaryUserId
         : entity.beneficiaryUserId,
     );
+    this.ensureRecurringOriginAllowed({
+      ...entity,
+      ...dto,
+      recurrence: dto.recurrence,
+    } as CreateAccountPayableDto);
+    this.ensureRecurrencePayload(dto.recurrence);
     await this.ensureRelatedParties(dto.supplierId, dto.beneficiaryUserId);
 
-    const merged = this.repository.merge(entity, dto as any);
+    if (entity.recurrenceId && dto.scope === 'THIS_AND_NEXT') {
+      await this.updateRecurrenceSeries(entity, dto);
+      return this.findOneOrFail(id);
+    }
+
+    const { recurrence: _recurrence, scope: _scope, ...payload } = dto as any;
+    const merged = this.repository.merge(entity, payload);
+
+    if (dto.recurrence?.enabled === false && entity.recurrenceId) {
+      merged.recurrenceId = null;
+      merged.recurrenceSequence = null;
+      merged.isRecurrenceGenerated = false;
+    }
+
     return this.repository.save(merged);
   }
 
@@ -78,7 +142,8 @@ export class AccountsPayableService {
       .createQueryBuilder('ap')
       .leftJoinAndSelect('ap.supplier', 'supplier')
       .leftJoinAndSelect('ap.beneficiaryUser', 'beneficiaryUser')
-      .leftJoinAndSelect('ap.paymentMethodRelation', 'paymentMethodRelation');
+      .leftJoinAndSelect('ap.paymentMethodRelation', 'paymentMethodRelation')
+      .leftJoinAndSelect('ap.recurrence', 'recurrence');
 
     if (category) {
       query.andWhere('ap.category = :category', { category });
@@ -91,7 +156,7 @@ export class AccountsPayableService {
 
     this.applyStatusFilter(query, status);
 
-    query.orderBy('ap.dueDate', 'ASC');
+    query.orderBy('ap.dueDate', 'ASC').addOrderBy('ap.id', 'ASC');
 
     return query.getMany();
   }
@@ -243,6 +308,257 @@ export class AccountsPayableService {
     };
   }
 
+  @Cron('0 10 1 * * *')
+  async syncRecurringAccountsWindow() {
+    if (this.isSyncingRecurrences) {
+      return;
+    }
+
+    this.isSyncingRecurrences = true;
+
+    try {
+      const recurrences = await this.recurrencesRepository.find({
+        where: { isActive: true },
+        order: { id: 'ASC' },
+      });
+
+      for (const recurrence of recurrences) {
+        await this.ensureRecurrenceWindow(recurrence.id);
+      }
+    } catch (error: any) {
+      this.logger.error(
+        'Failed to synchronize accounts payable recurrences',
+        error?.stack,
+      );
+    } finally {
+      this.isSyncingRecurrences = false;
+    }
+  }
+
+  private async createRecurrenceFromDto(
+    dto: CreateAccountPayableDto,
+  ): Promise<AccountPayableRecurrence> {
+    const firstDueDate = this.normalizeDateOnly(dto.dueDate);
+    const recurrence = this.recurrencesRepository.create({
+      description: dto.description,
+      category: dto.category ?? null,
+      amount: dto.amount,
+      supplierId: dto.supplierId ?? null,
+      beneficiaryUserId: dto.beneficiaryUserId ?? null,
+      frequency: dto.recurrence!.frequency,
+      intervalCount: dto.recurrence!.intervalCount,
+      firstDueDate,
+      endsAt: dto.recurrence!.endsAt
+        ? this.normalizeDateOnly(dto.recurrence!.endsAt)
+        : null,
+      occurrencesLimit: dto.recurrence!.occurrencesLimit ?? null,
+      nextDueDate: firstDueDate,
+      lastGeneratedDueDate: null,
+      isActive: true,
+      notes: dto.notes ?? null,
+      originType: dto.originType || 'MANUAL',
+      originReferenceId: dto.originReferenceId ?? null,
+    });
+
+    return this.recurrencesRepository.save(recurrence);
+  }
+
+  private async updateRecurrenceSeries(
+    entity: AccountPayable,
+    dto: UpdateAccountPayableWithScopeDto,
+  ) {
+    const recurrence = await this.recurrencesRepository.findOneBy({
+      id: entity.recurrenceId!,
+    });
+
+    if (!recurrence) {
+      throw new NotFoundException('Recurrence not found');
+    }
+
+    recurrence.description = dto.description ?? recurrence.description;
+    recurrence.category =
+      dto.category !== undefined ? dto.category : recurrence.category;
+    recurrence.amount =
+      dto.amount !== undefined ? Number(dto.amount) : recurrence.amount;
+    recurrence.supplierId =
+      dto.supplierId !== undefined ? dto.supplierId : recurrence.supplierId;
+    recurrence.beneficiaryUserId =
+      dto.beneficiaryUserId !== undefined
+        ? dto.beneficiaryUserId
+        : recurrence.beneficiaryUserId;
+    recurrence.notes = dto.notes !== undefined ? dto.notes : recurrence.notes;
+
+    if (dto.recurrence?.enabled) {
+      recurrence.frequency = dto.recurrence.frequency;
+      recurrence.intervalCount = dto.recurrence.intervalCount;
+      recurrence.endsAt = dto.recurrence.endsAt
+        ? this.normalizeDateOnly(dto.recurrence.endsAt)
+        : null;
+      recurrence.occurrencesLimit = dto.recurrence.occurrencesLimit ?? null;
+    } else if (dto.recurrence?.enabled === false) {
+      recurrence.isActive = false;
+    }
+
+    await this.recurrencesRepository.save(recurrence);
+
+    if (dto.recurrence?.enabled !== false) {
+      const futurePendingAccounts = await this.repository
+        .createQueryBuilder('ap')
+        .where('ap.recurrence_id = :recurrenceId', {
+          recurrenceId: recurrence.id,
+        })
+        .andWhere('ap.status = :status', { status: 'PENDING' })
+        .andWhere('ap.due_date >= :dueDate', {
+          dueDate: this.normalizeDateOnly(entity.dueDate),
+        })
+        .getMany();
+
+      for (const account of futurePendingAccounts) {
+        account.description = recurrence.description;
+        account.category = recurrence.category ?? null;
+        account.amount = recurrence.amount;
+        account.supplierId = recurrence.supplierId ?? null;
+        account.beneficiaryUserId = recurrence.beneficiaryUserId ?? null;
+        account.notes = recurrence.notes ?? null;
+        await this.repository.save(account);
+      }
+    }
+
+    await this.ensureRecurrenceWindow(recurrence.id);
+  }
+
+  private async ensureRecurrenceWindow(recurrenceId: number) {
+    const recurrence = await this.recurrencesRepository.findOneBy({
+      id: recurrenceId,
+    });
+
+    if (!recurrence || !recurrence.isActive) {
+      return;
+    }
+
+    const horizonMonths =
+      (await this.clinicSettingsService.getSettings())
+        .accountsPayableRecurrenceHorizonMonths || 12;
+    const firstDueDate = this.normalizeDateOnly(recurrence.firstDueDate);
+    const projectionLimit = this.addMonths(firstDueDate, horizonMonths - 1);
+
+    let cursor = recurrence.nextDueDate
+      ? this.normalizeDateOnly(recurrence.nextDueDate)
+      : firstDueDate;
+    let sequence = await this.countExistingOccurrences(recurrence.id);
+
+    while (cursor.getTime() <= projectionLimit.getTime()) {
+      if (!this.canGenerateOccurrence(recurrence, cursor, sequence + 1)) {
+        recurrence.isActive = recurrence.endsAt
+          ? cursor.getTime() <= this.normalizeDateOnly(recurrence.endsAt).getTime()
+          : recurrence.isActive;
+        break;
+      }
+
+      const existing = await this.repository.findOneBy({
+        recurrenceId: recurrence.id,
+        dueDate: cursor,
+      });
+
+      if (!existing) {
+        const entity = this.repository.create({
+          description: recurrence.description,
+          category: recurrence.category ?? null,
+          amount: recurrence.amount,
+          dueDate: cursor,
+          supplierId: recurrence.supplierId ?? null,
+          beneficiaryUserId: recurrence.beneficiaryUserId ?? null,
+          status: 'PENDING',
+          originType: recurrence.originType || 'MANUAL',
+          originReferenceId: recurrence.originReferenceId ?? null,
+          notes: recurrence.notes ?? null,
+          recurrenceId: recurrence.id,
+          recurrenceSequence: sequence + 1,
+          isRecurrenceGenerated: true,
+        });
+        await this.repository.save(entity);
+        sequence += 1;
+        recurrence.lastGeneratedDueDate = cursor;
+      } else {
+        sequence = Math.max(sequence, Number(existing.recurrenceSequence || 0));
+      }
+
+      cursor = this.advanceDate(
+        cursor,
+        recurrence.frequency,
+        recurrence.intervalCount,
+      );
+      recurrence.nextDueDate = cursor;
+    }
+
+    await this.recurrencesRepository.save(recurrence);
+  }
+
+  private async countExistingOccurrences(recurrenceId: number): Promise<number> {
+    return this.repository.count({
+      where: { recurrenceId },
+    });
+  }
+
+  private canGenerateOccurrence(
+    recurrence: AccountPayableRecurrence,
+    dueDate: Date,
+    occurrenceNumber: number,
+  ): boolean {
+    if (
+      recurrence.endsAt &&
+      dueDate.getTime() > this.normalizeDateOnly(recurrence.endsAt).getTime()
+    ) {
+      return false;
+    }
+
+    if (
+      recurrence.occurrencesLimit &&
+      occurrenceNumber > Number(recurrence.occurrencesLimit)
+    ) {
+      return false;
+    }
+
+    return true;
+  }
+
+  private advanceDate(date: Date, frequency: string, intervalCount: number) {
+    const cursor = new Date(date.getTime());
+
+    if (frequency === 'WEEKLY') {
+      cursor.setDate(cursor.getDate() + intervalCount * 7);
+      return cursor;
+    }
+
+    if (frequency === 'YEARLY') {
+      cursor.setFullYear(cursor.getFullYear() + intervalCount);
+      return cursor;
+    }
+
+    cursor.setMonth(cursor.getMonth() + intervalCount);
+    return cursor;
+  }
+
+  private addMonths(date: Date, months: number) {
+    const cloned = new Date(date.getTime());
+    cloned.setMonth(cloned.getMonth() + months);
+    return cloned;
+  }
+
+  private normalizeDateOnly(rawDate: string | Date): Date {
+    const date =
+      rawDate instanceof Date
+        ? new Date(rawDate.getTime())
+        : new Date(`${rawDate}T00:00:00`);
+
+    if (Number.isNaN(date.getTime())) {
+      throw new BadRequestException('Data inválida para recorrência.');
+    }
+
+    date.setHours(0, 0, 0, 0);
+    return date;
+  }
+
   private applyStatusFilter(
     query: SelectQueryBuilder<AccountPayable>,
     status?: string,
@@ -301,6 +617,44 @@ export class AccountsPayableService {
         'Informe um fornecedor ou beneficiário para a conta a pagar.',
       );
     }
+  }
+
+  private ensureRecurringOriginAllowed(dto: CreateAccountPayableDto) {
+    if (dto.recurrence?.enabled && dto.originType === 'COMMISSION_PAYOUT') {
+      throw new BadRequestException(
+        'Contas de comissão não podem ser recorrentes.',
+      );
+    }
+  }
+
+  private ensureRecurrencePayload(recurrence?: CreateAccountPayableDto['recurrence']) {
+    if (!recurrence?.enabled) {
+      return;
+    }
+
+    if (!recurrence.frequency || !recurrence.intervalCount) {
+      throw new BadRequestException(
+        'Periodicidade e intervalo são obrigatórios para recorrência.',
+      );
+    }
+  }
+
+  private async findOneOrFail(id: number) {
+    const entity = await this.repository.findOne({
+      where: { id },
+      relations: {
+        recurrence: true,
+        supplier: true,
+        beneficiaryUser: true,
+        paymentMethodRelation: true,
+      },
+    });
+
+    if (!entity) {
+      throw new NotFoundException('Account not found');
+    }
+
+    return entity;
   }
 
   private async resolvePaymentMethod(

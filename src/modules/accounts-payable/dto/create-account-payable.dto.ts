@@ -10,6 +10,8 @@ import {
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { ValidateNested } from 'class-validator';
+import { AccountPayableRecurrenceDto } from './account-payable-recurrence.dto';
 
 export class CreateAccountPayableDto {
   @ApiProperty({ example: 'Conta de Energia' })
@@ -70,4 +72,10 @@ export class CreateAccountPayableDto {
   @Min(1)
   @IsOptional()
   originReferenceId?: number;
+
+  @ApiPropertyOptional({ type: () => AccountPayableRecurrenceDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => AccountPayableRecurrenceDto)
+  recurrence?: AccountPayableRecurrenceDto;
 }

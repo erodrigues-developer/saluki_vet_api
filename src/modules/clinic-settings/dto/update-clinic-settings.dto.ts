@@ -37,6 +37,12 @@ export class UpdateClinicSettingsDto {
   @IsOptional()
   checkInToleranceMinutes?: number;
 
+  @ApiPropertyOptional({ example: 12 })
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  accountsPayableRecurrenceHorizonMonths?: number;
+
   @ApiPropertyOptional({ example: 'Novas notas' })
   @IsString()
   @IsOptional()

@@ -67,6 +67,18 @@ export class ClinicSettings {
   })
   checkInToleranceMinutes: number;
 
+  @ApiProperty({
+    example: 12,
+    description:
+      'Quantidade de meses futuros a serem gerados para contas a pagar recorrentes',
+  })
+  @Column({
+    name: 'accounts_payable_recurrence_horizon_months',
+    type: 'int',
+    default: 12,
+  })
+  accountsPayableRecurrenceHorizonMonths: number;
+
   @ApiProperty({ example: 'Notas da clínica', nullable: true })
   @Column({ type: 'text', nullable: true })
   notes?: string | null;

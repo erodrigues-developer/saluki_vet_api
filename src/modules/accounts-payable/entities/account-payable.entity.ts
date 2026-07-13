@@ -11,6 +11,7 @@ import {
 import { Supplier } from '../../suppliers/entities/supplier.entity';
 import { User } from '../../users/entities/user.entity';
 import { PaymentMethod } from '../../payment-methods/entities/payment-method.entity';
+import { AccountPayableRecurrence } from './account-payable-recurrence.entity';
 
 @Entity({ name: 'accounts_payable' })
 export class AccountPayable {
@@ -113,6 +114,22 @@ export class AccountPayable {
   @ApiProperty({ example: 42, nullable: true })
   @Column({ name: 'origin_reference_id', type: 'bigint', nullable: true })
   originReferenceId?: number | null;
+
+  @ApiProperty({ example: 12, nullable: true })
+  @Column({ name: 'recurrence_id', type: 'bigint', nullable: true })
+  recurrenceId?: number | null;
+
+  @ManyToOne(() => AccountPayableRecurrence, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'recurrence_id' })
+  recurrence?: AccountPayableRecurrence | null;
+
+  @ApiProperty({ example: 4, nullable: true })
+  @Column({ name: 'recurrence_sequence', type: 'int', nullable: true })
+  recurrenceSequence?: number | null;
+
+  @ApiProperty({ example: true })
+  @Column({ name: 'is_recurrence_generated', type: 'boolean', default: false })
+  isRecurrenceGenerated: boolean;
 
   @ApiProperty({ example: 'Multa de 2%', nullable: true })
   @Column({ type: 'text', nullable: true })

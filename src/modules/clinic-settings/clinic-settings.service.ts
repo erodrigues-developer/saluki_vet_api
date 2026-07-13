@@ -18,6 +18,7 @@ export class ClinicSettingsService {
         defaultCurrency: 'BRL',
         timezone: 'America/Sao_Paulo',
         checkInToleranceMinutes: 10,
+        accountsPayableRecurrenceHorizonMonths: 12,
       });
       await this.clinicSettingsRepository.save(settings);
     }

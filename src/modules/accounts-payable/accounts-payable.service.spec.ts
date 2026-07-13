@@ -7,6 +7,8 @@ import { Supplier } from '../suppliers/entities/supplier.entity';
 import { User } from '../users/entities/user.entity';
 import { PaymentMethod } from '../payment-methods/entities/payment-method.entity';
 import { CommissionsService } from '../commissions/commissions.service';
+import { AccountPayableRecurrence } from './entities/account-payable-recurrence.entity';
+import { ClinicSettingsService } from '../clinic-settings/clinic-settings.service';
 
 describe('AccountsPayableService', () => {
   let service: AccountsPayableService;
@@ -14,6 +16,7 @@ describe('AccountsPayableService', () => {
   let suppliersRepository: Repository<Supplier>;
   let usersRepository: Repository<User>;
   let paymentMethodsRepository: Repository<PaymentMethod>;
+  let recurrencesRepository: Repository<AccountPayableRecurrence>;
 
   const mockDate = new Date('2024-07-15T12:00:00Z');
 
@@ -56,6 +59,7 @@ describe('AccountsPayableService', () => {
       }),
     ),
     findOneBy: jest.fn(),
+    findOne: jest.fn(),
     merge: jest.fn().mockImplementation((entity, payload) => ({
       ...entity,
       ...payload,
@@ -65,6 +69,13 @@ describe('AccountsPayableService', () => {
 
   const mockSuppliersRepository = {
     findOneBy: jest.fn(),
+  };
+
+  const mockRecurrencesRepository = {
+    create: jest.fn().mockImplementation((dto) => dto),
+    save: jest.fn().mockImplementation((entity) => Promise.resolve(entity)),
+    findOneBy: jest.fn(),
+    find: jest.fn(),
   };
 
   const mockUsersRepository = {
@@ -80,6 +91,12 @@ describe('AccountsPayableService', () => {
     reopenPayoutByAccountPayable: jest.fn(),
   };
 
+  const mockClinicSettingsService = {
+    getSettings: jest.fn().mockResolvedValue({
+      accountsPayableRecurrenceHorizonMonths: 12,
+    }),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -87,6 +104,10 @@ describe('AccountsPayableService', () => {
         {
           provide: getRepositoryToken(AccountPayable),
           useValue: mockRepository,
+        },
+        {
+          provide: getRepositoryToken(AccountPayableRecurrence),
+          useValue: mockRecurrencesRepository,
         },
         {
           provide: getRepositoryToken(Supplier),
@@ -104,6 +125,10 @@ describe('AccountsPayableService', () => {
           provide: CommissionsService,
           useValue: mockCommissionsService,
         },
+        {
+          provide: ClinicSettingsService,
+          useValue: mockClinicSettingsService,
+        },
       ],
     }).compile();
 
@@ -113,6 +138,9 @@ describe('AccountsPayableService', () => {
     );
     suppliersRepository = module.get<Repository<Supplier>>(
       getRepositoryToken(Supplier),
+    );
+    recurrencesRepository = module.get<Repository<AccountPayableRecurrence>>(
+      getRepositoryToken(AccountPayableRecurrence),
     );
     usersRepository = module.get<Repository<User>>(getRepositoryToken(User));
     paymentMethodsRepository = module.get<Repository<PaymentMethod>>(
@@ -149,6 +177,9 @@ describe('AccountsPayableService', () => {
         ...dto,
         status: 'PENDING',
         originType: 'MANUAL',
+        recurrenceId: null,
+        recurrenceSequence: null,
+        isRecurrenceGenerated: false,
       });
       expect(repository.save).toHaveBeenCalled();
       expect(result.status).toEqual('PENDING');
@@ -177,7 +208,7 @@ describe('AccountsPayableService', () => {
         supplierId: 1,
       } as any;
 
-      mockRepository.findOneBy.mockResolvedValueOnce(mockAccount);
+      mockRepository.findOne.mockResolvedValueOnce(mockAccount);
       mockSuppliersRepository.findOneBy.mockResolvedValueOnce({
         id: 2,
         name: 'Elanco',
@@ -188,7 +219,12 @@ describe('AccountsPayableService', () => {
         supplierId: 2,
       } as any);
 
-      expect(mockRepository.findOneBy).toHaveBeenCalledWith({ id: 1 });
+      expect(mockRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 1 },
+        relations: {
+          recurrence: true,
+        },
+      });
       expect(mockSuppliersRepository.findOneBy).toHaveBeenCalledWith({ id: 2 });
       expect(mockRepository.merge).toHaveBeenCalledWith(mockAccount, {
         description: 'Conta atualizada',

@@ -7,11 +7,20 @@ import { Supplier } from '../suppliers/entities/supplier.entity';
 import { User } from '../users/entities/user.entity';
 import { PaymentMethod } from '../payment-methods/entities/payment-method.entity';
 import { CommissionsModule } from '../commissions/commissions.module';
+import { AccountPayableRecurrence } from './entities/account-payable-recurrence.entity';
+import { ClinicSettingsModule } from '../clinic-settings/clinic-settings.module';
 
 @Module({
   imports: [
     CommissionsModule,
-    TypeOrmModule.forFeature([AccountPayable, Supplier, User, PaymentMethod]),
+    ClinicSettingsModule,
+    TypeOrmModule.forFeature([
+      AccountPayable,
+      AccountPayableRecurrence,
+      Supplier,
+      User,
+      PaymentMethod,
+    ]),
   ],
   controllers: [AccountsPayableController],
   providers: [AccountsPayableService],

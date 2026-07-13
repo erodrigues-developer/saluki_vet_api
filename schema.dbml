@@ -58,6 +58,7 @@ Table clinic_settings {
   default_currency                  varchar(10) // BRL
   timezone                          varchar(100) [not null, default: 'America/Sao_Paulo'] // IANA timezone da clínica
   check_in_tolerance_minutes        int [not null, default: 10]
+  accounts_payable_recurrence_horizon_months int [not null, default: 12]
   notes                             text
   created_at                        datetime [not null]
   updated_at                        datetime [not null]
@@ -507,17 +508,46 @@ Table accounts_payable {
   id              bigint [pk, increment]
   description     varchar(255) [not null]
   supplier_id     bigint [ref: > suppliers.id] // Fornecedor vinculado
+  beneficiary_user_id bigint [ref: > users.id]
   category        varchar(100)
   amount          decimal(10,2) [not null]
   due_date        date [not null]
   paid_amount     decimal(10,2)
   payment_method  varchar(50)
+  payment_method_id bigint [ref: > payment_methods.id]
   document_url    varchar(500)
   paid_at         datetime
   status          varchar(20) [not null, default: 'PENDING'] // PENDING, PAID, CANCELED
+  origin_type     varchar(30) [not null, default: 'MANUAL']
+  origin_reference_id bigint
+  recurrence_id   bigint [ref: > account_payable_recurrences.id]
+  recurrence_sequence int
+  is_recurrence_generated boolean [not null, default: false]
   notes           text
   created_at      datetime [not null]
   updated_at      datetime [not null]
+}
+
+Table account_payable_recurrences {
+  id                  bigint [pk, increment]
+  description         varchar(255) [not null]
+  supplier_id         bigint [ref: > suppliers.id]
+  beneficiary_user_id bigint [ref: > users.id]
+  category            varchar(100)
+  amount              decimal(10,2) [not null]
+  frequency           varchar(20) [not null]
+  interval_count      int [not null, default: 1]
+  first_due_date      date [not null]
+  ends_at             date
+  occurrences_limit   int
+  next_due_date       date [not null]
+  last_generated_due_date date
+  is_active           boolean [not null, default: true]
+  origin_type         varchar(30) [not null, default: 'MANUAL']
+  origin_reference_id bigint
+  notes               text
+  created_at          datetime [not null]
+  updated_at          datetime [not null]
 }
 
 Table accounts_receivable {
