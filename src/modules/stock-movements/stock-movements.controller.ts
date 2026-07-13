@@ -31,6 +31,7 @@ export class StockMovementsController {
     @Query('stockLocationId') stockLocationId?: string,
     @Query('productCategoryId') productCategoryId?: string,
     @Query('status') status?: string,
+    @Query('expirationStatus') expirationStatus?: string,
   ) {
     return this.stockMovementsService.getStockBalance({
       manager: this.dataSource.manager,
@@ -40,6 +41,7 @@ export class StockMovementsController {
       stockLocationId: stockLocationId ? Number(stockLocationId) : undefined,
       productCategoryId: productCategoryId ? Number(productCategoryId) : undefined,
       status,
+      expirationStatus,
     });
   }
 
@@ -54,6 +56,7 @@ export class StockMovementsController {
     @Query('referenceType') referenceType?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
+    @Query('expirationStatus') expirationStatus?: string,
   ) {
     return this.stockMovementsService.getMovementHistory({
       manager: this.dataSource.manager,
@@ -65,6 +68,22 @@ export class StockMovementsController {
       referenceType,
       startDate,
       endDate,
+      expirationStatus,
+    });
+  }
+
+  @Get('batches')
+  @ApiOperation({ summary: 'Listar lotes disponíveis de estoque' })
+  getBatches(
+    @Query('productId') productId?: string,
+    @Query('stockLocationId') stockLocationId?: string,
+    @Query('expirationStatus') expirationStatus?: string,
+  ) {
+    return this.stockMovementsService.listBatches({
+      manager: this.dataSource.manager,
+      productId: productId ? Number(productId) : undefined,
+      stockLocationId: stockLocationId ? Number(stockLocationId) : undefined,
+      expirationStatus,
     });
   }
 
@@ -109,6 +128,9 @@ export class StockMovementsController {
         referenceId: payload.referenceId ? Number(payload.referenceId) : null,
         notes: payload.notes ?? null,
         reason: payload.reason ?? null,
+        lotCode: payload.lotCode ?? null,
+        expirationDate: payload.expirationDate ?? null,
+        stockBatchId: payload.stockBatchId ? Number(payload.stockBatchId) : null,
       }),
     );
   }
@@ -128,6 +150,11 @@ export class StockMovementsController {
         referenceId: payload.referenceId ? Number(payload.referenceId) : null,
         notes: payload.notes ?? null,
         reason: payload.reason ?? null,
+        stockBatchId: payload.stockBatchId ? Number(payload.stockBatchId) : null,
+        autoSelectByExpiration:
+          payload.autoSelectByExpiration === undefined
+            ? true
+            : Boolean(payload.autoSelectByExpiration),
       }),
     );
   }
@@ -145,6 +172,7 @@ export class StockMovementsController {
         occurredAt: payload.occurredAt ? new Date(payload.occurredAt) : new Date(),
         referenceType: payload.referenceType || 'MANUAL_ADJUSTMENT',
         referenceId: payload.referenceId ? Number(payload.referenceId) : null,
+        stockBatchId: payload.stockBatchId ? Number(payload.stockBatchId) : null,
       }),
     );
   }

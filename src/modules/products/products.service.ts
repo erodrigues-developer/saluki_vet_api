@@ -8,7 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { ProductsRepository } from './repositories/products.repository';
 import { Product } from './entities/product.entity';
 import { ProductCategoriesService } from '../product-categories/product-categories.service';
-import { DataSource, EntityManager } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { StockMovementsService } from '../stock-movements/stock-movements.service';
 import { S3Service } from '../s3/services/s3.service';
 import { mkdir, writeFile } from 'fs/promises';
@@ -35,12 +35,10 @@ export class ProductsService {
       await this.productCategoriesService.findOne(payload.productCategoryId);
     }
 
-    const { currentStock, ...productPayload } = payload;
     const createdId = await this.dataSource.transaction(async (manager) => {
       const repository = manager.getRepository(Product);
-      const product = repository.create({ ...productPayload } as any);
+      const product = repository.create({ ...payload } as any);
       const saved = await repository.save(product as any);
-      await this.syncCurrentStock(manager, saved, currentStock, 'PRODUCT', saved.id);
       return saved.id;
     });
 
@@ -132,12 +130,10 @@ export class ProductsService {
       await this.productCategoriesService.findOne(payload.productCategoryId);
     }
 
-    const { currentStock, ...productPayload } = payload;
     await this.dataSource.transaction(async (manager) => {
       const repository = manager.getRepository(Product);
-      const merged = repository.merge(product, productPayload);
+      const merged = repository.merge(product, payload);
       await repository.save(merged);
-      await this.syncCurrentStock(manager, merged, currentStock, 'PRODUCT', id);
     });
 
     return this.findOne(id);
@@ -248,10 +244,6 @@ export class ProductsService {
   private normalizeInventoryFields(payload: any, current?: Product) {
     const nextIsService =
       payload?.isService !== undefined ? Boolean(payload.isService) : current?.isService;
-    const nextTrackStock =
-      payload?.trackStock !== undefined
-        ? Boolean(payload.trackStock)
-        : current?.trackStock ?? true;
 
     payload.sku = this.normalizeSku(payload?.sku ?? current?.sku);
     payload.barcode = this.normalizeBarcode(payload?.barcode ?? current?.barcode);
@@ -263,19 +255,15 @@ export class ProductsService {
 
     if (nextIsService) {
       payload.trackStock = false;
+      payload.tracksExpiration = false;
       payload.unit = null;
       payload.minimumStock = null;
-      payload.currentStock = null;
       payload.barcode = null;
       return;
     }
 
-    if (!nextTrackStock) {
-      payload.unit = null;
-      payload.minimumStock = null;
-      payload.currentStock = null;
-      return;
-    }
+    payload.trackStock = true;
+    payload.tracksExpiration = current?.tracksExpiration ?? false;
 
     payload.unit = String(payload?.unit ?? current?.unit ?? 'un').trim() || 'un';
 
@@ -389,43 +377,6 @@ export class ProductsService {
       })),
     );
   }
-
-  private async syncCurrentStock(
-    manager: EntityManager,
-    product: Product,
-    desiredStockValue: unknown,
-    referenceType: string,
-    referenceId: number,
-  ) {
-    if (
-      desiredStockValue === undefined ||
-      desiredStockValue === null ||
-      product.isService ||
-      !product.trackStock
-    ) {
-      return;
-    }
-
-    const desiredStock = Number(desiredStockValue);
-    if (!Number.isFinite(desiredStock) || desiredStock < 0) {
-      throw new BadRequestException(
-        'Estoque atual deve ser um numero maior ou igual a zero.',
-      );
-    }
-    const defaultLocation =
-      await this.stockMovementsService.getDefaultStockLocation(manager);
-
-    await this.stockMovementsService.createStockAdjustment(manager, {
-      productId: product.id,
-      stockLocationId: defaultLocation.id,
-      countedStock: desiredStock,
-      referenceType,
-      referenceId,
-      reason: 'Ajuste via cadastro de produto',
-      notes: 'Ajuste de estoque via cadastro de produto.',
-    });
-  }
-
   private isProductionUpload() {
     return this.configService.get<string>('NODE_ENV') === 'production';
   }

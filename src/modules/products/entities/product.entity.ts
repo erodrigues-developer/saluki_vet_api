@@ -101,6 +101,10 @@ export class Product {
   @Column({ name: 'is_vaccine', type: 'boolean', default: false })
   isVaccine: boolean;
 
+  @ApiProperty({ example: false, description: 'Controlar validade por lote' })
+  @Column({ name: 'tracks_expiration', type: 'boolean', default: false })
+  tracksExpiration: boolean;
+
   @ApiProperty({ example: 'Armazenar entre 2 e 8 graus', nullable: true })
   @Column({ type: 'text', nullable: true })
   notes?: string | null;

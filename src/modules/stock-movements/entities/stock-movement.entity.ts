@@ -9,6 +9,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Product } from '../../products/entities/product.entity';
+import { StockBatch } from '../../stock-batches/entities/stock-batch.entity';
 import { StockLocation } from '../../stock-locations/entities/stock-location.entity';
 import { User } from '../../users/entities/user.entity';
 
@@ -33,6 +34,14 @@ export class StockMovement {
   @ManyToOne(() => StockLocation)
   @JoinColumn({ name: 'stock_location_id' })
   stockLocation?: StockLocation;
+
+  @ApiProperty({ example: 1, nullable: true })
+  @Column({ name: 'stock_batch_id', type: 'bigint', nullable: true })
+  stockBatchId?: number | null;
+
+  @ManyToOne(() => StockBatch, { nullable: true })
+  @JoinColumn({ name: 'stock_batch_id' })
+  stockBatch?: StockBatch | null;
 
   @ApiProperty({
     example: 'IN',

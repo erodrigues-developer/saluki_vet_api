@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Product } from '../products/entities/product.entity';
+import { StockBatch } from '../stock-batches/entities/stock-batch.entity';
 import { User } from '../users/entities/user.entity';
 import { StockLocation } from '../stock-locations/entities/stock-location.entity';
 import { StockMovement } from './entities/stock-movement.entity';
@@ -9,7 +10,13 @@ import { StockMovementsService } from './stock-movements.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Product, StockLocation, StockMovement, User]),
+    TypeOrmModule.forFeature([
+      Product,
+      StockLocation,
+      StockMovement,
+      StockBatch,
+      User,
+    ]),
   ],
   controllers: [StockMovementsController],
   providers: [StockMovementsService],
