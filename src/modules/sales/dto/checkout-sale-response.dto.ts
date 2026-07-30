@@ -16,6 +16,15 @@ export class CheckoutSaleResponseDto {
   @ApiProperty({ example: 1 })
   paymentMethodId: number;
 
+  @ApiProperty({ example: 3 })
+  cashRegisterSessionId: number;
+
+  @ApiProperty({ example: true })
+  printReceiptAvailable: boolean;
+
+  @ApiProperty({ example: 'PENDING_ISSUE' })
+  fiscalStatus: string;
+
   @ApiProperty({ example: 150.5 })
   amount: number;
 

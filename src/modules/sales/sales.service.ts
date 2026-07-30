@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { DataSource, EntityManager, QueryFailedError } from 'typeorm';
+import { DataSource, EntityManager, In, QueryFailedError } from 'typeorm';
 import {
   SalesFilterOptions,
   SalesRepository,
@@ -21,6 +21,7 @@ import { StockMovementsService } from '../stock-movements/stock-movements.servic
 import { Consultation } from '../consultations/entities/consultation.entity';
 import { ConsultationProcedure } from '../consultation-procedures/entities/consultation-procedure.entity';
 import { Procedure } from '../procedures/entities/procedure.entity';
+import { CashRegistersService } from '../cash-registers/cash-registers.service';
 
 type ConsultationSaleSource = Pick<
   Consultation,
@@ -36,10 +37,21 @@ export class SalesService {
     private readonly dataSource: DataSource,
     private readonly commissionsService: CommissionsService,
     private readonly stockMovementsService: StockMovementsService,
+    private readonly cashRegistersService: CashRegistersService,
   ) {}
 
-  async create(payload: Partial<Sale>): Promise<Sale> {
-    const sale = this.salesRepository.create(payload);
+  async create(payload: Partial<Sale>, currentUserId: number): Promise<Sale> {
+    if (!currentUserId || Number.isNaN(currentUserId)) {
+      throw new BadRequestException(
+        'Usuário autenticado inválido para criar venda.',
+      );
+    }
+
+    const sale = this.salesRepository.create({
+      ...payload,
+      veterinarianId: currentUserId,
+      saleDate: new Date(),
+    });
     return this.salesRepository.save(sale);
   }
 
@@ -65,7 +77,10 @@ export class SalesService {
     if (!sale) {
       throw new NotFoundException(`Sale with ID ${id} not found`);
     }
-    Object.assign(sale, payload);
+    const { veterinarianId, saleDate, ...allowedPayload } = payload || {};
+    void veterinarianId;
+    void saleDate;
+    Object.assign(sale, allowedPayload);
     return this.salesRepository.save(sale);
   }
 
@@ -81,8 +96,9 @@ export class SalesService {
     manager: EntityManager,
     consultation: ConsultationSaleSource,
   ): Promise<Sale> {
-    const consultationProceduresRepository =
-      manager.getRepository(ConsultationProcedure);
+    const consultationProceduresRepository = manager.getRepository(
+      ConsultationProcedure,
+    );
     const saleRepository = manager.getRepository(Sale);
     const saleItemsRepository = manager.getRepository(SaleItem);
 
@@ -112,7 +128,8 @@ export class SalesService {
 
     if (existingSale?.status === 'PAID') {
       return (
-        (await this.loadSaleWithDetails(manager, existingSale.id)) || existingSale
+        (await this.loadSaleWithDetails(manager, existingSale.id)) ||
+        existingSale
       );
     }
 
@@ -228,10 +245,11 @@ export class SalesService {
     });
   }
 
-  async undoCheckout(id: number): Promise<Sale> {
+  async undoCheckout(id: number, currentUserId: number): Promise<Sale> {
     return this.dataSource.transaction(async (manager) => {
       const saleRepository = manager.getRepository(Sale);
       const paymentsRepository = manager.getRepository(Payment);
+      const paymentMethodsRepository = manager.getRepository(PaymentMethod);
       const accountsReceivableRepository =
         manager.getRepository(AccountReceivable);
 
@@ -251,6 +269,26 @@ export class SalesService {
         );
       }
 
+      const payment = await paymentsRepository.findOne({
+        where: { saleId: sale.id },
+      });
+      const paymentMethod = payment
+        ? await paymentMethodsRepository.findOne({
+            where: { id: payment.paymentMethodId },
+          })
+        : null;
+
+      if (sale.cashRegisterSessionId && payment) {
+        await this.cashRegistersService.registerCheckoutUndo(manager, {
+          sessionId: sale.cashRegisterSessionId,
+          saleId: sale.id,
+          payment,
+          paymentMethod,
+          occurredAt: new Date(),
+          currentUserId,
+        });
+      }
+
       await paymentsRepository.delete({ saleId: sale.id });
       await accountsReceivableRepository.delete({ saleId: sale.id });
       await this.stockMovementsService.reverseSaleMovements({
@@ -268,6 +306,7 @@ export class SalesService {
       );
 
       sale.status = 'OPEN';
+      sale.cashRegisterSessionId = null;
       return saleRepository.save(sale);
     });
   }
@@ -275,13 +314,55 @@ export class SalesService {
   async checkout(
     id: number,
     payload: CheckoutSaleDto,
+    currentUserId: number,
   ): Promise<CheckoutSaleResponseDto> {
     const paidAt = new Date(payload.paidAt);
     if (Number.isNaN(paidAt.getTime())) {
       throw new BadRequestException('paidAt invalido');
     }
 
-    const requestedAmount = this.normalizeMoney(payload.amount);
+    const checkoutPayments = (
+      payload.payments?.length
+        ? payload.payments
+        : payload.paymentMethodId && payload.amount
+          ? [
+              {
+                paymentMethodId: payload.paymentMethodId,
+                amount: payload.amount,
+              },
+            ]
+          : []
+    ).map((payment) => ({
+      paymentMethodId: Number(payment.paymentMethodId),
+      amount: this.normalizeMoney(payment.amount),
+      tenderedAmount: this.normalizeMoney(
+        payment.tenderedAmount ?? payment.amount,
+      ),
+    }));
+
+    if (!checkoutPayments.length) {
+      throw new BadRequestException('Informe ao menos uma forma de pagamento.');
+    }
+
+    if (checkoutPayments.some((payment) => payment.amount <= 0)) {
+      throw new BadRequestException(
+        'Valores de pagamento devem ser maiores que zero.',
+      );
+    }
+
+    if (
+      checkoutPayments.some(
+        (payment) => payment.tenderedAmount < payment.amount,
+      )
+    ) {
+      throw new BadRequestException(
+        'Valor recebido não pode ser menor que o valor pago.',
+      );
+    }
+
+    const requestedAmount = this.normalizeMoney(
+      checkoutPayments.reduce((sum, payment) => sum + payment.amount, 0),
+    );
 
     return this.dataSource.transaction(async (manager) => {
       const saleRepository = manager.getRepository(Sale);
@@ -304,13 +385,24 @@ export class SalesService {
         throw new ConflictException(`Venda #${sale.id} ja foi liquidada.`);
       }
 
-      const paymentMethod = await paymentMethodsRepository.findOne({
-        where: { id: payload.paymentMethodId },
+      const uniquePaymentMethodIds = [
+        ...new Set(checkoutPayments.map((payment) => payment.paymentMethodId)),
+      ];
+      const paymentMethods = await paymentMethodsRepository.findBy({
+        id: In(uniquePaymentMethodIds),
       });
+      const paymentMethodById = new Map(
+        paymentMethods
+          .filter((method) => method.isActive)
+          .map((method) => [Number(method.id), method]),
+      );
+      const invalidPaymentMethodId = uniquePaymentMethodIds.find(
+        (paymentMethodId) => !paymentMethodById.has(paymentMethodId),
+      );
 
-      if (!paymentMethod || !paymentMethod.isActive) {
+      if (invalidPaymentMethodId) {
         throw new BadRequestException(
-          `Forma de pagamento ${payload.paymentMethodId} inexistente ou inativa.`,
+          `Forma de pagamento ${invalidPaymentMethodId} inexistente ou inativa.`,
         );
       }
 
@@ -336,22 +428,31 @@ export class SalesService {
       }
 
       try {
-        const payment = paymentsRepository.create({
-          saleId: sale.id,
-          paymentMethodId: payload.paymentMethodId,
-          amount: requestedAmount,
-          paidAt,
-          notes: payload.notes,
-        });
-
-        const savedPayment = await paymentsRepository.save(payment);
+        const savedPayments = await paymentsRepository.save(
+          checkoutPayments.map((payment) =>
+            paymentsRepository.create({
+              saleId: sale.id,
+              paymentMethodId: payment.paymentMethodId,
+              cashRegisterSessionId: payload.cashRegisterSessionId,
+              amount: payment.amount,
+              tenderedAmount: payment.tenderedAmount,
+              changeAmount: this.normalizeMoney(
+                payment.tenderedAmount - payment.amount,
+              ),
+              paidAt,
+              notes: payload.notes,
+            }),
+          ),
+        );
+        const primaryPayment = savedPayments[0];
+        const primaryPaymentMethodId = checkoutPayments[0].paymentMethodId;
         const dueDateObj = new Date(paidAt);
         dueDateObj.setUTCHours(0, 0, 0, 0);
 
         const accountReceivable = accountsReceivableRepository.create({
           saleId: sale.id,
           clientId: sale.clientId ?? null,
-          paymentMethodId: payload.paymentMethodId,
+          paymentMethodId: primaryPaymentMethodId,
           description: `Recebimento da venda #${sale.id}`,
           dueDate: dueDateObj,
           paidAt,
@@ -366,7 +467,24 @@ export class SalesService {
           await accountsReceivableRepository.save(accountReceivable);
 
         sale.status = 'PAID';
+        sale.cashRegisterSessionId = payload.cashRegisterSessionId;
         await saleRepository.save(sale);
+        for (const savedPayment of savedPayments) {
+          const paymentMethod = paymentMethodById.get(
+            Number(savedPayment.paymentMethodId),
+          );
+          if (!paymentMethod) continue;
+          await this.cashRegistersService.registerSalePayment(manager, {
+            sessionId: payload.cashRegisterSessionId,
+            sale,
+            payment: savedPayment,
+            paymentMethod,
+            amount: Number(savedPayment.amount),
+            paidAt,
+            notes: payload.notes,
+            currentUserId,
+          });
+        }
         await this.createStockMovementsForSale(manager, sale.id, paidAt);
         await this.commissionsService.calculateForPaidSale(
           manager,
@@ -377,9 +495,12 @@ export class SalesService {
         return {
           saleId: sale.id,
           saleStatus: sale.status,
-          paymentId: savedPayment.id,
+          paymentId: primaryPayment.id,
           accountReceivableId: savedAccountReceivable.id,
-          paymentMethodId: payload.paymentMethodId,
+          paymentMethodId: primaryPaymentMethodId,
+          cashRegisterSessionId: payload.cashRegisterSessionId,
+          printReceiptAvailable: true,
+          fiscalStatus: 'PENDING_ISSUE',
           amount: requestedAmount,
           paidAt: paidAt.toISOString(),
           dueDate: dueDateObj.toISOString().slice(0, 10),
@@ -466,7 +587,9 @@ export class SalesService {
           where: procedureIds.map((id) => ({ id })),
         })
       : [];
-    const proceduresMap = new Map(procedures.map((item) => [Number(item.id), item]));
+    const proceduresMap = new Map(
+      procedures.map((item) => [Number(item.id), item]),
+    );
 
     for (const item of items) {
       if (item.productId) {
@@ -513,6 +636,8 @@ export class SalesService {
         'veterinarian',
         'consultation',
         'appointment',
+        'cashRegisterSession',
+        'cashRegisterSession.terminal',
         'items',
         'items.product',
         'items.procedure',

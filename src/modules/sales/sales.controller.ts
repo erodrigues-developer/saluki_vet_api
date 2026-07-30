@@ -8,6 +8,7 @@ import {
   Delete,
   Query,
   ParseIntPipe,
+  Req,
 } from '@nestjs/common';
 import { SalesService } from './sales.service';
 import {
@@ -19,18 +20,23 @@ import {
 import { Sale } from './entities/sale.entity';
 import { CheckoutSaleDto } from './dto/checkout-sale.dto';
 import { CheckoutSaleResponseDto } from './dto/checkout-sale-response.dto';
+import { CashRegistersService } from '../cash-registers/cash-registers.service';
+import { PrintRequestDto } from '../cash-registers/dto/cash-register.dto';
 
 @ApiTags('sales')
 @ApiBearerAuth()
 @Controller('sales')
 export class SalesController {
-  constructor(private readonly salesService: SalesService) {}
+  constructor(
+    private readonly salesService: SalesService,
+    private readonly cashRegistersService: CashRegistersService,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Criar uma nova venda' })
   @ApiOkResponse({ type: Sale })
-  create(@Body() createDto: any) {
-    return this.salesService.create(createDto);
+  create(@Body() createDto: any, @Req() req: any) {
+    return this.salesService.create(createDto, Number(req.user?.userId));
   }
 
   @Post(':id/checkout')
@@ -42,8 +48,9 @@ export class SalesController {
   checkout(
     @Param('id', ParseIntPipe) id: number,
     @Body() checkoutDto: CheckoutSaleDto,
+    @Req() req: any,
   ): Promise<CheckoutSaleResponseDto> {
-    return this.salesService.checkout(id, checkoutDto);
+    return this.salesService.checkout(id, checkoutDto, Number(req.user?.userId));
   }
 
   @Post(':id/cancel')
@@ -56,8 +63,28 @@ export class SalesController {
   @Post(':id/undo-checkout')
   @ApiOperation({ summary: 'Estornar pagamento de venda paga' })
   @ApiOkResponse({ type: Sale })
-  undoCheckout(@Param('id', ParseIntPipe) id: number) {
-    return this.salesService.undoCheckout(id);
+  undoCheckout(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.salesService.undoCheckout(id, Number(req.user?.userId));
+  }
+
+  @Get(':id/receipt-preview')
+  @ApiOperation({ summary: 'Gerar pré-visualização do cupom não fiscal' })
+  receiptPreview(@Param('id', ParseIntPipe) id: number) {
+    return this.cashRegistersService.receiptPreview(id);
+  }
+
+  @Post(':id/print-receipt')
+  @ApiOperation({ summary: 'Criar job de impressão do cupom não fiscal' })
+  printReceipt(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() payload: PrintRequestDto,
+    @Req() req: any,
+  ) {
+    return this.cashRegistersService.printSaleReceipt(
+      id,
+      payload,
+      Number(req.user?.userId),
+    );
   }
 
   @Get()

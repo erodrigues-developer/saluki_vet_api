@@ -10,11 +10,13 @@ import { PaymentMethod } from '../payment-methods/entities/payment-method.entity
 import { AccountReceivable } from '../accounts-receivable/entities/account-receivable.entity';
 import { CommissionsModule } from '../commissions/commissions.module';
 import { StockMovementsModule } from '../stock-movements/stock-movements.module';
+import { CashRegistersModule } from '../cash-registers/cash-registers.module';
 
 @Module({
   imports: [
     CommissionsModule,
     StockMovementsModule,
+    CashRegistersModule,
     TypeOrmModule.forFeature([Sale, Payment, PaymentMethod, AccountReceivable]),
   ],
   controllers: [SalesController],

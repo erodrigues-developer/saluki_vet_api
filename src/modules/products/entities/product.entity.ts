@@ -63,6 +63,54 @@ export class Product {
   @Column({ type: 'varchar', length: 50, nullable: true })
   unit?: string | null;
 
+  @ApiProperty({ example: 'UNIT', description: 'UNIT ou WEIGHT' })
+  @Column({ name: 'sale_mode', type: 'varchar', length: 20, default: 'UNIT' })
+  saleMode: string;
+
+  @ApiProperty({ example: 'kg', nullable: true })
+  @Column({
+    name: 'sale_unit',
+    type: 'varchar',
+    length: 20,
+    nullable: true,
+    default: 'un',
+  })
+  saleUnit?: string | null;
+
+  @ApiProperty({
+    example: false,
+    description: 'Produto aceita etiqueta de balança no PDV',
+  })
+  @Column({ name: 'scale_barcode_enabled', type: 'boolean', default: false })
+  scaleBarcodeEnabled: boolean;
+
+  @ApiProperty({ example: '2', nullable: true })
+  @Column({
+    name: 'scale_barcode_prefix',
+    type: 'varchar',
+    length: 10,
+    nullable: true,
+  })
+  scaleBarcodePrefix?: string | null;
+
+  @ApiProperty({ example: '00045', nullable: true })
+  @Column({
+    name: 'scale_barcode_product_code',
+    type: 'varchar',
+    length: 20,
+    nullable: true,
+  })
+  scaleBarcodeProductCode?: string | null;
+
+  @ApiProperty({ example: 'WEIGHT', nullable: true })
+  @Column({
+    name: 'scale_barcode_type',
+    type: 'varchar',
+    length: 20,
+    nullable: true,
+  })
+  scaleBarcodeType?: string | null;
+
   @ApiProperty({ example: 120.0 })
   @Column({
     name: 'sale_price',

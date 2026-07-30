@@ -100,18 +100,19 @@ export class StockMovementsService {
     stockLocationId: number;
   }) {
     const { manager, productId, stockLocationId } = params;
-    const [product, stockLocation, currentStock, nextBatch, hasTrackedBatches] = await Promise.all([
-      manager.getRepository(Product).findOne({
-        where: { id: productId },
-        relations: ['productCategory'],
-      }),
-      manager.getRepository(StockLocation).findOne({
-        where: { id: stockLocationId },
-      }),
-      this.getCurrentStock(manager, productId, stockLocationId),
-      this.getNextAvailableBatch(manager, productId, stockLocationId),
-      this.hasTrackedBatches(manager, productId, stockLocationId),
-    ]);
+    const [product, stockLocation, currentStock, nextBatch, hasTrackedBatches] =
+      await Promise.all([
+        manager.getRepository(Product).findOne({
+          where: { id: productId },
+          relations: ['productCategory'],
+        }),
+        manager.getRepository(StockLocation).findOne({
+          where: { id: stockLocationId },
+        }),
+        this.getCurrentStock(manager, productId, stockLocationId),
+        this.getNextAvailableBatch(manager, productId, stockLocationId),
+        this.hasTrackedBatches(manager, productId, stockLocationId),
+      ]);
 
     if (!product || !product.isActive) {
       throw new BadRequestException(`Produto ${productId} inexistente.`);
@@ -153,7 +154,9 @@ export class StockMovementsService {
       .addOrderBy('batch.id', 'ASC');
 
     if (params.productId) {
-      qb.andWhere('batch.productId = :productId', { productId: params.productId });
+      qb.andWhere('batch.productId = :productId', {
+        productId: params.productId,
+      });
     }
     if (params.stockLocationId) {
       qb.andWhere('batch.stockLocationId = :stockLocationId', {
@@ -164,7 +167,8 @@ export class StockMovementsService {
     const rows = await qb.getMany();
     return rows.filter((row) =>
       params.expirationStatus
-        ? this.getExpirationStatus(row.expirationDate) === params.expirationStatus
+        ? this.getExpirationStatus(row.expirationDate) ===
+          params.expirationStatus
         : true,
     );
   }
@@ -179,7 +183,9 @@ export class StockMovementsService {
       String(request.expirationDate || '').trim().length > 0;
     if (hasExpirationPayload) {
       const lotCode = String(request.lotCode || '').trim();
-      const expirationDate = this.normalizeExpirationDate(request.expirationDate);
+      const expirationDate = this.normalizeExpirationDate(
+        request.expirationDate,
+      );
       if (!lotCode || !expirationDate) {
         throw new BadRequestException(
           'Entrada com validade exige lote e data de validade.',
@@ -434,7 +440,7 @@ export class StockMovementsService {
 
     if (params.search) {
       productQb.andWhere(
-        '(LOWER(product.name) LIKE LOWER(:search) OR LOWER(COALESCE(product.sku, \'\')) LIKE LOWER(:search) OR LOWER(COALESCE(product.barcode, \'\')) LIKE LOWER(:search))',
+        "(LOWER(product.name) LIKE LOWER(:search) OR LOWER(COALESCE(product.sku, '')) LIKE LOWER(:search) OR LOWER(COALESCE(product.barcode, '')) LIKE LOWER(:search))",
         { search: `%${String(params.search).trim()}%` },
       );
     }
@@ -503,14 +509,19 @@ export class StockMovementsService {
         this.buildBalanceRow({
           product,
           stockLocation,
-          currentStock: aggregateMap.get(`${product.id}:${stockLocation.id}`) ?? 0,
+          currentStock:
+            aggregateMap.get(`${product.id}:${stockLocation.id}`) ?? 0,
           batches: batchMap.get(`${product.id}:${stockLocation.id}`) || [],
         }),
       );
     });
 
     const filteredRows = rows.filter((row) => {
-      if (params.status && params.status !== 'ALL' && row.status !== params.status) {
+      if (
+        params.status &&
+        params.status !== 'ALL' &&
+        row.status !== params.status
+      ) {
         return false;
       }
       if (
@@ -634,14 +645,16 @@ export class StockMovementsService {
       return;
     }
 
-    const originalMovements = await params.manager.getRepository(StockMovement).find({
-      where: {
-        referenceType: 'SALE',
-        referenceId: params.saleId,
-      },
-      relations: ['stockBatch'],
-      order: { id: 'ASC' },
-    });
+    const originalMovements = await params.manager
+      .getRepository(StockMovement)
+      .find({
+        where: {
+          referenceType: 'SALE',
+          referenceId: params.saleId,
+        },
+        relations: ['stockBatch'],
+        order: { id: 'ASC' },
+      });
 
     if (!originalMovements.length) {
       throw new ConflictException(
@@ -656,7 +669,9 @@ export class StockMovementsService {
         });
         if (batch) {
           batch.remainingQuantity = Number(
-            (Number(batch.remainingQuantity) + Number(movement.quantity)).toFixed(3),
+            (
+              Number(batch.remainingQuantity) + Number(movement.quantity)
+            ).toFixed(3),
           );
           await params.manager.getRepository(StockBatch).save(batch);
         }
@@ -712,7 +727,9 @@ export class StockMovementsService {
         this.throwInsufficientStockError(currentStock, quantity);
       }
 
-      if (await this.hasTrackedBatches(manager, productId, defaultLocation.id)) {
+      if (
+        await this.hasTrackedBatches(manager, productId, defaultLocation.id)
+      ) {
         const available = await this.getConsumableBatches(
           manager,
           productId,
@@ -741,7 +758,10 @@ export class StockMovementsService {
     skipQuantityValidation = false,
   ): Promise<MovementContext> {
     const quantity = Number(request.quantity);
-    if (!skipQuantityValidation && (!Number.isFinite(quantity) || quantity <= 0)) {
+    if (
+      !skipQuantityValidation &&
+      (!Number.isFinite(quantity) || quantity <= 0)
+    ) {
       throw new BadRequestException('Quantidade de estoque inválida.');
     }
 
@@ -753,7 +773,9 @@ export class StockMovementsService {
       .getOne();
 
     if (!product || !product.isActive) {
-      throw new BadRequestException(`Produto ${request.productId} inexistente.`);
+      throw new BadRequestException(
+        `Produto ${request.productId} inexistente.`,
+      );
     }
     if (!product.trackStock || product.isService) {
       throw new BadRequestException(
@@ -960,17 +982,20 @@ export class StockMovementsService {
     stockLocationId: number,
   ) {
     const today = this.todayString();
-    return manager.getRepository(StockBatch).find({
-      where: {
-        productId,
-        stockLocationId,
-        remainingQuantity: MoreThan(0) as any,
-      },
-      order: {
-        expirationDate: 'ASC',
-        id: 'ASC',
-      },
-    }).then((rows) => rows.filter((row) => row.expirationDate >= today));
+    return manager
+      .getRepository(StockBatch)
+      .find({
+        where: {
+          productId,
+          stockLocationId,
+          remainingQuantity: MoreThan(0) as any,
+        },
+        order: {
+          expirationDate: 'ASC',
+          id: 'ASC',
+        },
+      })
+      .then((rows) => rows.filter((row) => row.expirationDate >= today));
   }
 
   private async getNextAvailableBatch(
@@ -978,7 +1003,11 @@ export class StockMovementsService {
     productId: number,
     stockLocationId: number,
   ) {
-    const batches = await this.getConsumableBatches(manager, productId, stockLocationId);
+    const batches = await this.getConsumableBatches(
+      manager,
+      productId,
+      stockLocationId,
+    );
     return batches[0] ?? null;
   }
 
@@ -1011,7 +1040,9 @@ export class StockMovementsService {
       },
     });
     if (!batch) {
-      throw new BadRequestException('Lote informado não encontrado para o produto/local.');
+      throw new BadRequestException(
+        'Lote informado não encontrado para o produto/local.',
+      );
     }
     return batch;
   }
@@ -1094,7 +1125,11 @@ export class StockMovementsService {
         positiveTypes: POSITIVE_MOVEMENT_TYPES,
         negativeTypes: NEGATIVE_MOVEMENT_TYPES,
       })
-      .getRawMany<{ productId: string; stockLocationId: string; quantity: string }>();
+      .getRawMany<{
+        productId: string;
+        stockLocationId: string;
+        quantity: string;
+      }>();
   }
 
   private buildBalanceRow(params: {
@@ -1122,7 +1157,7 @@ export class StockMovementsService {
     const nextBatch = [...params.batches].sort((a, b) =>
       a.expirationDate.localeCompare(b.expirationDate),
     )[0];
-    const tracksExpiration = params.batches.length > 0
+    const tracksExpiration = params.batches.length > 0;
     const expirationStatus = !tracksExpiration
       ? 'UNTRACKED'
       : expirationStatuses.includes('EXPIRED')
@@ -1148,11 +1183,16 @@ export class StockMovementsService {
       status,
       expirationStatus,
       nextExpirationDate: nextBatch?.expirationDate ?? null,
-      expiringLotsCount: expirationStatuses.filter((item) => item === 'EXPIRING').length,
-      expiredLotsCount: expirationStatuses.filter((item) => item === 'EXPIRED').length,
+      expiringLotsCount: expirationStatuses.filter(
+        (item) => item === 'EXPIRING',
+      ).length,
+      expiredLotsCount: expirationStatuses.filter((item) => item === 'EXPIRED')
+        .length,
       costPrice: params.product.costPrice ?? null,
       salePrice: params.product.salePrice ?? null,
       unit: params.product.unit ?? null,
+      saleMode: params.product.saleMode ?? 'UNIT',
+      saleUnit: params.product.saleUnit ?? params.product.unit ?? null,
       trackStock: params.product.trackStock,
       tracksExpiration,
       imgUrl: params.product.imgUrl ?? null,

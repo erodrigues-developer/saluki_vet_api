@@ -13,6 +13,7 @@ export class ProductsRepository extends Repository<Product> {
     limit: number;
     name?: string;
     sku?: string;
+    barcode?: string;
     productCategoryId?: number;
     isService?: boolean;
     isActive?: boolean;
@@ -24,6 +25,7 @@ export class ProductsRepository extends Repository<Product> {
       limit,
       name,
       sku,
+      barcode,
       productCategoryId,
       isService,
       isActive,
@@ -37,6 +39,9 @@ export class ProductsRepository extends Repository<Product> {
     }
     if (sku) {
       where.sku = ILike(`%${sku}%`);
+    }
+    if (barcode) {
+      where.barcode = ILike(`%${barcode}%`);
     }
     if (productCategoryId) {
       where.productCategoryId = productCategoryId;

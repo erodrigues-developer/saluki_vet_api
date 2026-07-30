@@ -50,6 +50,7 @@ export class ProductsService {
     limit?: number;
     name?: string;
     sku?: string;
+    barcode?: string;
     productCategoryId?: number;
     isService?: boolean | string;
     isActive?: boolean | string;
@@ -78,6 +79,7 @@ export class ProductsService {
       limit,
       name: params.name,
       sku: params.sku,
+      barcode: params.barcode,
       productCategoryId: params.productCategoryId
         ? Number(params.productCategoryId)
         : undefined,
@@ -213,9 +215,16 @@ export class ProductsService {
     return imgUrl.length ? imgUrl : null;
   }
 
+  private normalizeText(value: unknown) {
+    const text = String(value ?? '').trim();
+    return text.length ? text : null;
+  }
+
   private normalizeDuration(payload: any, current?: Product) {
     const nextIsService =
-      payload?.isService !== undefined ? Boolean(payload.isService) : current?.isService;
+      payload?.isService !== undefined
+        ? Boolean(payload.isService)
+        : current?.isService;
 
     if (!nextIsService) {
       payload.durationMinutes = null;
@@ -243,10 +252,14 @@ export class ProductsService {
 
   private normalizeInventoryFields(payload: any, current?: Product) {
     const nextIsService =
-      payload?.isService !== undefined ? Boolean(payload.isService) : current?.isService;
+      payload?.isService !== undefined
+        ? Boolean(payload.isService)
+        : current?.isService;
 
     payload.sku = this.normalizeSku(payload?.sku ?? current?.sku);
-    payload.barcode = this.normalizeBarcode(payload?.barcode ?? current?.barcode);
+    payload.barcode = this.normalizeBarcode(
+      payload?.barcode ?? current?.barcode,
+    );
     payload.imgUrl = this.normalizeImgUrl(payload?.imgUrl ?? current?.imgUrl);
 
     if (payload?.productCategoryId === '') {
@@ -257,6 +270,12 @@ export class ProductsService {
       payload.trackStock = false;
       payload.tracksExpiration = false;
       payload.unit = null;
+      payload.saleMode = 'UNIT';
+      payload.saleUnit = null;
+      payload.scaleBarcodeEnabled = false;
+      payload.scaleBarcodePrefix = null;
+      payload.scaleBarcodeProductCode = null;
+      payload.scaleBarcodeType = null;
       payload.minimumStock = null;
       payload.barcode = null;
       return;
@@ -265,7 +284,50 @@ export class ProductsService {
     payload.trackStock = true;
     payload.tracksExpiration = current?.tracksExpiration ?? false;
 
-    payload.unit = String(payload?.unit ?? current?.unit ?? 'un').trim() || 'un';
+    const rawSaleMode = String(payload?.saleMode ?? current?.saleMode ?? 'UNIT')
+      .trim()
+      .toUpperCase();
+    payload.saleMode = rawSaleMode === 'WEIGHT' ? 'WEIGHT' : 'UNIT';
+
+    if (payload.saleMode === 'WEIGHT') {
+      payload.unit = 'kg';
+      payload.saleUnit = 'kg';
+    } else {
+      payload.unit =
+        String(payload?.unit ?? current?.unit ?? 'un').trim() || 'un';
+      payload.saleUnit =
+        String(payload?.saleUnit ?? current?.saleUnit ?? payload.unit ?? 'un')
+          .trim()
+          .toLowerCase() || 'un';
+    }
+
+    payload.scaleBarcodeEnabled = Boolean(
+      payload?.scaleBarcodeEnabled ?? current?.scaleBarcodeEnabled ?? false,
+    );
+    payload.scaleBarcodePrefix = this.normalizeText(
+      payload?.scaleBarcodePrefix ?? current?.scaleBarcodePrefix,
+    );
+    payload.scaleBarcodeProductCode = this.normalizeText(
+      payload?.scaleBarcodeProductCode ?? current?.scaleBarcodeProductCode,
+    );
+    const scaleBarcodeType = String(
+      payload?.scaleBarcodeType ?? current?.scaleBarcodeType ?? 'WEIGHT',
+    )
+      .trim()
+      .toUpperCase();
+    payload.scaleBarcodeType =
+      payload.scaleBarcodeEnabled && payload.saleMode === 'WEIGHT'
+        ? scaleBarcodeType === 'PRICE'
+          ? 'PRICE'
+          : 'WEIGHT'
+        : null;
+
+    if (!payload.scaleBarcodeEnabled || payload.saleMode !== 'WEIGHT') {
+      payload.scaleBarcodeEnabled = false;
+      payload.scaleBarcodePrefix = null;
+      payload.scaleBarcodeProductCode = null;
+      payload.scaleBarcodeType = null;
+    }
 
     const rawMinimumStock =
       payload?.minimumStock !== undefined
