@@ -29,6 +29,7 @@ export class ProductsService {
   async create(payload: any): Promise<Product> {
     this.normalizeDuration(payload);
     this.normalizeInventoryFields(payload);
+    this.normalizeFiscalFields(payload);
     await this.ensureSkuIsUnique(payload.sku);
     await this.ensureBarcodeIsUnique(payload.barcode);
     if (payload.productCategoryId) {
@@ -122,6 +123,7 @@ export class ProductsService {
 
     this.normalizeDuration(payload, product);
     this.normalizeInventoryFields(payload, product);
+    this.normalizeFiscalFields(payload, product);
     await this.ensureSkuIsUnique(payload.sku, id);
     await this.ensureBarcodeIsUnique(payload.barcode, id);
 
@@ -278,11 +280,15 @@ export class ProductsService {
       payload.scaleBarcodeType = null;
       payload.minimumStock = null;
       payload.barcode = null;
+      payload.fiscalIsBillable = false;
       return;
     }
 
     payload.trackStock = true;
     payload.tracksExpiration = current?.tracksExpiration ?? false;
+    payload.fiscalIsBillable = Boolean(
+      payload?.fiscalIsBillable ?? current?.fiscalIsBillable ?? true,
+    );
 
     const rawSaleMode = String(payload?.saleMode ?? current?.saleMode ?? 'UNIT')
       .trim()
@@ -351,6 +357,66 @@ export class ProductsService {
     }
 
     payload.minimumStock = minimumStock;
+  }
+
+  private normalizeFiscalFields(payload: any, current?: Product) {
+    const nextIsService =
+      payload?.isService !== undefined
+        ? Boolean(payload.isService)
+        : current?.isService;
+
+    const nullableUpper = (value: unknown) => {
+      const normalized = String(value ?? '').trim().toUpperCase();
+      return normalized.length ? normalized : null;
+    };
+
+    payload.fiscalNcm = nullableUpper(payload?.fiscalNcm ?? current?.fiscalNcm);
+    payload.fiscalCest = nullableUpper(payload?.fiscalCest ?? current?.fiscalCest);
+    payload.fiscalOrigin = nullableUpper(
+      payload?.fiscalOrigin ?? current?.fiscalOrigin,
+    );
+    payload.fiscalCfopNfceDefault = nullableUpper(
+      payload?.fiscalCfopNfceDefault ?? current?.fiscalCfopNfceDefault,
+    );
+    payload.fiscalEan = nullableUpper(payload?.fiscalEan ?? current?.fiscalEan);
+    payload.fiscalEanTributable = nullableUpper(
+      payload?.fiscalEanTributable ?? current?.fiscalEanTributable,
+    );
+    payload.fiscalUnitTributable = nullableUpper(
+      payload?.fiscalUnitTributable ?? current?.fiscalUnitTributable,
+    );
+    payload.fiscalIcmsCst = nullableUpper(
+      payload?.fiscalIcmsCst ?? current?.fiscalIcmsCst,
+    );
+    payload.fiscalIcmsCsosn = nullableUpper(
+      payload?.fiscalIcmsCsosn ?? current?.fiscalIcmsCsosn,
+    );
+    payload.fiscalPisCst = nullableUpper(
+      payload?.fiscalPisCst ?? current?.fiscalPisCst,
+    );
+    payload.fiscalCofinsCst = nullableUpper(
+      payload?.fiscalCofinsCst ?? current?.fiscalCofinsCst,
+    );
+
+    const rawConversion =
+      payload?.fiscalConversionFactor !== undefined
+        ? payload.fiscalConversionFactor
+        : current?.fiscalConversionFactor;
+    if (rawConversion === null || rawConversion === undefined || rawConversion === '') {
+      payload.fiscalConversionFactor = null;
+    } else {
+      const conversion = Number(rawConversion);
+      if (!Number.isFinite(conversion) || conversion <= 0) {
+        throw new BadRequestException(
+          'Fator de conversão tributável deve ser maior que zero.',
+        );
+      }
+      payload.fiscalConversionFactor = conversion;
+    }
+
+    if (nextIsService) {
+      payload.fiscalIsBillable = false;
+    }
   }
 
   private async ensureSkuIsUnique(skuValue: unknown, ignoreProductId?: number) {

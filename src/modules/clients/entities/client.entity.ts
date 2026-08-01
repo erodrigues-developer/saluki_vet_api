@@ -22,6 +22,31 @@ export class Client {
   @Column({ type: 'varchar', length: 32, nullable: true })
   document?: string | null;
 
+  @ApiProperty({ example: 'PF', nullable: true, required: false })
+  @Column({ name: 'person_type', type: 'varchar', length: 10, nullable: true })
+  personType?: string | null;
+
+  @ApiProperty({ example: 'ISENTO', nullable: true, required: false })
+  @Column({ name: 'state_tax_id', type: 'varchar', length: 32, nullable: true })
+  stateTaxId?: string | null;
+
+  @ApiProperty({ example: '123456', nullable: true, required: false })
+  @Column({ name: 'municipal_tax_id', type: 'varchar', length: 32, nullable: true })
+  municipalTaxId?: string | null;
+
+  @ApiProperty({ example: 'NON_TAXPAYER', nullable: true, required: false })
+  @Column({
+    name: 'state_taxpayer_type',
+    type: 'varchar',
+    length: 30,
+    nullable: true,
+  })
+  stateTaxpayerType?: string | null;
+
+  @ApiProperty({ example: '123456789', nullable: true, required: false })
+  @Column({ type: 'varchar', length: 32, nullable: true })
+  suframa?: string | null;
+
   @ApiProperty({ example: '+55 11 4002-8922', nullable: true, required: false })
   @Column({ type: 'varchar', length: 50, nullable: true })
   phone?: string | null;
@@ -66,9 +91,25 @@ export class Client {
   @Column({ type: 'varchar', length: 50, nullable: true })
   state?: string | null;
 
+  @ApiProperty({ example: '3550308', nullable: true, required: false })
+  @Column({ name: 'ibge_city_code', type: 'varchar', length: 10, nullable: true })
+  ibgeCityCode?: string | null;
+
   @ApiProperty({ example: '01310-000', nullable: true, required: false })
   @Column({ name: 'zip_code', type: 'varchar', length: 20, nullable: true })
   zipCode?: string | null;
+
+  @ApiProperty({ example: '1058', nullable: true, required: false })
+  @Column({ name: 'country_code', type: 'varchar', length: 4, nullable: true })
+  countryCode?: string | null;
+
+  @ApiProperty({ example: 'Brasil', nullable: true, required: false })
+  @Column({ name: 'country_name', type: 'varchar', length: 100, nullable: true })
+  countryName?: string | null;
+
+  @ApiProperty({ example: 'fiscal@email.com', nullable: true, required: false })
+  @Column({ name: 'tax_email', type: 'varchar', length: 255, nullable: true })
+  taxEmail?: string | null;
 
   @ApiProperty({
     example: 'Prefere ser avisada via WhatsApp',

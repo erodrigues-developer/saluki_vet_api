@@ -62,6 +62,44 @@ export class Procedure {
   })
   consumptionQuantity?: number | null;
 
+  @ApiProperty({ example: '1401', nullable: true })
+  @Column({ name: 'service_code', type: 'varchar', length: 50, nullable: true })
+  serviceCode?: string | null;
+
+  @ApiProperty({ example: '0101', nullable: true })
+  @Column({
+    name: 'municipal_service_code',
+    type: 'varchar',
+    length: 50,
+    nullable: true,
+  })
+  municipalServiceCode?: string | null;
+
+  @ApiProperty({ example: '04.01', nullable: true })
+  @Column({ name: 'lc116_code', type: 'varchar', length: 20, nullable: true })
+  lc116Code?: string | null;
+
+  @ApiProperty({ example: 3.0, nullable: true })
+  @Column({ name: 'iss_rate', type: 'decimal', precision: 7, scale: 4, nullable: true })
+  issRate?: number | null;
+
+  @ApiProperty({ example: false })
+  @Column({ name: 'iss_withheld', type: 'boolean', default: false })
+  issWithheld: boolean;
+
+  @ApiProperty({ example: '3106200', nullable: true })
+  @Column({
+    name: 'service_city_ibge_code',
+    type: 'varchar',
+    length: 10,
+    nullable: true,
+  })
+  serviceCityIbgeCode?: string | null;
+
+  @ApiProperty({ example: true })
+  @Column({ name: 'fiscal_is_billable', type: 'boolean', default: true })
+  fiscalIsBillable: boolean;
+
   @ApiProperty({ example: true })
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive: boolean;

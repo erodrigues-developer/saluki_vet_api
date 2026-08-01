@@ -22,6 +22,7 @@ import { Consultation } from '../consultations/entities/consultation.entity';
 import { ConsultationProcedure } from '../consultation-procedures/entities/consultation-procedure.entity';
 import { Procedure } from '../procedures/entities/procedure.entity';
 import { CashRegistersService } from '../cash-registers/cash-registers.service';
+import { FiscalService } from '../fiscal/fiscal.service';
 
 type ConsultationSaleSource = Pick<
   Consultation,
@@ -38,6 +39,7 @@ export class SalesService {
     private readonly commissionsService: CommissionsService,
     private readonly stockMovementsService: StockMovementsService,
     private readonly cashRegistersService: CashRegistersService,
+    private readonly fiscalService: FiscalService,
   ) {}
 
   async create(payload: Partial<Sale>, currentUserId: number): Promise<Sale> {
@@ -427,10 +429,20 @@ export class SalesService {
         throw new ConflictException(`Venda #${sale.id} ja foi liquidada.`);
       }
 
+      const fiscalDecision =
+        await this.fiscalService.prepareSaleCheckoutFiscal(
+          manager,
+          sale,
+          paymentMethods,
+        );
+
       try {
         const savedPayments = await paymentsRepository.save(
-          checkoutPayments.map((payment) =>
-            paymentsRepository.create({
+          checkoutPayments.map((payment) => {
+            const paymentMethod = paymentMethodById.get(
+              payment.paymentMethodId,
+            );
+            return paymentsRepository.create({
               saleId: sale.id,
               paymentMethodId: payment.paymentMethodId,
               cashRegisterSessionId: payload.cashRegisterSessionId,
@@ -441,8 +453,11 @@ export class SalesService {
               ),
               paidAt,
               notes: payload.notes,
-            }),
-          ),
+              fiscalPaymentTypeCode:
+                paymentMethod?.fiscalPaymentTypeCode ?? null,
+              integrationType: paymentMethod?.integrationType ?? null,
+            });
+          }),
         );
         const primaryPayment = savedPayments[0];
         const primaryPaymentMethodId = checkoutPayments[0].paymentMethodId;
@@ -468,7 +483,25 @@ export class SalesService {
 
         sale.status = 'PAID';
         sale.cashRegisterSessionId = payload.cashRegisterSessionId;
+        sale.fiscalStatus = fiscalDecision.fiscalStatus;
+        sale.hasFiscalPending = fiscalDecision.hasFiscalPending;
+        sale.fiscalNotes = fiscalDecision.fiscalNotes;
         await saleRepository.save(sale);
+
+        if (
+          fiscalDecision.createIssueRequest &&
+          fiscalDecision.fiscalProfileId &&
+          fiscalDecision.environment &&
+          fiscalDecision.series
+        ) {
+          await this.fiscalService.createSaleNfceIssueRequest(manager, {
+            sale,
+            fiscalProfileId: fiscalDecision.fiscalProfileId,
+            environment: fiscalDecision.environment,
+            series: fiscalDecision.series,
+          });
+        }
+
         for (const savedPayment of savedPayments) {
           const paymentMethod = paymentMethodById.get(
             Number(savedPayment.paymentMethodId),
@@ -500,7 +533,7 @@ export class SalesService {
           paymentMethodId: primaryPaymentMethodId,
           cashRegisterSessionId: payload.cashRegisterSessionId,
           printReceiptAvailable: true,
-          fiscalStatus: 'PENDING_ISSUE',
+          fiscalStatus: fiscalDecision.fiscalStatus,
           amount: requestedAmount,
           paidAt: paidAt.toISOString(),
           dueDate: dueDateObj.toISOString().slice(0, 10),

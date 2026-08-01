@@ -1,7 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import {
   IsBoolean,
   IsEmail,
+  IsIn,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -50,10 +52,43 @@ export class CreateClientDto {
     example: 'maria.souza@email.com',
     required: false,
   })
+  @Transform(({ value }) => (value === '' ? null : value))
   @IsEmail()
   @IsOptional()
   @MaxLength(255)
   email?: string;
+
+  @ApiProperty({ example: 'PF', required: false, nullable: true })
+  @IsString()
+  @IsOptional()
+  @IsIn(['PF', 'PJ'])
+  @MaxLength(10)
+  personType?: string | null;
+
+  @ApiProperty({ example: 'ISENTO', required: false, nullable: true })
+  @IsString()
+  @IsOptional()
+  @MaxLength(32)
+  stateTaxId?: string | null;
+
+  @ApiProperty({ example: '123456', required: false, nullable: true })
+  @IsString()
+  @IsOptional()
+  @MaxLength(32)
+  municipalTaxId?: string | null;
+
+  @ApiProperty({ example: 'NON_TAXPAYER', required: false, nullable: true })
+  @IsString()
+  @IsOptional()
+  @IsIn(['TAXPAYER', 'EXEMPT', 'NON_TAXPAYER'])
+  @MaxLength(30)
+  stateTaxpayerType?: string | null;
+
+  @ApiProperty({ example: '123456789', required: false, nullable: true })
+  @IsString()
+  @IsOptional()
+  @MaxLength(32)
+  suframa?: string | null;
 
   @ApiProperty({ example: 'Av. Paulista', required: false })
   @IsString()
@@ -96,6 +131,31 @@ export class CreateClientDto {
   @IsOptional()
   @MaxLength(20)
   zipCode?: string;
+
+  @ApiProperty({ example: '3550308', required: false, nullable: true })
+  @IsString()
+  @IsOptional()
+  @MaxLength(10)
+  ibgeCityCode?: string | null;
+
+  @ApiProperty({ example: '1058', required: false, nullable: true })
+  @IsString()
+  @IsOptional()
+  @MaxLength(4)
+  countryCode?: string | null;
+
+  @ApiProperty({ example: 'Brasil', required: false, nullable: true })
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  countryName?: string | null;
+
+  @ApiProperty({ example: 'fiscal@email.com', required: false, nullable: true })
+  @Transform(({ value }) => (value === '' ? null : value))
+  @IsEmail()
+  @IsOptional()
+  @MaxLength(255)
+  taxEmail?: string | null;
 
   @ApiProperty({
     example: 'Prefere ser avisada via WhatsApp',

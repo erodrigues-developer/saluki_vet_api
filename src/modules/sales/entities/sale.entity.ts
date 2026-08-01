@@ -99,6 +99,26 @@ export class Sale {
   @Column({ type: 'text', nullable: true })
   notes?: string | null;
 
+  @ApiProperty({ example: 'PENDING_ISSUE', nullable: true })
+  @Column({ name: 'fiscal_status', type: 'varchar', length: 50, nullable: true })
+  fiscalStatus?: string | null;
+
+  @ApiProperty({ example: true })
+  @Column({ name: 'has_fiscal_pending', type: 'boolean', default: false })
+  hasFiscalPending: boolean;
+
+  @ApiProperty({ example: 1, nullable: true })
+  @Column({ name: 'issued_product_document_id', type: 'bigint', nullable: true })
+  issuedProductDocumentId?: number | null;
+
+  @ApiProperty({ example: 1, nullable: true })
+  @Column({ name: 'issued_service_document_id', type: 'bigint', nullable: true })
+  issuedServiceDocumentId?: number | null;
+
+  @ApiProperty({ example: 'Pendência fiscal por cadastro incompleto.', nullable: true })
+  @Column({ name: 'fiscal_notes', type: 'text', nullable: true })
+  fiscalNotes?: string | null;
+
   @OneToMany(() => SaleItem, (item) => item.sale)
   items: SaleItem[];
 

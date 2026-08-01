@@ -167,6 +167,14 @@ export class ClinicSettings {
   @Column({ name: 'technical_responsible_crmv_uf', type: 'varchar', length: 2, nullable: true })
   technicalResponsibleCrmvUf?: string | null;
 
+  @ApiProperty({ example: 1, nullable: true })
+  @Column({ name: 'default_fiscal_profile_id', type: 'bigint', nullable: true })
+  defaultFiscalProfileId?: number | null;
+
+  @ApiProperty({ example: false })
+  @Column({ name: 'fiscal_module_enabled', type: 'boolean', default: false })
+  fiscalModuleEnabled: boolean;
+
   @ApiProperty({ example: '2024-07-09T12:00:00Z' })
   @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
   createdAt: Date;

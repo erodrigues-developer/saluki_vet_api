@@ -73,4 +73,16 @@ export class SaleItem {
   @ApiProperty({ example: 1, nullable: true })
   @Column({ name: 'origin_reference_id', type: 'bigint', nullable: true })
   originReferenceId?: number | null;
+
+  @ApiProperty({ example: 'PRODUCT', nullable: true })
+  @Column({ name: 'fiscal_group', type: 'varchar', length: 20, nullable: true })
+  fiscalGroup?: string | null;
+
+  @ApiProperty({ example: 1, nullable: true })
+  @Column({ name: 'fiscal_document_id', type: 'bigint', nullable: true })
+  fiscalDocumentId?: number | null;
+
+  @ApiProperty({ example: 'PENDING_ISSUE', nullable: true })
+  @Column({ name: 'fiscal_status', type: 'varchar', length: 50, nullable: true })
+  fiscalStatus?: string | null;
 }

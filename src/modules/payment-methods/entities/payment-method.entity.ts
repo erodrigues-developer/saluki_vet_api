@@ -21,6 +21,19 @@ export class PaymentMethod {
   @Column({ type: 'varchar', length: 100 })
   name: string;
 
+  @ApiProperty({ example: '17', nullable: true })
+  @Column({
+    name: 'fiscal_payment_type_code',
+    type: 'varchar',
+    length: 10,
+    nullable: true,
+  })
+  fiscalPaymentTypeCode?: string | null;
+
+  @ApiProperty({ example: 'INTEGRATED', nullable: true })
+  @Column({ name: 'integration_type', type: 'varchar', length: 30, nullable: true })
+  integrationType?: string | null;
+
   @ApiProperty({ example: true })
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive: boolean;

@@ -57,6 +57,7 @@ import { ConsultationAttachmentsModule } from './modules/consultation-attachment
 import { ExamResultsModule } from './modules/exam-results/exam-results.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { CashRegistersModule } from './modules/cash-registers/cash-registers.module';
+import { FiscalModule } from './modules/fiscal/fiscal.module';
 import configuration from './configs/configuration';
 
 @Module({
@@ -134,6 +135,7 @@ import configuration from './configs/configuration';
     ExamResultsModule,
     ReportsModule,
     CashRegistersModule,
+    FiscalModule,
   ],
   controllers: [AppController],
   providers: [

@@ -66,6 +66,31 @@ export class Payment {
   })
   changeAmount?: number | null;
 
+  @ApiProperty({ example: '17', nullable: true })
+  @Column({
+    name: 'fiscal_payment_type_code',
+    type: 'varchar',
+    length: 10,
+    nullable: true,
+  })
+  fiscalPaymentTypeCode?: string | null;
+
+  @ApiProperty({ example: '01', nullable: true })
+  @Column({ name: 'card_brand_code', type: 'varchar', length: 10, nullable: true })
+  cardBrandCode?: string | null;
+
+  @ApiProperty({ example: 'INTEGRATED', nullable: true })
+  @Column({ name: 'integration_type', type: 'varchar', length: 30, nullable: true })
+  integrationType?: string | null;
+
+  @ApiProperty({ example: '123456', nullable: true })
+  @Column({ name: 'authorization_code', type: 'varchar', length: 100, nullable: true })
+  authorizationCode?: string | null;
+
+  @ApiProperty({ example: '00000000000000', nullable: true })
+  @Column({ name: 'acquirer_cnpj', type: 'varchar', length: 20, nullable: true })
+  acquirerCnpj?: string | null;
+
   @ApiProperty({ example: '2024-07-20T10:00:00Z' })
   @Column({ name: 'paid_at', type: 'timestamp' })
   paidAt: Date;

@@ -430,44 +430,53 @@ export default class SystemSeeder implements Seeder {
     }
 
     // 9. Payment Methods
+    const defaultPaymentMethods = [
+      {
+        name: 'Dinheiro',
+        code: 'CASH',
+        fiscalPaymentTypeCode: '01',
+      },
+      {
+        name: 'PIX',
+        code: 'PIX',
+        fiscalPaymentTypeCode: '20',
+      },
+      {
+        name: 'Cartão de Crédito',
+        code: 'CREDIT_CARD',
+        fiscalPaymentTypeCode: '03',
+      },
+      {
+        name: 'Cartão de Débito',
+        code: 'DEBIT_CARD',
+        fiscalPaymentTypeCode: '04',
+      },
+      {
+        name: 'Transferência Bancária',
+        code: 'BANK_TRANSFER',
+        fiscalPaymentTypeCode: '18',
+      },
+    ];
+
     if ((await paymentMethodRepo.count()) === 0) {
       await paymentMethodRepo.insert([
-        {
-          name: 'Dinheiro',
-          code: 'CASH',
+        ...defaultPaymentMethods.map((method) => ({
+          ...method,
           isActive: true,
           createdAt: now,
           updatedAt: now,
-        },
-        {
-          name: 'PIX',
-          code: 'PIX',
-          isActive: true,
-          createdAt: now,
-          updatedAt: now,
-        },
-        {
-          name: 'Cartão de Crédito',
-          code: 'CREDIT_CARD',
-          isActive: true,
-          createdAt: now,
-          updatedAt: now,
-        },
-        {
-          name: 'Cartão de Débito',
-          code: 'DEBIT_CARD',
-          isActive: true,
-          createdAt: now,
-          updatedAt: now,
-        },
-        {
-          name: 'Transferência Bancária',
-          code: 'BANK_TRANSFER',
-          isActive: true,
-          createdAt: now,
-          updatedAt: now,
-        },
+        })),
       ]);
+    } else {
+      for (const method of defaultPaymentMethods) {
+        await paymentMethodRepo.update(
+          { code: method.code },
+          {
+            fiscalPaymentTypeCode: method.fiscalPaymentTypeCode,
+            updatedAt: now,
+          },
+        );
+      }
     }
 
     // 10. Exam Categories

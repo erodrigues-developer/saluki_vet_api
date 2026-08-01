@@ -153,6 +153,94 @@ export class Product {
   @Column({ name: 'tracks_expiration', type: 'boolean', default: false })
   tracksExpiration: boolean;
 
+  @ApiProperty({ example: '30049099', nullable: true })
+  @Column({ name: 'fiscal_ncm', type: 'varchar', length: 20, nullable: true })
+  fiscalNcm?: string | null;
+
+  @ApiProperty({ example: '1300100', nullable: true })
+  @Column({ name: 'fiscal_cest', type: 'varchar', length: 20, nullable: true })
+  fiscalCest?: string | null;
+
+  @ApiProperty({ example: '0', nullable: true })
+  @Column({ name: 'fiscal_origin', type: 'varchar', length: 5, nullable: true })
+  fiscalOrigin?: string | null;
+
+  @ApiProperty({ example: '5102', nullable: true })
+  @Column({
+    name: 'fiscal_cfop_nfce_default',
+    type: 'varchar',
+    length: 10,
+    nullable: true,
+  })
+  fiscalCfopNfceDefault?: string | null;
+
+  @ApiProperty({ example: 'SEM GTIN', nullable: true })
+  @Column({ name: 'fiscal_ean', type: 'varchar', length: 32, nullable: true })
+  fiscalEan?: string | null;
+
+  @ApiProperty({ example: 'SEM GTIN', nullable: true })
+  @Column({
+    name: 'fiscal_ean_tributable',
+    type: 'varchar',
+    length: 32,
+    nullable: true,
+  })
+  fiscalEanTributable?: string | null;
+
+  @ApiProperty({ example: 'UN', nullable: true })
+  @Column({
+    name: 'fiscal_unit_tributable',
+    type: 'varchar',
+    length: 20,
+    nullable: true,
+  })
+  fiscalUnitTributable?: string | null;
+
+  @ApiProperty({ example: 1, nullable: true })
+  @Column({
+    name: 'fiscal_conversion_factor',
+    type: 'decimal',
+    precision: 12,
+    scale: 6,
+    nullable: true,
+  })
+  fiscalConversionFactor?: number | null;
+
+  @ApiProperty({ example: '00', nullable: true })
+  @Column({
+    name: 'fiscal_icms_cst',
+    type: 'varchar',
+    length: 10,
+    nullable: true,
+  })
+  fiscalIcmsCst?: string | null;
+
+  @ApiProperty({ example: '102', nullable: true })
+  @Column({
+    name: 'fiscal_icms_csosn',
+    type: 'varchar',
+    length: 10,
+    nullable: true,
+  })
+  fiscalIcmsCsosn?: string | null;
+
+  @ApiProperty({ example: '49', nullable: true })
+  @Column({ name: 'fiscal_pis_cst', type: 'varchar', length: 10, nullable: true })
+  fiscalPisCst?: string | null;
+
+  @ApiProperty({ example: '49', nullable: true })
+  @Column({
+    name: 'fiscal_cofins_cst',
+    type: 'varchar',
+    length: 10,
+    nullable: true,
+  })
+  fiscalCofinsCst?: string | null;
+
+  @ApiProperty({ example: true })
+  @Column({ name: 'fiscal_is_billable', type: 'boolean', default: true })
+  fiscalIsBillable: boolean;
+
   @ApiProperty({ example: 'Armazenar entre 2 e 8 graus', nullable: true })
   @Column({ type: 'text', nullable: true })
   notes?: string | null;

@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { mkdir, writeFile } from 'fs/promises';
+import { mkdir, readFile, writeFile } from 'fs/promises';
 import { extname, join } from 'path';
 import { randomUUID } from 'crypto';
 import { S3Service } from '../s3/services/s3.service';
@@ -88,6 +88,24 @@ export class FileStorageService {
       mimeType: file.mimetype || 'application/octet-stream',
       fileSize: Number(file.size || file.buffer.length),
     };
+  }
+
+  async readBinaryFile(storageKey: string, bucket?: string) {
+    const normalizedKey = String(storageKey || '').replace(/^\/+/, '');
+    if (!normalizedKey) {
+      throw new BadRequestException('Chave de storage não informada.');
+    }
+
+    if (this.isProductionUpload()) {
+      const targetBucket =
+        bucket || this.configService.get<string>('aws.s3.bucket');
+      if (!targetBucket) {
+        throw new BadRequestException('Bucket S3 não configurado.');
+      }
+      return this.s3Service.readBinaryFile(normalizedKey, targetBucket);
+    }
+
+    return readFile(join(process.cwd(), 'uploads', normalizedKey));
   }
 
   private isProductionUpload() {
