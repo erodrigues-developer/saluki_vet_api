@@ -25,6 +25,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { FiscalIssueProcessorService } from './fiscal-issue-processor.service';
 import { FiscalService } from './fiscal.service';
+import { Permissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('Fiscal')
 @ApiBearerAuth()
@@ -39,54 +40,63 @@ export class FiscalController {
   ) {}
 
   @Get('settings')
+  @Permissions('fiscal.settings.view')
   @ApiOperation({ summary: 'Resumo das configurações fiscais' })
   getSettingsSummary() {
     return this.fiscalService.getSettingsSummary();
   }
 
   @Get('ncm')
+  @Permissions('fiscal.settings.view')
   @ApiOperation({ summary: 'Consulta NCM na BrasilAPI para autocomplete' })
   searchNcm(@Query('search') search: string) {
     return this.fiscalService.searchNcm(search);
   }
 
   @Get('cfops')
+  @Permissions('fiscal.settings.view')
   @ApiOperation({ summary: 'Consulta CFOP local para autocomplete' })
   searchCfops(@Query('search') search: string, @Query('direction') direction?: string) {
     return this.fiscalService.searchCfops(search, direction);
   }
 
   @Get('municipios')
+  @Permissions('fiscal.settings.view')
   @ApiOperation({ summary: 'Consulta municípios IBGE para autocomplete' })
   searchMunicipios(@Query('uf') uf: string, @Query('search') search: string) {
     return this.fiscalService.searchMunicipios(uf, search);
   }
 
   @Get('payment-types')
+  @Permissions('fiscal.settings.view')
   @ApiOperation({ summary: 'Lista codigos fiscais de forma de pagamento NFC-e' })
   listPaymentTypes() {
     return this.fiscalService.listPaymentTypes();
   }
 
   @Get('profiles')
+  @Permissions('fiscal.settings.view')
   @ApiOperation({ summary: 'Lista perfis fiscais' })
   listProfiles() {
     return this.fiscalService.listProfiles();
   }
 
   @Post('profiles')
+  @Permissions('fiscal.profiles.create')
   @ApiOperation({ summary: 'Cria perfil fiscal' })
   createProfile(@Body() payload: any) {
     return this.fiscalService.upsertProfile(payload);
   }
 
   @Patch('profiles/:id')
+  @Permissions('fiscal.profiles.update')
   @ApiOperation({ summary: 'Atualiza perfil fiscal' })
   updateProfile(@Param('id', ParseIntPipe) id: number, @Body() payload: any) {
     return this.fiscalService.upsertProfile({ ...payload, id });
   }
 
   @Post('profiles/:id/nfce-configs')
+  @Permissions('fiscal.nfce_configs.update')
   @ApiOperation({ summary: 'Cria ou atualiza configuração NFC-e do perfil' })
   upsertNfceConfig(
     @Param('id', ParseIntPipe) id: number,
@@ -96,6 +106,7 @@ export class FiscalController {
   }
 
   @Post('profiles/:id/certificates')
+  @Permissions('fiscal.certificates.upload')
   @ApiOperation({ summary: 'Faz upload do certificado A1 do perfil fiscal' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -142,6 +153,7 @@ export class FiscalController {
   }
 
   @Patch('profiles/:id/certificates/password')
+  @Permissions('fiscal.certificates.update_password')
   @ApiOperation({ summary: 'Atualiza a senha do certificado A1 ativo' })
   updateCertificatePassword(
     @Param('id', ParseIntPipe) id: number,
@@ -151,12 +163,14 @@ export class FiscalController {
   }
 
   @Get('documents')
+  @Permissions('fiscal.documents.view')
   @ApiOperation({ summary: 'Lista documentos fiscais' })
   listDocuments(@Query() query: any) {
     return this.fiscalService.listDocuments(query);
   }
 
   @Get('documents/files/:fileId/download')
+  @Permissions('fiscal.documents.download')
   @ApiOperation({ summary: 'Baixa artefato fiscal XML ou DANFE' })
   async downloadDocumentFile(
     @Param('fileId', ParseIntPipe) fileId: number,
@@ -173,12 +187,14 @@ export class FiscalController {
   }
 
   @Get('issue-requests')
+  @Permissions('fiscal.pending.view')
   @ApiOperation({ summary: 'Lista solicitações e pendências fiscais' })
   listIssueRequests(@Query() query: any) {
     return this.fiscalService.listIssueRequests(query);
   }
 
   @Post('issue-requests/process')
+  @Permissions('fiscal.pending.resolve')
   @ApiOperation({ summary: 'Processa pendências fiscais NFC-e aptas para retry' })
   processIssueRequests(@Body() payload: any) {
     return this.fiscalIssueProcessorService.processPending(
@@ -187,6 +203,7 @@ export class FiscalController {
   }
 
   @Post('issue-requests/:id/process')
+  @Permissions('fiscal.pending.resolve')
   @ApiOperation({ summary: 'Processa uma pendência fiscal NFC-e específica' })
   processIssueRequest(@Param('id', ParseIntPipe) id: number) {
     return this.fiscalIssueProcessorService.processRequest(id);

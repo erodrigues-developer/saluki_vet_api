@@ -29,6 +29,7 @@ import { UpdateSupplierDto } from './dto/update-supplier.dto';
 import { FilterSuppliersDto } from './dto/filter-suppliers.dto';
 import { Supplier } from './entities/supplier.entity';
 import { PaginatedSuppliersResponseDto } from './dto/paginated-suppliers-response.dto';
+import { Permissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('Suppliers')
 @ApiBearerAuth()
@@ -40,6 +41,7 @@ export class SuppliersController {
   constructor(private readonly suppliersService: SuppliersService) {}
 
   @Post()
+  @Permissions('cadastros.suppliers.create')
   @ApiOperation({ summary: 'Cria um fornecedor' })
   @ApiCreatedResponse({
     description: 'Fornecedor criado com sucesso',
@@ -51,6 +53,7 @@ export class SuppliersController {
   }
 
   @Get()
+  @Permissions('cadastros.suppliers.view', 'financeiro.accounts_payable.view')
   @ApiOperation({
     summary: 'Lista fornecedores com filtros e paginacao',
     description: 'Permite busca por nome/documento e filtro por status ativo.',
@@ -68,6 +71,7 @@ export class SuppliersController {
   }
 
   @Get(':id')
+  @Permissions('cadastros.suppliers.view', 'financeiro.accounts_payable.view')
   @ApiOperation({ summary: 'Busca fornecedor por ID' })
   @ApiParam({ name: 'id', type: Number, example: 1 })
   @ApiOkResponse({ type: Supplier })
@@ -77,6 +81,7 @@ export class SuppliersController {
   }
 
   @Patch(':id')
+  @Permissions('cadastros.suppliers.update')
   @ApiOperation({ summary: 'Atualiza um fornecedor' })
   @ApiParam({ name: 'id', type: Number, example: 1 })
   @ApiOkResponse({ type: Supplier })
@@ -90,6 +95,7 @@ export class SuppliersController {
   }
 
   @Delete(':id')
+  @Permissions('cadastros.suppliers.delete')
   @ApiOperation({ summary: 'Inativa um fornecedor' })
   @ApiParam({ name: 'id', type: Number, example: 1 })
   @ApiNoContentResponse({ description: 'Fornecedor inativado' })

@@ -29,6 +29,7 @@ import { UpdateClientDto } from './dto/update-client.dto';
 import { FilterClientsDto } from './dto/filter-clients.dto';
 import { Client } from './entities/client.entity';
 import { PaginatedClientsResponseDto } from './dto/paginated-clients-response.dto';
+import { Permissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('Clients')
 @ApiBearerAuth()
@@ -36,10 +37,12 @@ import { PaginatedClientsResponseDto } from './dto/paginated-clients-response.dt
   path: 'clients',
   version: '1',
 })
+@Permissions('clientes.clients.view')
 export class ClientsController {
   constructor(private readonly clientsService: ClientsService) {}
 
   @Post()
+  @Permissions('clientes.clients.create')
   @ApiOperation({ summary: 'Cria um cliente' })
   @ApiCreatedResponse({
     description: 'Cliente criado com sucesso',
@@ -109,6 +112,7 @@ export class ClientsController {
   }
 
   @Patch(':id')
+  @Permissions('clientes.clients.update')
   @ApiOperation({ summary: 'Atualiza um cliente' })
   @ApiParam({ name: 'id', type: Number, example: 1 })
   @ApiOkResponse({ description: 'Cliente atualizado', type: Client })
@@ -122,6 +126,7 @@ export class ClientsController {
   }
 
   @Delete(':id')
+  @Permissions('clientes.clients.delete')
   @ApiOperation({ summary: 'Remove (soft delete) um cliente' })
   @ApiParam({ name: 'id', type: Number, example: 1 })
   @ApiNoContentResponse({ description: 'Cliente removido' })

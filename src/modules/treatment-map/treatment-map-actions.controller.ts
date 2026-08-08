@@ -16,6 +16,7 @@ import {
 import { TreatmentMapService } from './treatment-map.service';
 import { ExecuteTreatmentItemDto } from './dto/execute-treatment-item.dto';
 import { TreatmentMap } from './entities/treatment-map.entity';
+import { Permissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('Treatment Map')
 @ApiBearerAuth()
@@ -27,6 +28,7 @@ export class TreatmentMapActionsController {
   constructor(private readonly treatmentMapService: TreatmentMapService) {}
 
   @Patch(':id/execute')
+  @Permissions('atendimentos.treatment_map.execute')
   @ApiOperation({ summary: 'Executa item pendente do mapa de tratamento' })
   @ApiParam({ name: 'id', type: Number })
   @ApiOkResponse({ type: TreatmentMap })

@@ -19,6 +19,7 @@ import { ProceduresService } from './procedures.service';
 import { Procedure } from './entities/procedure.entity';
 import { CreateProcedureDto } from './dto/create-procedure.dto';
 import { UpdateProcedureDto } from './dto/update-procedure.dto';
+import { Permissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('Procedures')
 @ApiBearerAuth()
@@ -30,6 +31,7 @@ export class ProceduresController {
   constructor(private readonly proceduresService: ProceduresService) {}
 
   @Post()
+  @Permissions('cadastros.procedures.create')
   @ApiOperation({ summary: 'Cria um novo procedimento clínico' })
   @ApiOkResponse({ type: Procedure })
   create(@Body() payload: CreateProcedureDto) {
@@ -37,12 +39,28 @@ export class ProceduresController {
   }
 
   @Get()
+  @Permissions(
+    'cadastros.procedures.view',
+    'atendimentos.inpatient_records.view',
+    'atendimentos.consultations.view',
+    'atendimentos.consultations.create',
+    'financeiro.sales.view',
+    'financeiro.sales.create',
+  )
   @ApiOperation({ summary: 'Lista procedimentos com paginação e filtros' })
   findAll(@Query() query: any) {
     return this.proceduresService.findAll(query);
   }
 
   @Get(':id')
+  @Permissions(
+    'cadastros.procedures.view',
+    'atendimentos.inpatient_records.view',
+    'atendimentos.consultations.view',
+    'atendimentos.consultations.create',
+    'financeiro.sales.view',
+    'financeiro.sales.create',
+  )
   @ApiOperation({ summary: 'Busca um procedimento por ID' })
   @ApiOkResponse({ type: Procedure })
   findOne(@Param('id', ParseIntPipe) id: number) {
@@ -50,6 +68,7 @@ export class ProceduresController {
   }
 
   @Patch(':id')
+  @Permissions('cadastros.procedures.update')
   @ApiOperation({ summary: 'Atualiza um procedimento' })
   @ApiOkResponse({ type: Procedure })
   update(
@@ -60,6 +79,7 @@ export class ProceduresController {
   }
 
   @Delete(':id')
+  @Permissions('cadastros.procedures.delete')
   @ApiOperation({ summary: 'Remove um procedimento' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.proceduresService.remove(id);

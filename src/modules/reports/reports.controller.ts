@@ -11,7 +11,7 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
+import { Permissions } from '../../common/decorators/permissions.decorator';
 import { ReportsService } from './reports.service';
 import { GenerateReportDto } from './dto/generate-report.dto';
 import { ListReportHistoryDto } from './dto/list-report-history.dto';
@@ -19,7 +19,7 @@ import { ListReportHistoryDto } from './dto/list-report-history.dto';
 @ApiTags('Reports')
 @ApiBearerAuth('jwt')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('ADMIN')
+@Permissions('relatorios.reports.view')
 @Controller('reports')
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
@@ -31,6 +31,7 @@ export class ReportsController {
   }
 
   @Post(':type/generate')
+  @Permissions('relatorios.reports.generate')
   @ApiOperation({ summary: 'Gerar relatório em XLSX e salvar histórico' })
   generate(
     @Param('type') type: string,
@@ -49,6 +50,7 @@ export class ReportsController {
   }
 
   @Get('history')
+  @Permissions('relatorios.reports.history')
   @ApiOperation({ summary: 'Listar histórico de relatórios gerados' })
   listHistory(@Query() query: ListReportHistoryDto, @Req() req: any) {
     const userId = Number(req.user?.userId);
@@ -56,6 +58,7 @@ export class ReportsController {
   }
 
   @Get('history/:id')
+  @Permissions('relatorios.reports.history')
   @ApiOperation({ summary: 'Obter detalhes de um relatório gerado' })
   getHistoryItem(@Param('id') id: string, @Req() req: any) {
     return this.reportsService.findHistoryItem(
@@ -65,6 +68,7 @@ export class ReportsController {
   }
 
   @Get('history/:id/download')
+  @Permissions('relatorios.reports.download')
   @ApiOperation({ summary: 'Obter URL de download de um relatório gerado' })
   getDownload(@Param('id') id: string, @Req() req: any) {
     return this.reportsService.getDownloadInfo(

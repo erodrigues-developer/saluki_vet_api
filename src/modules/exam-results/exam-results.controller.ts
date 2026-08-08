@@ -24,6 +24,7 @@ import { ExamResult } from './entities/exam-result.entity';
 import { ExamResultsService } from './exam-results.service';
 import { CreateExamResultDto } from './dto/create-exam-result.dto';
 import { FilterExamResultsDto } from './dto/filter-exam-results.dto';
+import { Permissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('Exam Results')
 @ApiBearerAuth()
@@ -35,6 +36,7 @@ export class ExamResultsController {
   constructor(private readonly examResultsService: ExamResultsService) {}
 
   @Post()
+  @Permissions('atendimentos.exam_results.create', 'atendimentos.exam_results.upload')
   @ApiOperation({ summary: 'Anexa resultado de exame ao atendimento' })
   @ApiCreatedResponse({ type: ExamResult })
   @ApiConsumes('multipart/form-data')
@@ -84,6 +86,10 @@ export class ExamResultsController {
   }
 
   @Get()
+  @Permissions(
+    'atendimentos.exam_results.view',
+    'atendimentos.consultations.view',
+  )
   @ApiOperation({ summary: 'Lista resultados de exames por consulta ou pedido' })
   @ApiOkResponse({ type: ExamResult, isArray: true })
   findAll(@Query() query: FilterExamResultsDto) {

@@ -16,6 +16,7 @@ import {
 } from '@nestjs/swagger';
 import { AppointmentTypesService } from './appointment-types.service';
 import { AppointmentType } from './entities/appointment-type.entity';
+import { Permissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('Appointment Types')
 @ApiBearerAuth()
@@ -29,6 +30,7 @@ export class AppointmentTypesController {
   ) {}
 
   @Post()
+  @Permissions('cadastros.appointment_types.create')
   @ApiOperation({ summary: 'Cria um novo tipo de agendamento' })
   @ApiOkResponse({ type: AppointmentType })
   create(@Body() payload: any) {
@@ -36,6 +38,7 @@ export class AppointmentTypesController {
   }
 
   @Get()
+  @Permissions('cadastros.appointment_types.view', 'atendimentos.appointments.view')
   @ApiOperation({ summary: 'Lista todos os tipos de agendamento' })
   @ApiOkResponse({ type: [AppointmentType] })
   findAll() {
@@ -43,6 +46,7 @@ export class AppointmentTypesController {
   }
 
   @Get(':id')
+  @Permissions('cadastros.appointment_types.view', 'atendimentos.appointments.view')
   @ApiOperation({ summary: 'Busca um tipo de agendamento por ID' })
   @ApiOkResponse({ type: AppointmentType })
   findOne(@Param('id', ParseIntPipe) id: number) {
@@ -50,6 +54,7 @@ export class AppointmentTypesController {
   }
 
   @Patch(':id')
+  @Permissions('cadastros.appointment_types.update')
   @ApiOperation({ summary: 'Atualiza um tipo de agendamento' })
   @ApiOkResponse({ type: AppointmentType })
   update(@Param('id', ParseIntPipe) id: number, @Body() payload: any) {
@@ -57,6 +62,7 @@ export class AppointmentTypesController {
   }
 
   @Delete(':id')
+  @Permissions('cadastros.appointment_types.delete')
   @ApiOperation({ summary: 'Remove um tipo de agendamento' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.appointmentTypesService.remove(id);

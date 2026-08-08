@@ -24,6 +24,7 @@ import { memoryStorage } from 'multer';
 import { ClinicSettingsService } from './clinic-settings.service';
 import { ClinicSettings } from './entities/clinic-settings.entity';
 import { UpdateClinicSettingsDto } from './dto/update-clinic-settings.dto';
+import { Permissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('Clinic Settings')
 @ApiBearerAuth()
@@ -31,10 +32,19 @@ import { UpdateClinicSettingsDto } from './dto/update-clinic-settings.dto';
   path: 'clinic-settings',
   version: '1',
 })
+@Permissions('configuracoes.clinic.view')
 export class ClinicSettingsController {
   constructor(private readonly clinicSettingsService: ClinicSettingsService) {}
 
   @Get()
+  @Permissions(
+    'configuracoes.clinic.view',
+    'atendimentos.appointments.view',
+    'atendimentos.consultations.view',
+    'atendimentos.inpatient_records.view',
+    'atendimentos.prescriptions.print',
+    'atendimentos.exam_requests.print',
+  )
   @ApiOperation({ summary: 'Busca as configurações da clínica' })
   @ApiOkResponse({ type: ClinicSettings })
   getSettings() {
@@ -42,6 +52,7 @@ export class ClinicSettingsController {
   }
 
   @Patch()
+  @Permissions('configuracoes.clinic.update')
   @ApiOperation({ summary: 'Atualiza as configurações da clínica' })
   @ApiOkResponse({ type: ClinicSettings })
   update(@Body() payload: UpdateClinicSettingsDto) {
@@ -49,6 +60,7 @@ export class ClinicSettingsController {
   }
 
   @Delete('image/:field')
+  @Permissions('configuracoes.clinic.image.delete')
   @ApiOperation({ summary: 'Remove imagem da clínica' })
   @ApiOkResponse({ type: ClinicSettings })
   removeImage(@Param('field') field: string) {
@@ -59,6 +71,7 @@ export class ClinicSettingsController {
   }
 
   @Post('upload-image/:field')
+  @Permissions('configuracoes.clinic.image.upload')
   @ApiOperation({ summary: 'Faz upload de imagem da clínica' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({

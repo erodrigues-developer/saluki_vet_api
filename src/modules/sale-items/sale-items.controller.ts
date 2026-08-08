@@ -7,14 +7,17 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { SaleItem } from './entities/sale-item.entity';
+import { Permissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('sale-items')
 @ApiBearerAuth()
 @Controller('sale-items')
+@Permissions('financeiro.sales.view')
 export class SaleItemsController {
   constructor(private readonly saleItemsService: SaleItemsService) {}
 
   @Post()
+  @Permissions('financeiro.sales.update')
   @ApiOperation({ summary: 'Adicionar produto/serviço a uma venda' })
   @ApiOkResponse({ type: SaleItem })
   create(@Body() createDto: any) {
@@ -29,6 +32,7 @@ export class SaleItemsController {
   }
 
   @Delete(':id')
+  @Permissions('financeiro.sales.update')
   @ApiOperation({ summary: 'Remover um item da venda' })
   remove(@Param('id') id: string) {
     return this.saleItemsService.remove(+id);

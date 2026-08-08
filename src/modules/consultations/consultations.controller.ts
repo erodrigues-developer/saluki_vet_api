@@ -17,6 +17,7 @@ import {
 } from '@nestjs/swagger';
 import { ConsultationsService } from './consultations.service';
 import { Consultation } from './entities/consultation.entity';
+import { Permissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('Consultations')
 @ApiBearerAuth()
@@ -24,10 +25,12 @@ import { Consultation } from './entities/consultation.entity';
   path: 'consultations',
   version: '1',
 })
+@Permissions('atendimentos.consultations.view')
 export class ConsultationsController {
   constructor(private readonly consultationsService: ConsultationsService) {}
 
   @Post()
+  @Permissions('atendimentos.consultations.create')
   @ApiOperation({ summary: 'Inicia ou salva uma nova consulta' })
   @ApiOkResponse({ type: Consultation })
   create(@Body() payload: any, @Req() req: any) {
@@ -48,6 +51,7 @@ export class ConsultationsController {
   }
 
   @Patch(':id')
+  @Permissions('atendimentos.consultations.update')
   @ApiOperation({ summary: 'Atualiza dados da consulta em andamento' })
   @ApiOkResponse({ type: Consultation })
   update(@Param('id', ParseIntPipe) id: number, @Body() payload: any, @Req() req: any) {
@@ -55,6 +59,7 @@ export class ConsultationsController {
   }
 
   @Post(':id/finalize')
+  @Permissions('atendimentos.consultations.finalize')
   @ApiOperation({ summary: 'Finaliza atendimento e registra prontuário oficial' })
   @ApiOkResponse({ type: Consultation })
   finalize(@Param('id', ParseIntPipe) id: number, @Body() payload: any, @Req() req: any) {
@@ -65,6 +70,7 @@ export class ConsultationsController {
   }
 
   @Post(':id/finalize-and-bill')
+  @Permissions('atendimentos.consultations.finalize_and_bill')
   @ApiOperation({
     summary:
       'Finaliza o atendimento, conclui o agendamento relacionado e prepara a venda para cobrança',
@@ -82,6 +88,7 @@ export class ConsultationsController {
   }
 
   @Post(':id/anamnesis/approve')
+  @Permissions('atendimentos.consultations.approve_anamnesis')
   @ApiOperation({ summary: 'Aprova anamnese e gera apoio clínico consultivo' })
   @ApiOkResponse({ type: Consultation })
   approveAnamnesis(

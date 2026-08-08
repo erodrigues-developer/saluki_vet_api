@@ -12,6 +12,7 @@ import {
 } from '@nestjs/swagger';
 import { DataSource } from 'typeorm';
 import { StockMovementsService } from './stock-movements.service';
+import { Permissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('stock-movements')
 @ApiBearerAuth()
@@ -23,6 +24,7 @@ export class StockMovementsController {
   ) {}
 
   @Get('balance')
+  @Permissions('estoque.balances.view', 'dashboard.view')
   @ApiOperation({ summary: 'Listar saldos de estoque por produto/local' })
   getBalance(
     @Query('page') page = 1,
@@ -46,6 +48,7 @@ export class StockMovementsController {
   }
 
   @Get('history')
+  @Permissions('estoque.movements.view')
   @ApiOperation({ summary: 'Listar histórico de movimentações de estoque' })
   getHistory(
     @Query('page') page = 1,
@@ -73,6 +76,7 @@ export class StockMovementsController {
   }
 
   @Get('batches')
+  @Permissions('estoque.batches.view')
   @ApiOperation({ summary: 'Listar lotes disponíveis de estoque' })
   getBatches(
     @Query('productId') productId?: string,
@@ -88,6 +92,7 @@ export class StockMovementsController {
   }
 
   @Get('current-stock')
+  @Permissions('estoque.balances.view', 'estoque.movements.view')
   @ApiOperation({ summary: 'Consultar saldo atual de um produto em um local' })
   getCurrentStock(
     @Query('productId') productId?: string,
@@ -101,6 +106,7 @@ export class StockMovementsController {
   }
 
   @Get('manual-out-reasons')
+  @Permissions('estoque.movements.out')
   @ApiOperation({ summary: 'Listar motivos de saída manual' })
   getManualOutReasons() {
     return this.stockMovementsService.getManualOutReasons().map((label) => ({
@@ -110,6 +116,7 @@ export class StockMovementsController {
   }
 
   @Post('in')
+  @Permissions('estoque.movements.in')
   @ApiOperation({ summary: 'Registrar entrada manual de estoque' })
   createStockIn(@Body() payload: any) {
     return this.dataSource.transaction((manager) =>
@@ -136,6 +143,7 @@ export class StockMovementsController {
   }
 
   @Post('out')
+  @Permissions('estoque.movements.out')
   @ApiOperation({ summary: 'Registrar saída manual de estoque' })
   createStockOut(@Body() payload: any) {
     return this.dataSource.transaction((manager) =>
@@ -160,6 +168,7 @@ export class StockMovementsController {
   }
 
   @Post('adjust')
+  @Permissions('estoque.movements.adjust')
   @ApiOperation({ summary: 'Ajustar saldo de estoque' })
   createStockAdjustment(@Body() payload: any) {
     return this.dataSource.transaction((manager) =>

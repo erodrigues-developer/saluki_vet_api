@@ -27,6 +27,7 @@ import { ConsultationDictationsService } from './consultation-dictations.service
 import { CreateConsultationDictationDto } from './dto/create-consultation-dictation.dto';
 import { FilterConsultationDictationsDto } from './dto/filter-consultation-dictations.dto';
 import { ConsultationDictation } from './entities/consultation-dictation.entity';
+import { Permissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('Consultation Dictations')
 @ApiBearerAuth()
@@ -40,6 +41,7 @@ export class ConsultationDictationsController {
   ) {}
 
   @Post()
+  @Permissions('atendimentos.consultations.ai')
   @ApiOperation({ summary: 'Cria um novo ditado clinico para uma consulta' })
   @ApiParam({ name: 'consultationId', type: Number })
   @ApiCreatedResponse({ type: ConsultationDictation })
@@ -95,6 +97,7 @@ export class ConsultationDictationsController {
   }
 
   @Get()
+  @Permissions('atendimentos.consultations.ai')
   @ApiOperation({
     summary: 'Lista os ditados clinicos associados a uma consulta',
   })

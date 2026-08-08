@@ -18,6 +18,7 @@ import {
 } from '@nestjs/swagger';
 import { AppointmentsService } from './appointments.service';
 import { Appointment } from './entities/appointment.entity';
+import { Permissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('Appointments')
 @ApiBearerAuth()
@@ -25,10 +26,12 @@ import { Appointment } from './entities/appointment.entity';
   path: 'appointments',
   version: '1',
 })
+@Permissions('atendimentos.appointments.view')
 export class AppointmentsController {
   constructor(private readonly appointmentsService: AppointmentsService) {}
 
   @Post()
+  @Permissions('atendimentos.appointments.create')
   @ApiOperation({ summary: 'Cria um novo agendamento' })
   @ApiOkResponse({ type: Appointment })
   create(@Body() payload: any) {
@@ -36,6 +39,7 @@ export class AppointmentsController {
   }
 
   @Post('quick-create')
+  @Permissions('atendimentos.appointments.quick_create')
   @ApiOperation({ summary: 'Cria tutor, pet e agendamento em uma transação' })
   @ApiOkResponse({ type: Appointment })
   quickCreate(@Body() payload: any) {
@@ -43,6 +47,7 @@ export class AppointmentsController {
   }
 
   @Post(':id/check-in')
+  @Permissions('atendimentos.appointments.checkin')
   @ApiOperation({ summary: 'Registra chegada e classifica triagem' })
   @ApiOkResponse({ type: Appointment })
   checkIn(
@@ -54,6 +59,7 @@ export class AppointmentsController {
   }
 
   @Post(':id/confirm')
+  @Permissions('atendimentos.appointments.confirm')
   @ApiOperation({ summary: 'Confirma agendamento (SCHEDULED -> CONFIRMED)' })
   @ApiOkResponse({ type: Appointment })
   confirm(@Param('id', ParseIntPipe) id: number) {
@@ -74,6 +80,7 @@ export class AppointmentsController {
   }
 
   @Patch(':id')
+  @Permissions('atendimentos.appointments.update')
   @ApiOperation({ summary: 'Atualiza um agendamento' })
   @ApiOkResponse({ type: Appointment })
   update(@Param('id', ParseIntPipe) id: number, @Body() payload: any) {
@@ -81,6 +88,7 @@ export class AppointmentsController {
   }
 
   @Delete(':id')
+  @Permissions('atendimentos.appointments.cancel')
   @ApiOperation({ summary: 'Remove um agendamento' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.appointmentsService.remove(id);

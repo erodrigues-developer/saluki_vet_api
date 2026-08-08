@@ -1,4 +1,4 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
@@ -23,5 +23,12 @@ export class AuthController {
   async login(@Body() loginDto: LoginDto) {
     const result = await this.authService.login(loginDto);
     return { data: result };
+  }
+
+  @Get('me')
+  @ApiOperation({ summary: 'Return current authenticated user and permissions' })
+  async me(@Req() req: any) {
+    const user = await this.authService.me(Number(req.user.userId));
+    return { data: { user } };
   }
 }

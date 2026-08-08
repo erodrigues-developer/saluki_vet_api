@@ -37,6 +37,7 @@ import { UpdatePetDto } from './dto/update-pet.dto';
 import { FilterPetsDto } from './dto/filter-pets.dto';
 import { Pet } from './entities/pet.entity';
 import { PaginatedPetsResponseDto } from './dto/paginated-pets-response.dto';
+import { Permissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('Pets')
 @ApiBearerAuth()
@@ -44,10 +45,12 @@ import { PaginatedPetsResponseDto } from './dto/paginated-pets-response.dto';
   path: 'pets',
   version: '1',
 })
+@Permissions('pets.pets.view')
 export class PetsController {
   constructor(private readonly petsService: PetsService) {}
 
   @Post()
+  @Permissions('pets.pets.create')
   @ApiOperation({ summary: 'Cria um pet' })
   @ApiCreatedResponse({
     description: 'Pet criado com sucesso',
@@ -59,6 +62,7 @@ export class PetsController {
   }
 
   @Post('upload-photo')
+  @Permissions('pets.pet_files.upload')
   @ApiOperation({ summary: 'Faz upload de foto do pet' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -137,6 +141,7 @@ export class PetsController {
   }
 
   @Get(':id/history')
+  @Permissions('pets.history.view')
   @ApiOperation({ summary: 'Retorna histórico consolidado do pet' })
   @ApiParam({ name: 'id', type: Number, example: 1 })
   @ApiOkResponse({ description: 'Histórico consolidado do pet' })
@@ -145,6 +150,7 @@ export class PetsController {
   }
 
   @Patch(':id')
+  @Permissions('pets.pets.update')
   @ApiOperation({ summary: 'Atualiza um pet' })
   @ApiParam({ name: 'id', type: Number, example: 1 })
   @ApiOkResponse({ description: 'Pet atualizado', type: Pet })
@@ -158,6 +164,7 @@ export class PetsController {
   }
 
   @Delete(':id')
+  @Permissions('pets.pets.delete')
   @ApiOperation({ summary: 'Remove (soft delete) um pet' })
   @ApiParam({ name: 'id', type: Number, example: 1 })
   @ApiNoContentResponse({ description: 'Pet removido' })

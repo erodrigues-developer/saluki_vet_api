@@ -9,6 +9,7 @@ import { ConsultationAttachment } from './entities/consultation-attachment.entit
 import { Consultation } from '../consultations/entities/consultation.entity';
 import { CreateConsultationAttachmentDto } from './dto/create-consultation-attachment.dto';
 import { FileStorageService } from '../file-storage/file-storage.service';
+import { normalizeFileNameEncoding } from '../../common/utils/file-name-encoding.util';
 
 @Injectable()
 export class ConsultationAttachmentsService {
@@ -79,11 +80,16 @@ export class ConsultationAttachmentsService {
   async findAll(consultationId: number) {
     await this.ensureConsultationExists(consultationId);
 
+    const attachments = await this.consultationAttachmentsRepository.find({
+      where: { consultationId },
+      order: { createdAt: 'DESC', id: 'DESC' },
+    });
+
     return {
-      data: await this.consultationAttachmentsRepository.find({
-        where: { consultationId },
-        order: { createdAt: 'DESC', id: 'DESC' },
-      }),
+      data: attachments.map((attachment) => ({
+        ...attachment,
+        originalName: normalizeFileNameEncoding(attachment.originalName),
+      })),
     };
   }
 

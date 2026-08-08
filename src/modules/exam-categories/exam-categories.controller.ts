@@ -28,6 +28,7 @@ import { CreateExamCategoryDto } from './dto/create-exam-category.dto';
 import { UpdateExamCategoryDto } from './dto/update-exam-category.dto';
 import { FilterExamCategoriesDto } from './dto/filter-exam-categories.dto';
 import { ExamCategory } from './entities/exam-category.entity';
+import { Permissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('Exam Categories')
 @ApiBearerAuth()
@@ -41,6 +42,7 @@ export class ExamCategoriesController {
   ) {}
 
   @Post()
+  @Permissions('cadastros.exam_categories.create')
   @ApiOperation({ summary: 'Cria uma categoria de exame' })
   @ApiCreatedResponse({
     description: 'Categoria criada com sucesso',
@@ -52,6 +54,12 @@ export class ExamCategoriesController {
   }
 
   @Get()
+  @Permissions(
+    'cadastros.exam_categories.view',
+    'cadastros.exam_types.view',
+    'atendimentos.exam_requests.view',
+    'atendimentos.exam_requests.create',
+  )
   @ApiOperation({ summary: 'Lista categorias de exame com filtros e paginação' })
   @ApiOkResponse({ description: 'Lista paginada de categorias de exame' })
   @ApiQuery({ name: 'name', required: false, example: 'Lab' })
@@ -75,6 +83,12 @@ export class ExamCategoriesController {
   }
 
   @Get(':id')
+  @Permissions(
+    'cadastros.exam_categories.view',
+    'cadastros.exam_types.view',
+    'atendimentos.exam_requests.view',
+    'atendimentos.exam_requests.create',
+  )
   @ApiOperation({ summary: 'Busca uma categoria de exame por ID' })
   @ApiParam({ name: 'id', type: Number, example: 1 })
   @ApiOkResponse({ description: 'Categoria encontrada', type: ExamCategory })
@@ -84,6 +98,7 @@ export class ExamCategoriesController {
   }
 
   @Patch(':id')
+  @Permissions('cadastros.exam_categories.update')
   @ApiOperation({ summary: 'Atualiza uma categoria de exame' })
   @ApiParam({ name: 'id', type: Number, example: 1 })
   @ApiOkResponse({ description: 'Categoria atualizada', type: ExamCategory })
@@ -97,6 +112,7 @@ export class ExamCategoriesController {
   }
 
   @Delete(':id')
+  @Permissions('cadastros.exam_categories.delete')
   @ApiOperation({ summary: 'Remove uma categoria de exame' })
   @ApiParam({ name: 'id', type: Number, example: 1 })
   @ApiNoContentResponse({ description: 'Categoria removida' })

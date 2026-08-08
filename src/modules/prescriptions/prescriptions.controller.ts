@@ -20,6 +20,7 @@ import { PrescriptionsService } from './prescriptions.service';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
 import { FilterPrescriptionsDto } from './dto/filter-prescriptions.dto';
 import { Prescription } from './entities/prescription.entity';
+import { Permissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('Prescriptions')
 @ApiBearerAuth()
@@ -31,6 +32,7 @@ export class PrescriptionsController {
   constructor(private readonly prescriptionsService: PrescriptionsService) {}
 
   @Post()
+  @Permissions('atendimentos.prescriptions.create')
   @ApiOperation({ summary: 'Emite uma nova prescricao digital' })
   @ApiCreatedResponse({ type: Prescription })
   create(@Body() payload: CreatePrescriptionDto, @Req() req: any) {
@@ -38,6 +40,7 @@ export class PrescriptionsController {
   }
 
   @Get()
+  @Permissions('atendimentos.prescriptions.view', 'atendimentos.inpatient_records.view')
   @ApiOperation({ summary: 'Lista prescricoes por pet ou consulta' })
   @ApiOkResponse({ type: Prescription, isArray: true })
   findAll(@Query() query: FilterPrescriptionsDto) {
@@ -45,6 +48,7 @@ export class PrescriptionsController {
   }
 
   @Get(':id')
+  @Permissions('atendimentos.prescriptions.view', 'atendimentos.inpatient_records.view')
   @ApiOperation({ summary: 'Detalha uma prescricao' })
   @ApiParam({ name: 'id', type: Number })
   @ApiOkResponse({ type: Prescription })

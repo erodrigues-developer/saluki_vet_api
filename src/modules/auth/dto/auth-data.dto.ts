@@ -12,6 +12,9 @@ class AuthUserDto {
 
   @ApiProperty({ example: ['ADMIN'] })
   roles: any[];
+
+  @ApiProperty({ example: ['dashboard.view', 'cadastros.users.view'] })
+  permissions: string[];
 }
 
 export class AuthDataDto {

@@ -16,6 +16,7 @@ import {
 } from '@nestjs/swagger';
 import { ConsultationProceduresService } from './consultation-procedures.service';
 import { ConsultationProcedure } from './entities/consultation-procedure.entity';
+import { Permissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('Consultation Procedures')
 @ApiBearerAuth()
@@ -29,6 +30,7 @@ export class ConsultationProceduresController {
   ) {}
 
   @Post()
+  @Permissions('atendimentos.consultations.update')
   @ApiOperation({ summary: 'Adiciona um procedimento à consulta' })
   @ApiOkResponse({ type: ConsultationProcedure })
   create(@Body() payload: any) {
@@ -36,6 +38,7 @@ export class ConsultationProceduresController {
   }
 
   @Patch(':id')
+  @Permissions('atendimentos.consultations.update')
   @ApiOperation({ summary: 'Atualiza um procedimento da consulta' })
   @ApiOkResponse({ type: ConsultationProcedure })
   update(@Param('id', ParseIntPipe) id: number, @Body() payload: any) {
@@ -43,6 +46,7 @@ export class ConsultationProceduresController {
   }
 
   @Get('consultation/:consultationId')
+  @Permissions('atendimentos.consultations.view')
   @ApiOperation({ summary: 'Lista procedimentos de uma consulta' })
   @ApiOkResponse({ type: [ConsultationProcedure] })
   findByConsultation(
@@ -54,6 +58,7 @@ export class ConsultationProceduresController {
   }
 
   @Delete(':id')
+  @Permissions('atendimentos.consultations.update')
   @ApiOperation({ summary: 'Remove um procedimento da consulta' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.consultationProceduresService.remove(id);

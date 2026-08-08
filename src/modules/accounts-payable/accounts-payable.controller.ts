@@ -16,23 +16,25 @@ import { PayAccountDto } from './dto/pay-account.dto';
 import { UpdateAccountPayableWithScopeDto } from './dto/update-account-payable.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
+import { Permissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('Accounts Payable')
 @ApiBearerAuth('jwt')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('ADMIN')
+@Permissions('financeiro.accounts_payable.view')
 @Controller('accounts-payable')
 export class AccountsPayableController {
   constructor(private readonly service: AccountsPayableService) {}
 
   @Post()
+  @Permissions('financeiro.accounts_payable.create')
   @ApiOperation({ summary: 'Cadastrar nova conta a pagar' })
   create(@Body() dto: CreateAccountPayableDto) {
     return this.service.create(dto);
   }
 
   @Patch(':id')
+  @Permissions('financeiro.accounts_payable.update')
   @ApiOperation({ summary: 'Atualizar conta a pagar' })
   update(
     @Param('id', ParseIntPipe) id: number,
@@ -42,6 +44,7 @@ export class AccountsPayableController {
   }
 
   @Get('dashboard')
+  @Permissions('financeiro.accounts_payable.view', 'dashboard.view')
   @ApiOperation({
     summary: 'Obter dados dos gráficos e KPIs do dashboard financeiro',
   })
@@ -77,6 +80,7 @@ export class AccountsPayableController {
   }
 
   @Patch(':id/pay')
+  @Permissions('financeiro.accounts_payable.pay')
   @ApiOperation({ summary: 'Registrar pagamento de uma conta' })
   markAsPaid(
     @Param('id', ParseIntPipe) id: number,
@@ -86,6 +90,7 @@ export class AccountsPayableController {
   }
 
   @Patch(':id/undo-pay')
+  @Permissions('financeiro.accounts_payable.reverse')
   @ApiOperation({ summary: 'Estornar pagamento de uma conta' })
   undoPayment(@Param('id', ParseIntPipe) id: number) {
     return this.service.undoPayment(id);

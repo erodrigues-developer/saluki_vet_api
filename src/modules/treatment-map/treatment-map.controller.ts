@@ -22,6 +22,7 @@ import { TreatmentMap } from './entities/treatment-map.entity';
 import { CreateTreatmentItemDto } from './dto/create-treatment-item.dto';
 import { ExecuteTreatmentItemDto } from './dto/execute-treatment-item.dto';
 import { FilterTreatmentMapDto } from './dto/filter-treatment-map.dto';
+import { Permissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('Treatment Map')
 @ApiBearerAuth()
@@ -29,10 +30,12 @@ import { FilterTreatmentMapDto } from './dto/filter-treatment-map.dto';
   path: 'inpatient-records/:inpatientRecordId/treatment-map',
   version: '1',
 })
+@Permissions('atendimentos.treatment_map.view')
 export class TreatmentMapController {
   constructor(private readonly treatmentMapService: TreatmentMapService) {}
 
   @Post()
+  @Permissions('atendimentos.treatment_map.create')
   @ApiOperation({ summary: 'Agenda item do mapa de tratamento' })
   @ApiParam({ name: 'inpatientRecordId', type: Number })
   @ApiCreatedResponse({ type: TreatmentMap })

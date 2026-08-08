@@ -29,6 +29,7 @@ import { Box } from './entities/box.entity';
 import { CreateBoxDto } from './dto/create-box.dto';
 import { UpdateBoxDto } from './dto/update-box.dto';
 import { PaginatedBoxesResponseDto } from './dto/paginated-boxes-response.dto';
+import { Permissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('Boxes')
 @ApiBearerAuth()
@@ -40,6 +41,7 @@ export class BoxesController {
   constructor(private readonly boxesService: BoxesService) {}
 
   @Post()
+  @Permissions('cadastros.boxes.create')
   @ApiOperation({ summary: 'Cria um box' })
   @ApiCreatedResponse({
     description: 'Box criado com sucesso',
@@ -51,6 +53,12 @@ export class BoxesController {
   }
 
   @Get()
+  @Permissions(
+    'cadastros.boxes.view',
+    'atendimentos.inpatient_records.view',
+    'atendimentos.consultations.view',
+    'atendimentos.consultations.create',
+  )
   @ApiOperation({
     summary: 'Lista boxes com status de ocupação',
     description:
@@ -85,6 +93,12 @@ export class BoxesController {
   }
 
   @Get(':id')
+  @Permissions(
+    'cadastros.boxes.view',
+    'atendimentos.inpatient_records.view',
+    'atendimentos.consultations.view',
+    'atendimentos.consultations.create',
+  )
   @ApiOperation({ summary: 'Busca um box por ID' })
   @ApiParam({ name: 'id', type: Number, example: 1 })
   @ApiOkResponse({ description: 'Box encontrado', type: Box })
@@ -94,6 +108,7 @@ export class BoxesController {
   }
 
   @Patch(':id')
+  @Permissions('cadastros.boxes.update')
   @ApiOperation({ summary: 'Atualiza um box' })
   @ApiParam({ name: 'id', type: Number, example: 1 })
   @ApiOkResponse({ description: 'Box atualizado', type: Box })
@@ -107,6 +122,7 @@ export class BoxesController {
   }
 
   @Delete(':id')
+  @Permissions('cadastros.boxes.delete')
   @ApiOperation({ summary: 'Remove um box sem internações vinculadas' })
   @ApiParam({ name: 'id', type: Number, example: 1 })
   @ApiNoContentResponse({ description: 'Box removido' })

@@ -21,10 +21,12 @@ import {
   UpdateThermalPrinterDto,
   WithdrawCashDto,
 } from './dto/cash-register.dto';
+import { Permissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('cash-registers')
 @ApiBearerAuth()
 @Controller('cash-registers')
+@Permissions('financeiro.cash_registers.view')
 export class CashRegistersController {
   constructor(private readonly service: CashRegistersService) {}
 
@@ -51,11 +53,13 @@ export class CashRegistersController {
   }
 
   @Post('terminals')
+  @Permissions('financeiro.cash_registers.manage_terminals')
   createTerminal(@Body() payload: CreateTerminalDto) {
     return this.service.createTerminal(payload);
   }
 
   @Patch('terminals/:id')
+  @Permissions('financeiro.cash_registers.manage_terminals')
   updateTerminal(
     @Param('id', ParseIntPipe) id: number,
     @Body() payload: UpdateTerminalDto,
@@ -81,11 +85,13 @@ export class CashRegistersController {
   }
 
   @Post('printers')
+  @Permissions('financeiro.cash_registers.manage_printers')
   createPrinter(@Body() payload: CreateThermalPrinterDto) {
     return this.service.createPrinter(payload);
   }
 
   @Patch('printers/:id')
+  @Permissions('financeiro.cash_registers.manage_printers')
   updatePrinter(
     @Param('id', ParseIntPipe) id: number,
     @Body() payload: UpdateThermalPrinterDto,
@@ -113,6 +119,7 @@ export class CashRegistersController {
   }
 
   @Get('sessions/current')
+  @Permissions('financeiro.cash_registers.current')
   findCurrentSession(
     @Req() req: any,
     @Query('terminalId') terminalId?: string,
@@ -124,6 +131,7 @@ export class CashRegistersController {
   }
 
   @Post('sessions/open')
+  @Permissions('financeiro.cash_registers.open')
   openSession(@Body() payload: OpenCashRegisterSessionDto, @Req() req: any) {
     return this.service.openSession(payload, Number(req.user?.userId));
   }
@@ -134,11 +142,13 @@ export class CashRegistersController {
   }
 
   @Get('sessions/:id/movements')
+  @Permissions('financeiro.cash_registers.movements')
   listMovements(@Param('id', ParseIntPipe) id: number) {
     return this.service.listMovements(id);
   }
 
   @Post('sessions/:id/withdraw')
+  @Permissions('financeiro.cash_registers.withdraw')
   withdraw(
     @Param('id', ParseIntPipe) id: number,
     @Body() payload: WithdrawCashDto,
@@ -148,6 +158,7 @@ export class CashRegistersController {
   }
 
   @Post('sessions/:id/close')
+  @Permissions('financeiro.cash_registers.close')
   closeSession(
     @Param('id', ParseIntPipe) id: number,
     @Body() payload: CloseCashRegisterSessionDto,
@@ -157,6 +168,7 @@ export class CashRegistersController {
   }
 
   @Post('sessions/:id/print-opening')
+  @Permissions('financeiro.cash_registers.print_opening')
   printOpening(@Param('id', ParseIntPipe) id: number) {
     void id;
     return {
@@ -165,6 +177,7 @@ export class CashRegistersController {
   }
 
   @Post('sessions/:id/print-closing')
+  @Permissions('financeiro.cash_registers.print_closing')
   printClosing(@Param('id', ParseIntPipe) id: number) {
     void id;
     return {

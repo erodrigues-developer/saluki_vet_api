@@ -27,6 +27,7 @@ import { memoryStorage } from 'multer';
 import { ConsultationAttachment } from './entities/consultation-attachment.entity';
 import { ConsultationAttachmentsService } from './consultation-attachments.service';
 import { CreateConsultationAttachmentDto } from './dto/create-consultation-attachment.dto';
+import { Permissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('Consultation Attachments')
 @ApiBearerAuth()
@@ -40,6 +41,7 @@ export class ConsultationAttachmentsController {
   ) {}
 
   @Post(':consultationId/attachments')
+  @Permissions('atendimentos.consultation_attachments.upload')
   @ApiOperation({ summary: 'Faz upload de arquivo para o prontuário da consulta' })
   @ApiParam({ name: 'consultationId', type: Number })
   @ApiCreatedResponse({ type: ConsultationAttachment })
@@ -90,6 +92,10 @@ export class ConsultationAttachmentsController {
   }
 
   @Get(':consultationId/attachments')
+  @Permissions(
+    'atendimentos.consultation_attachments.view',
+    'atendimentos.consultations.view',
+  )
   @ApiOperation({ summary: 'Lista arquivos anexados ao prontuário da consulta' })
   @ApiParam({ name: 'consultationId', type: Number })
   @ApiOkResponse({ type: ConsultationAttachment, isArray: true })
@@ -98,6 +104,7 @@ export class ConsultationAttachmentsController {
   }
 
   @Delete('attachments/:id')
+  @Permissions('atendimentos.consultation_attachments.delete')
   @ApiOperation({ summary: 'Remove anexo do prontuário' })
   @ApiParam({ name: 'id', type: Number })
   @ApiNoContentResponse()

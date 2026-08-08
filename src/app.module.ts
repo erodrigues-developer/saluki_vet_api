@@ -10,6 +10,7 @@ import { AlsInterceptor } from './common/interceptors/als.interceptor';
 import { AuditSubscriber } from './database/subscribers/audit.subscriber';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
+import { PermissionsGuard } from './common/guards/permissions.guard';
 import { LoggerModule } from './modules/logger/logger.module';
 import { RedisModule } from './modules/redis/redis.module';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -20,6 +21,7 @@ import { SpeciesModule } from './modules/species/species.module';
 import { BreedsModule } from './modules/breeds/breeds.module';
 import { PetsModule } from './modules/pets/pets.module';
 import { RolesModule } from './modules/roles/roles.module';
+import { PermissionsModule } from './modules/permissions/permissions.module';
 import { UsersModule } from './modules/users/users.module';
 import { ClinicSettingsModule } from './modules/clinic-settings/clinic-settings.module';
 import { AppointmentTypesModule } from './modules/appointment-types/appointment-types.module';
@@ -98,6 +100,7 @@ import configuration from './configs/configuration';
     BreedsModule,
     PetsModule,
     RolesModule,
+    PermissionsModule,
     UsersModule,
     ClinicSettingsModule,
     AppointmentTypesModule,
@@ -155,6 +158,10 @@ import configuration from './configs/configuration';
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: PermissionsGuard,
     },
     {
       provide: APP_GUARD,

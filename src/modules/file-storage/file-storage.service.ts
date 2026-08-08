@@ -4,6 +4,7 @@ import { mkdir, readFile, writeFile } from 'fs/promises';
 import { extname, join } from 'path';
 import { randomUUID } from 'crypto';
 import { S3Service } from '../s3/services/s3.service';
+import { normalizeFileNameEncoding } from '../../common/utils/file-name-encoding.util';
 
 @Injectable()
 export class FileStorageService {
@@ -54,7 +55,8 @@ export class FileStorageService {
       throw new BadRequestException('Arquivo excede o tamanho permitido.');
     }
 
-    const extension = this.resolveFileExtension(file.originalname, mimeType);
+    const originalName = normalizeFileNameEncoding(file.originalname);
+    const extension = this.resolveFileExtension(originalName, mimeType);
     const fileName = `${randomUUID()}${extension}`;
     const normalizedFolder = options.folder.replace(/^\/+|\/+$/g, '');
     const storageKey = `${normalizedFolder}/${fileName}`;
@@ -71,7 +73,7 @@ export class FileStorageService {
       return {
         fileUrl: uploaded.url,
         storageKey,
-        originalName: file.originalname || fileName,
+        originalName: originalName || fileName,
         mimeType: file.mimetype || 'application/octet-stream',
         fileSize: Number(file.size || file.buffer.length),
       };
@@ -84,7 +86,7 @@ export class FileStorageService {
     return {
       fileUrl: `${options.requestBaseUrl.replace(/\/+$/, '')}/uploads/${normalizedFolder}/${fileName}`,
       storageKey,
-      originalName: file.originalname || fileName,
+      originalName: originalName || fileName,
       mimeType: file.mimetype || 'application/octet-stream',
       fileSize: Number(file.size || file.buffer.length),
     };

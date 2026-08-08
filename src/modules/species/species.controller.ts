@@ -29,6 +29,7 @@ import { UpdateSpeciesDto } from './dto/update-species.dto';
 import { FilterSpeciesDto } from './dto/filter-species.dto';
 import { Species } from './entities/species.entity';
 import { PaginatedSpeciesResponseDto } from './dto/paginated-species-response.dto';
+import { Permissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('Species')
 @ApiBearerAuth()
@@ -40,6 +41,7 @@ export class SpeciesController {
   constructor(private readonly speciesService: SpeciesService) {}
 
   @Post()
+  @Permissions('cadastros.species.create')
   @ApiOperation({ summary: 'Cria uma espécie' })
   @ApiCreatedResponse({
     description: 'Espécie criada com sucesso',
@@ -51,6 +53,12 @@ export class SpeciesController {
   }
 
   @Get()
+  @Permissions(
+    'cadastros.species.view',
+    'atendimentos.appointments.view',
+    'clientes.clients.view',
+    'pets.pets.view',
+  )
   @ApiOperation({
     summary: 'Lista espécies com filtros e paginação',
     description: 'Filtra por nome e permite ordenação/paginação.',
@@ -80,6 +88,12 @@ export class SpeciesController {
   }
 
   @Get(':id')
+  @Permissions(
+    'cadastros.species.view',
+    'atendimentos.appointments.view',
+    'clientes.clients.view',
+    'pets.pets.view',
+  )
   @ApiOperation({ summary: 'Busca uma espécie por ID' })
   @ApiParam({ name: 'id', type: Number, example: 1 })
   @ApiOkResponse({ description: 'Espécie encontrada', type: Species })
@@ -89,6 +103,7 @@ export class SpeciesController {
   }
 
   @Patch(':id')
+  @Permissions('cadastros.species.update')
   @ApiOperation({ summary: 'Atualiza uma espécie' })
   @ApiParam({ name: 'id', type: Number, example: 1 })
   @ApiOkResponse({ description: 'Espécie atualizada', type: Species })
@@ -102,6 +117,7 @@ export class SpeciesController {
   }
 
   @Delete(':id')
+  @Permissions('cadastros.species.delete')
   @ApiOperation({ summary: 'Remove uma espécie' })
   @ApiParam({ name: 'id', type: Number, example: 1 })
   @ApiNoContentResponse({ description: 'Espécie removida' })

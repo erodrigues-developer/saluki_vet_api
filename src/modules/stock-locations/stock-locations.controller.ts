@@ -17,6 +17,7 @@ import {
 } from '@nestjs/swagger';
 import { StockLocation } from './entities/stock-location.entity';
 import { StockLocationsService } from './stock-locations.service';
+import { Permissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('stock-locations')
 @ApiBearerAuth()
@@ -25,6 +26,7 @@ export class StockLocationsController {
   constructor(private readonly stockLocationsService: StockLocationsService) {}
 
   @Post()
+  @Permissions('cadastros.stock_locations.create')
   @ApiOperation({ summary: 'Criar local de estoque' })
   @ApiOkResponse({ type: StockLocation })
   create(@Body() payload: any) {
@@ -32,6 +34,11 @@ export class StockLocationsController {
   }
 
   @Get()
+  @Permissions(
+    'cadastros.stock_locations.view',
+    'estoque.balances.view',
+    'estoque.movements.view',
+  )
   @ApiOperation({ summary: 'Listar locais de estoque' })
   findAll(
     @Query('page') page = 1,
@@ -53,6 +60,11 @@ export class StockLocationsController {
   }
 
   @Get(':id')
+  @Permissions(
+    'cadastros.stock_locations.view',
+    'estoque.balances.view',
+    'estoque.movements.view',
+  )
   @ApiOperation({ summary: 'Buscar local de estoque por ID' })
   @ApiOkResponse({ type: StockLocation })
   findOne(@Param('id', ParseIntPipe) id: number) {
@@ -60,6 +72,7 @@ export class StockLocationsController {
   }
 
   @Patch(':id')
+  @Permissions('cadastros.stock_locations.update')
   @ApiOperation({ summary: 'Atualizar local de estoque' })
   @ApiOkResponse({ type: StockLocation })
   update(@Param('id', ParseIntPipe) id: number, @Body() payload: any) {
@@ -67,6 +80,7 @@ export class StockLocationsController {
   }
 
   @Delete(':id')
+  @Permissions('cadastros.stock_locations.delete')
   @ApiOperation({ summary: 'Excluir local de estoque' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.stockLocationsService.remove(id);

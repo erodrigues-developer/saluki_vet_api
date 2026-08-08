@@ -22,10 +22,12 @@ import { CheckoutSaleDto } from './dto/checkout-sale.dto';
 import { CheckoutSaleResponseDto } from './dto/checkout-sale-response.dto';
 import { CashRegistersService } from '../cash-registers/cash-registers.service';
 import { PrintRequestDto } from '../cash-registers/dto/cash-register.dto';
+import { Permissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('sales')
 @ApiBearerAuth()
 @Controller('sales')
+@Permissions('financeiro.sales.view')
 export class SalesController {
   constructor(
     private readonly salesService: SalesService,
@@ -33,6 +35,7 @@ export class SalesController {
   ) {}
 
   @Post()
+  @Permissions('financeiro.sales.create')
   @ApiOperation({ summary: 'Criar uma nova venda' })
   @ApiOkResponse({ type: Sale })
   create(@Body() createDto: any, @Req() req: any) {
@@ -40,6 +43,7 @@ export class SalesController {
   }
 
   @Post(':id/checkout')
+  @Permissions('financeiro.sales.checkout')
   @ApiOperation({
     summary:
       'Realizar checkout transacional da venda (pagamento + contas a receber + baixa da venda)',
@@ -54,6 +58,7 @@ export class SalesController {
   }
 
   @Post(':id/cancel')
+  @Permissions('financeiro.sales.cancel')
   @ApiOperation({ summary: 'Cancelar venda' })
   @ApiOkResponse({ type: Sale })
   cancel(@Param('id', ParseIntPipe) id: number) {
@@ -61,6 +66,7 @@ export class SalesController {
   }
 
   @Post(':id/undo-checkout')
+  @Permissions('financeiro.sales.undo_checkout')
   @ApiOperation({ summary: 'Estornar pagamento de venda paga' })
   @ApiOkResponse({ type: Sale })
   undoCheckout(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
@@ -74,6 +80,7 @@ export class SalesController {
   }
 
   @Post(':id/print-receipt')
+  @Permissions('financeiro.sales.receipt.print')
   @ApiOperation({ summary: 'Criar job de impressão do cupom não fiscal' })
   printReceipt(
     @Param('id', ParseIntPipe) id: number,
@@ -117,6 +124,7 @@ export class SalesController {
   }
 
   @Patch(':id')
+  @Permissions('financeiro.sales.update')
   @ApiOperation({ summary: 'Atualizar uma venda' })
   @ApiOkResponse({ type: Sale })
   update(@Param('id') id: string, @Body() updateDto: any) {
@@ -124,6 +132,7 @@ export class SalesController {
   }
 
   @Delete(':id')
+  @Permissions('financeiro.sales.cancel')
   @ApiOperation({ summary: 'Remover uma venda' })
   remove(@Param('id') id: string) {
     return this.salesService.remove(+id);

@@ -13,6 +13,7 @@ import { AiConversationsService } from './ai-conversations.service';
 import { FindOrCreateAiConversationDto } from './dto/find-or-create-ai-conversation.dto';
 import { CreateAiMessageDto } from './dto/create-ai-message.dto';
 import { CreateAiActionDto } from './dto/create-ai-action.dto';
+import { Permissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('AI Conversations')
 @ApiBearerAuth()
@@ -20,6 +21,7 @@ import { CreateAiActionDto } from './dto/create-ai-action.dto';
   path: 'ai/conversations',
   version: '1',
 })
+@Permissions('dashboard.view', 'atendimentos.consultations.ai')
 export class AiConversationsController {
   constructor(private readonly service: AiConversationsService) {}
 

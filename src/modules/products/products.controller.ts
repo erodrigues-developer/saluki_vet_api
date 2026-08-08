@@ -25,6 +25,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { ProductsService } from './products.service';
 import { Product } from './entities/product.entity';
+import { Permissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('Products')
 @ApiBearerAuth()
@@ -36,6 +37,7 @@ export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Post()
+  @Permissions('cadastros.products.create')
   @ApiOperation({ summary: 'Cria um novo produto/serviço' })
   @ApiOkResponse({ type: Product })
   create(@Body() payload: any) {
@@ -43,6 +45,7 @@ export class ProductsController {
   }
 
   @Post('upload-image')
+  @Permissions('cadastros.products.create', 'cadastros.products.update')
   @ApiOperation({ summary: 'Faz upload de imagem de produto' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -84,12 +87,32 @@ export class ProductsController {
   }
 
   @Get()
+  @Permissions(
+    'cadastros.products.view',
+    'atendimentos.inpatient_records.view',
+    'atendimentos.consultations.view',
+    'atendimentos.consultations.create',
+    'financeiro.sales.view',
+    'financeiro.sales.create',
+    'estoque.balances.view',
+    'estoque.movements.view',
+  )
   @ApiOperation({ summary: 'Lista produtos com paginação e filtros' })
   findAll(@Query() query: any) {
     return this.productsService.findAll(query);
   }
 
   @Get(':id')
+  @Permissions(
+    'cadastros.products.view',
+    'atendimentos.inpatient_records.view',
+    'atendimentos.consultations.view',
+    'atendimentos.consultations.create',
+    'financeiro.sales.view',
+    'financeiro.sales.create',
+    'estoque.balances.view',
+    'estoque.movements.view',
+  )
   @ApiOperation({ summary: 'Busca um produto por ID' })
   @ApiOkResponse({ type: Product })
   findOne(@Param('id', ParseIntPipe) id: number) {
@@ -97,6 +120,7 @@ export class ProductsController {
   }
 
   @Patch(':id')
+  @Permissions('cadastros.products.update')
   @ApiOperation({ summary: 'Atualiza um produto' })
   @ApiOkResponse({ type: Product })
   update(@Param('id', ParseIntPipe) id: number, @Body() payload: any) {
@@ -104,6 +128,7 @@ export class ProductsController {
   }
 
   @Delete(':id')
+  @Permissions('cadastros.products.delete')
   @ApiOperation({ summary: 'Remove (soft delete) um produto' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.productsService.remove(id);

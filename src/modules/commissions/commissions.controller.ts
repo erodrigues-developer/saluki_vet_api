@@ -12,10 +12,12 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CommissionsService } from './commissions.service';
 import { PreviewCommissionPayoutDto } from './dto/preview-commission-payout.dto';
 import { PayAccountDto } from '../accounts-payable/dto/pay-account.dto';
+import { Permissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('commissions')
 @ApiBearerAuth()
 @Controller('commissions')
+@Permissions('financeiro.commissions.view')
 export class CommissionsController {
   constructor(private readonly commissionsService: CommissionsService) {}
 
@@ -106,6 +108,7 @@ export class CommissionsController {
   }
 
   @Post('payouts/preview')
+  @Permissions('financeiro.commissions.preview')
   @ApiOperation({
     summary: 'Pré-visualizar o pagamento de comissão antes da geração',
   })
@@ -114,6 +117,7 @@ export class CommissionsController {
   }
 
   @Post('payouts')
+  @Permissions('financeiro.commissions.payout')
   @ApiOperation({
     summary: 'Gerar pagamento de comissão e sua conta a pagar correspondente',
   })
@@ -122,6 +126,7 @@ export class CommissionsController {
   }
 
   @Post('payouts/:id/pay')
+  @Permissions('financeiro.commissions.pay')
   @ApiOperation({
     summary: 'Registrar o pagamento de um lote de comissão',
   })
@@ -133,6 +138,7 @@ export class CommissionsController {
   }
 
   @Post('payouts/:id/undo-pay')
+  @Permissions('financeiro.commissions.undo_pay')
   @ApiOperation({
     summary: 'Estornar o pagamento de um lote de comissão',
   })

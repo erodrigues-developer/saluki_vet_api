@@ -6,8 +6,10 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
   ManyToMany,
+  JoinTable,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
+import { Permission } from '../../permissions/entities/permission.entity';
 
 @Entity({ name: 'roles' })
 export class Role {
@@ -28,6 +30,18 @@ export class Role {
 
   @ManyToMany(() => User, (user) => user.roles)
   users: User[];
+
+  @ManyToMany(() => Permission, (permission) => permission.roles)
+  @JoinTable({
+    name: 'role_permissions',
+    joinColumn: { name: 'role_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'permission_id', referencedColumnName: 'id' },
+  })
+  @ApiProperty({
+    type: () => [Permission],
+    description: 'Permissões atribuídas ao papel',
+  })
+  permissions: Permission[];
 
   @ApiProperty({ example: '2024-07-09T12:00:00Z' })
   @CreateDateColumn({ name: 'created_at', type: 'timestamp' })

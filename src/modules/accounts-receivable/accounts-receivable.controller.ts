@@ -17,12 +17,12 @@ import { UpdateAccountReceivableDto } from './dto/update-account-receivable.dto'
 import { ReceiveAccountReceivableDto } from './dto/receive-account-receivable.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
+import { Permissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('Accounts Receivable')
 @ApiBearerAuth('jwt')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('ADMIN')
+@Permissions('financeiro.accounts_receivable.view')
 @Controller('accounts-receivable')
 export class AccountsReceivableController {
   constructor(
@@ -30,12 +30,14 @@ export class AccountsReceivableController {
   ) {}
 
   @Post()
+  @Permissions('financeiro.accounts_receivable.create')
   @ApiOperation({ summary: 'Cadastrar nova conta a receber' })
   create(@Body() dto: CreateAccountReceivableDto) {
     return this.accountsReceivableService.create(dto);
   }
 
   @Patch(':id')
+  @Permissions('financeiro.accounts_receivable.update')
   @ApiOperation({ summary: 'Atualizar conta a receber' })
   update(
     @Param('id', ParseIntPipe) id: number,
@@ -87,6 +89,7 @@ export class AccountsReceivableController {
   }
 
   @Patch(':id/receive')
+  @Permissions('financeiro.accounts_receivable.receive')
   @ApiOperation({ summary: 'Registrar recebimento de uma conta' })
   markAsReceived(
     @Param('id', ParseIntPipe) id: number,
@@ -96,6 +99,7 @@ export class AccountsReceivableController {
   }
 
   @Patch(':id/undo-receive')
+  @Permissions('financeiro.accounts_receivable.reverse')
   @ApiOperation({ summary: 'Estornar recebimento de uma conta manual' })
   undoReceive(@Param('id', ParseIntPipe) id: number) {
     return this.accountsReceivableService.undoReceive(id);

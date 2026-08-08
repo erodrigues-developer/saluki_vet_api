@@ -29,6 +29,7 @@ import { UpdateBreedDto } from './dto/update-breed.dto';
 import { FilterBreedsDto } from './dto/filter-breeds.dto';
 import { Breed } from './entities/breed.entity';
 import { PaginatedBreedsResponseDto } from './dto/paginated-breeds-response.dto';
+import { Permissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('Breeds')
 @ApiBearerAuth()
@@ -40,6 +41,7 @@ export class BreedsController {
   constructor(private readonly breedsService: BreedsService) {}
 
   @Post()
+  @Permissions('cadastros.breeds.create')
   @ApiOperation({ summary: 'Cria uma raça' })
   @ApiCreatedResponse({
     description: 'Raça criada com sucesso',
@@ -51,6 +53,12 @@ export class BreedsController {
   }
 
   @Get()
+  @Permissions(
+    'cadastros.breeds.view',
+    'atendimentos.appointments.view',
+    'clientes.clients.view',
+    'pets.pets.view',
+  )
   @ApiOperation({
     summary: 'Lista raças com filtros e paginação',
     description: 'Filtra por nome e speciesId; permite ordenação/paginação.',
@@ -81,6 +89,12 @@ export class BreedsController {
   }
 
   @Get(':id')
+  @Permissions(
+    'cadastros.breeds.view',
+    'atendimentos.appointments.view',
+    'clientes.clients.view',
+    'pets.pets.view',
+  )
   @ApiOperation({ summary: 'Busca uma raça por ID' })
   @ApiParam({ name: 'id', type: Number, example: 1 })
   @ApiOkResponse({ description: 'Raça encontrada', type: Breed })
@@ -90,6 +104,7 @@ export class BreedsController {
   }
 
   @Patch(':id')
+  @Permissions('cadastros.breeds.update')
   @ApiOperation({ summary: 'Atualiza uma raça' })
   @ApiParam({ name: 'id', type: Number, example: 1 })
   @ApiOkResponse({ description: 'Raça atualizada', type: Breed })
@@ -103,6 +118,7 @@ export class BreedsController {
   }
 
   @Delete(':id')
+  @Permissions('cadastros.breeds.delete')
   @ApiOperation({ summary: 'Remove uma raça' })
   @ApiParam({ name: 'id', type: Number, example: 1 })
   @ApiNoContentResponse({ description: 'Raça removida' })

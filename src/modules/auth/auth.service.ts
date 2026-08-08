@@ -24,10 +24,23 @@ export class AuthService {
       throw new UnauthorizedException('Credenciais inválidas');
     }
 
+    const permissions = [
+      ...new Set(
+        (user.roles || []).flatMap((role) =>
+          (role.permissions || []).map((permission) => permission.code),
+        ),
+      ),
+    ].sort();
+    const roles = (user.roles || []).map((role) => ({
+      id: role.id,
+      code: role.code,
+      name: role.name,
+    }));
+
     const payload = {
       email: user.email,
       sub: user.id,
-      roles: user.roles,
+      roles,
     };
 
     return {
@@ -36,8 +49,33 @@ export class AuthService {
         id: user.id,
         name: user.name,
         email: user.email,
-        roles: user.roles,
+        roles,
+        permissions,
       },
+    };
+  }
+
+  async me(userId: number) {
+    const user = await this.usersService.findOne(userId);
+    const permissions = [
+      ...new Set(
+        (user.roles || []).flatMap((role) =>
+          (role.permissions || []).map((permission) => permission.code),
+        ),
+      ),
+    ].sort();
+    const roles = (user.roles || []).map((role) => ({
+      id: role.id,
+      code: role.code,
+      name: role.name,
+    }));
+
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      roles,
+      permissions,
     };
   }
 }

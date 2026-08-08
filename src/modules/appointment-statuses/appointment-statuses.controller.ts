@@ -16,6 +16,7 @@ import {
 } from '@nestjs/swagger';
 import { AppointmentStatusesService } from './appointment-statuses.service';
 import { AppointmentStatus } from './entities/appointment-status.entity';
+import { Permissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('Appointment Statuses')
 @ApiBearerAuth()
@@ -29,6 +30,7 @@ export class AppointmentStatusesController {
   ) {}
 
   @Post()
+  @Permissions('cadastros.appointment_statuses.create')
   @ApiOperation({ summary: 'Cria um novo status de agendamento' })
   @ApiOkResponse({ type: AppointmentStatus })
   create(@Body() payload: any) {
@@ -36,6 +38,7 @@ export class AppointmentStatusesController {
   }
 
   @Get()
+  @Permissions('cadastros.appointment_statuses.view', 'atendimentos.appointments.view')
   @ApiOperation({ summary: 'Lista todos os status de agendamento' })
   @ApiOkResponse({ type: [AppointmentStatus] })
   findAll() {
@@ -43,6 +46,7 @@ export class AppointmentStatusesController {
   }
 
   @Get(':id')
+  @Permissions('cadastros.appointment_statuses.view', 'atendimentos.appointments.view')
   @ApiOperation({ summary: 'Busca um status por ID' })
   @ApiOkResponse({ type: AppointmentStatus })
   findOne(@Param('id', ParseIntPipe) id: number) {
@@ -50,12 +54,14 @@ export class AppointmentStatusesController {
   }
 
   @Delete(':id')
+  @Permissions('cadastros.appointment_statuses.delete')
   @ApiOperation({ summary: 'Remove um status' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.appointmentStatusesService.remove(id);
   }
 
   @Patch(':id')
+  @Permissions('cadastros.appointment_statuses.update')
   @ApiOperation({ summary: 'Atualiza um status de agendamento' })
   @ApiOkResponse({ type: AppointmentStatus })
   update(@Param('id', ParseIntPipe) id: number, @Body() payload: any) {

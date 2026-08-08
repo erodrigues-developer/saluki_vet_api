@@ -10,6 +10,7 @@ import {
   Patch,
   Post,
   Query,
+  Req,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -28,6 +29,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { FilterUsersDto } from './dto/filter-users.dto';
 import { User } from './entities/user.entity';
 import { PaginatedUsersResponseDto } from './dto/paginated-users-response.dto';
+import { Permissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('Users')
 @ApiBearerAuth()
@@ -35,10 +37,12 @@ import { PaginatedUsersResponseDto } from './dto/paginated-users-response.dto';
   path: 'users',
   version: '1',
 })
+@Permissions('cadastros.users.view')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
+  @Permissions('cadastros.users.create')
   @ApiOperation({ summary: 'Cria um usuário' })
   @ApiCreatedResponse({ description: 'Usuário criado com sucesso', type: User })
   @ApiBadRequestResponse({ description: 'Payload inválido' })
@@ -47,6 +51,16 @@ export class UsersController {
   }
 
   @Get()
+  @Permissions(
+    'cadastros.users.view',
+    'atendimentos.appointments.view',
+    'atendimentos.consultations.view',
+    'atendimentos.exam_requests.print',
+    'financeiro.sales.view',
+    'financeiro.sales.create',
+    'financeiro.commissions.view',
+    'configuracoes.availability.view',
+  )
   @ApiOperation({ summary: 'Lista usuários com filtros e paginação' })
   @ApiOkResponse({
     description: 'Lista paginada de usuários',
@@ -57,6 +71,16 @@ export class UsersController {
   }
 
   @Get(':id')
+  @Permissions(
+    'cadastros.users.view',
+    'atendimentos.appointments.view',
+    'atendimentos.consultations.view',
+    'atendimentos.exam_requests.print',
+    'financeiro.sales.view',
+    'financeiro.sales.create',
+    'financeiro.commissions.view',
+    'configuracoes.availability.view',
+  )
   @ApiOperation({ summary: 'Busca um usuário por ID' })
   @ApiParam({ name: 'id', type: Number, example: 1 })
   @ApiOkResponse({ description: 'Usuário encontrado', type: User })
@@ -66,6 +90,7 @@ export class UsersController {
   }
 
   @Patch(':id')
+  @Permissions('cadastros.users.update')
   @ApiOperation({ summary: 'Atualiza um usuário' })
   @ApiParam({ name: 'id', type: Number, example: 1 })
   @ApiOkResponse({ description: 'Usuário atualizado', type: User })
@@ -74,17 +99,19 @@ export class UsersController {
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateUserDto: UpdateUserDto,
+    @Req() req: any,
   ) {
-    return this.usersService.update(id, updateUserDto);
+    return this.usersService.update(id, updateUserDto, Number(req.user?.userId));
   }
 
   @Delete(':id')
+  @Permissions('cadastros.users.delete')
   @ApiOperation({ summary: 'Remove um usuário' })
   @ApiParam({ name: 'id', type: Number, example: 1 })
   @ApiNoContentResponse({ description: 'Usuário removido' })
   @ApiNotFoundResponse({ description: 'Usuário não encontrado' })
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Param('id', ParseIntPipe) id: number) {
-    await this.usersService.remove(id);
+  async remove(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    await this.usersService.remove(id, Number(req.user?.userId));
   }
 }
