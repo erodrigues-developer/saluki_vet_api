@@ -1,4 +1,3 @@
-version: "3.3"
 services:
   saluki_vet_api:
     container_name: saluki_vet_api
