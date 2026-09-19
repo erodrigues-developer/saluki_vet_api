@@ -311,7 +311,7 @@ export class AiConversationsService {
   }
 
   private defaultGuardrailResponse() {
-    return 'Este assistente está disponível apenas para apoiar tarefas relacionadas ao Saluki Vet, à operação da clínica e aos dados da tela atual.';
+    return 'Este assistente está disponível apenas para apoiar tarefas relacionadas ao Sigma Vet, à operação da clínica e aos dados da tela atual.';
   }
 
   private async generateAssistantResponse(

@@ -75,7 +75,7 @@ export default class SystemSeeder implements Seeder {
       const hashedPw = await bcrypt.hash('admin123', 10);
       if (adminRole) {
         const newUser = userRepo.create({
-          name: 'Admin Saluki',
+          name: 'Admin Sigma Vet',
           email: 'admin@salukivet.com.br',
           passwordHash: hashedPw,
           roles: [adminRole],

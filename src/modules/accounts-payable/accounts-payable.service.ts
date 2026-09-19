@@ -266,9 +266,11 @@ export class AccountsPayableService {
         if (isOverdue) totalOverdue += amount;
       }
 
-      const cat = ap.category || 'Sem Categoria';
-      if (!categoryData[cat]) categoryData[cat] = 0;
-      categoryData[cat] += amount;
+      if (ap.status !== 'CANCELED') {
+        const cat = ap.category || 'Sem Categoria';
+        if (!categoryData[cat]) categoryData[cat] = 0;
+        categoryData[cat] += amount;
+      }
 
       const day = due.getDate();
       if (!flowData[day]) flowData[day] = { paid: 0, pending: 0, overdue: 0 };

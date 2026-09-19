@@ -15,12 +15,12 @@ export interface AiGuardrailResult {
 @Injectable()
 export class AiConversationGuardrailsService {
   private readonly refusalResponse = [
-    'Este assistente está disponível apenas para apoiar tarefas relacionadas ao Saluki Vet, à operação da clínica e aos dados da tela atual.',
+    'Este assistente está disponível apenas para apoiar tarefas relacionadas ao Sigma Vet, à operação da clínica e aos dados da tela atual.',
     'Posso ajudar com dashboard, consultas, anamnese, prontuário, estoque, vacinas, agenda, financeiro da clínica e uso do próprio sistema.',
   ].join(' ');
 
   private readonly clarifyResponse = [
-    'Posso ajudar se a pergunta estiver relacionada ao contexto atual do Saluki Vet.',
+    'Posso ajudar se a pergunta estiver relacionada ao contexto atual do Sigma Vet.',
     'Reformule conectando sua dúvida à clínica, à consulta, ao dashboard ou aos dados desta tela.',
   ].join(' ');
 
@@ -126,6 +126,7 @@ export class AiConversationGuardrailsService {
   private hasDomainSignal(text: string) {
     return [
       'saluki',
+      'sigma',
       'clinica',
       'clinica veterinaria',
       'veterinario',

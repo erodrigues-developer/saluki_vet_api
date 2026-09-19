@@ -13,11 +13,11 @@ export class ClinicSettings {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
-  @ApiProperty({ example: 'Clínica Veterinária Saluki' })
+  @ApiProperty({ example: 'Clínica Veterinária Sigma Vet' })
   @Column({ name: 'name', type: 'varchar', length: 200, default: 'Minha Clínica' })
   name: string;
 
-  @ApiProperty({ example: 'Saluki', nullable: true })
+  @ApiProperty({ example: 'Sigma Vet', nullable: true })
   @Column({ name: 'short_name', type: 'varchar', length: 100, nullable: true })
   shortName?: string | null;
 
@@ -65,7 +65,7 @@ export class ClinicSettings {
   @Column({ name: 'whatsapp', type: 'varchar', length: 30, nullable: true })
   whatsapp?: string | null;
 
-  @ApiProperty({ example: 'contato@saluki.vet', nullable: true })
+  @ApiProperty({ example: 'contato@sigmavet.com.br', nullable: true })
   @Column({ name: 'email', type: 'varchar', length: 200, nullable: true })
   email?: string | null;
 

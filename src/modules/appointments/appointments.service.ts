@@ -244,6 +244,8 @@ export class AppointmentsService {
     clientId?: number;
     veterinarianId?: number;
     statusId?: number;
+    dateFrom?: string;
+    dateTo?: string;
     late?: boolean | string;
     sortBy?: string;
     sortDirection?: 'asc' | 'desc';
@@ -271,6 +273,8 @@ export class AppointmentsService {
         ? Number(params.veterinarianId)
         : undefined,
       statusId: params.statusId ? Number(params.statusId) : undefined,
+      dateFrom: params.dateFrom,
+      dateTo: params.dateTo,
       lateOnly,
       lateThreshold,
       sortBy,

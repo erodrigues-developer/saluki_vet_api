@@ -4,8 +4,6 @@ services:
     build:
       context: .
       dockerfile: ./Dockerfile.dev
-    env_file:
-      - .env
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:

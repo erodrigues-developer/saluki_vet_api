@@ -37,7 +37,7 @@ async function bootstrap() {
   });
 
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('Saluki Vet API')
+    .setTitle('Sigma Vet API')
     .setDescription(
       'API de gestão de clientes, pets e agendamentos para a clínica veterinária. Todos os exemplos estão prontos para copiar/colar.',
     )

@@ -525,9 +525,15 @@ export class ConsultationDictationAiService {
       maxRetries: 2,
       apiKey: this.configService.get<string>('OPENAI_API_KEY'),
       configuration: {
+        ...this.getOpenAiBaseUrlConfig(),
         timeout: timeoutMs,
       },
     });
+  }
+
+  private getOpenAiBaseUrlConfig() {
+    const baseURL = this.configService.get<string>('OPENAI_BASE_URL')?.trim();
+    return baseURL ? { baseURL } : {};
   }
 
   private getAiProvider(): AiProvider {

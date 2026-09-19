@@ -22,7 +22,7 @@ WORKDIR /usr/src/app
 
 COPY --from=builder /usr/src/app ./
 
-EXPOSE 3001
+EXPOSE 3000
 
 ENV NODE_OPTIONS=--openssl-legacy-provider
 

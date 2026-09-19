@@ -79,7 +79,11 @@ export class BoxesService {
         status: 'ACTIVE',
       },
       relations: {
-        pet: true,
+        pet: {
+          client: true,
+          species: true,
+          breed: true,
+        },
         box: true,
         consultation: true,
       },

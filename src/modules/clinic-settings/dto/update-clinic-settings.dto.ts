@@ -11,13 +11,13 @@ import {
 } from 'class-validator';
 
 export class UpdateClinicSettingsDto {
-  @ApiPropertyOptional({ example: 'Clínica Veterinária Saluki' })
+  @ApiPropertyOptional({ example: 'Clínica Veterinária Sigma Vet' })
   @IsString()
   @IsOptional()
   @MaxLength(200)
   name?: string;
 
-  @ApiPropertyOptional({ example: 'Saluki' })
+  @ApiPropertyOptional({ example: 'Sigma Vet' })
   @IsString()
   @IsOptional()
   @MaxLength(100)
@@ -83,7 +83,7 @@ export class UpdateClinicSettingsDto {
   @MaxLength(30)
   whatsapp?: string;
 
-  @ApiPropertyOptional({ example: 'contato@saluki.vet' })
+  @ApiPropertyOptional({ example: 'contato@sigmavet.com.br' })
   @IsEmail()
   @IsOptional()
   @MaxLength(200)

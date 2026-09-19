@@ -29,6 +29,8 @@ export class AppointmentsRepository extends Repository<Appointment> {
       clientId,
       veterinarianId,
       statusId,
+      dateFrom,
+      dateTo,
       lateOnly,
       lateThreshold,
       sortBy,
@@ -47,6 +49,12 @@ export class AppointmentsRepository extends Repository<Appointment> {
       });
     }
     if (statusId) qb.andWhere('appointment.status_id = :statusId', { statusId });
+    if (dateFrom) {
+      qb.andWhere('appointment.starts_at >= :dateFrom', { dateFrom });
+    }
+    if (dateTo) {
+      qb.andWhere('appointment.starts_at <= :dateTo', { dateTo });
+    }
 
     if (lateOnly) {
       qb.andWhere('status.code IN (:...lateStatusCodes)', {
