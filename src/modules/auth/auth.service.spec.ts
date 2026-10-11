@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
-import { JwtService } from '@nestjs/jwt';
+import { SessionService } from '../../security/session.service';
 import { UsersService } from '../users/users.service';
 import { UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
@@ -10,27 +10,27 @@ jest.mock('bcrypt');
 describe('AuthService', () => {
   let service: AuthService;
   let usersService: jest.Mocked<UsersService>;
-  let jwtService: jest.Mocked<JwtService>;
+  let jwtService: jest.Mocked<SessionService>;
 
   beforeEach(async () => {
     const mockUsersService = {
       findByEmailForAuth: jest.fn(),
     };
     const mockJwtService = {
-      sign: jest.fn(),
+      create: jest.fn(), loginAllowed: jest.fn().mockResolvedValue(true),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
         { provide: UsersService, useValue: mockUsersService },
-        { provide: JwtService, useValue: mockJwtService },
+        { provide: SessionService, useValue: mockJwtService },
       ],
     }).compile();
 
     service = module.get<AuthService>(AuthService);
     usersService = module.get(UsersService);
-    jwtService = module.get(JwtService);
+    jwtService = module.get(SessionService);
   });
 
   it('should throw an error when user is not found', async () => {
@@ -68,7 +68,7 @@ describe('AuthService', () => {
     };
     usersService.findByEmailForAuth.mockResolvedValue(mockUser);
     (bcrypt.compare as jest.Mock).mockResolvedValue(true);
-    jwtService.sign.mockReturnValue('valid_token');
+    jwtService.create.mockResolvedValue({id: 'opaque_session', session: {csrf: 'csrf', userId: 1, expiresAt: 1, fingerprint: 'hash'}});
 
     const result = await service.login({
       email: 'test@vet.com',
@@ -76,12 +76,13 @@ describe('AuthService', () => {
     });
 
     expect(result).toEqual({
-      access_token: 'valid_token',
+      id: 'opaque_session', session: {csrf: 'csrf', userId: 1, expiresAt: 1, fingerprint: 'hash'},
       user: {
         id: mockUser.id,
         name: mockUser.name,
         email: mockUser.email,
         roles: mockUser.roles,
+        permissions: [],
       },
     });
   });

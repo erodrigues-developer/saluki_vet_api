@@ -1,3 +1,4 @@
+import { safeRequestLog } from '../../../security/safe-log';
 import {
   ExceptionFilter,
   Catch,
@@ -54,31 +55,24 @@ export class HttpExceptionFilter implements ExceptionFilter {
     }
 
     const exceptionDetails = {
-      message: message,
+      message: 'Request rejected',
       status: status,
-      stack: stack,
+
     };
 
     const responseBody = {
       statusCode: status,
       timestamp: new Date().toISOString(),
-      path: request.url,
-      message: message,
-      errors: errors,
+      path: request.path,
+      message: status >= 500 ? 'Internal server error' : message,
+      errors: status >= 500 ? [] : errors,
     };
 
     const log = {
       action: 'error',
-      request: {
-        method: request.method,
-        url: request.url,
-        body: JSON.stringify(request.body),
-        query: JSON.stringify(request.query),
-        headers: JSON.stringify(request.headers),
-      },
+      request: safeRequestLog(request),
       exception: exceptionDetails,
       response: {
-        body: JSON.stringify(responseBody),
         statusCode: status,
       },
     };

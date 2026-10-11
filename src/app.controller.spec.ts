@@ -43,8 +43,7 @@ describe('AppController', () => {
     it('should return health payload', async () => {
       const result = await appController.getHealth();
       expect(result.status).toBe('ok');
-      expect(result.checks.database.status).toBe('up');
-      expect(result.checks.redis.status).toBe('up');
+      expect(result).toEqual({status: 'ok'});
     });
   });
 });

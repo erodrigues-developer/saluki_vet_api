@@ -1,3 +1,4 @@
+import { validateRaster, rasterExtension } from '../../security/uploads';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { mkdir, writeFile } from 'fs/promises';
@@ -57,15 +58,16 @@ export class ClinicSettingsService {
       throw new BadRequestException('Arquivo de imagem recebido sem conteudo.');
     }
 
+    validateRaster(file.buffer, file.mimetype || '');
     if (!file.mimetype?.startsWith('image/')) {
       throw new BadRequestException('Envie apenas arquivos de imagem.');
     }
 
-    if (Number(file.size || 0) > 5 * 1024 * 1024) {
+    if (file.buffer.length > 5 * 1024 * 1024 || Number(file.size || 0) > 5 * 1024 * 1024) {
       throw new BadRequestException('A imagem deve ter no maximo 5 MB para upload.');
     }
 
-    const extension = this.resolveFileExtension(file.originalname, file.mimetype);
+    const extension = rasterExtension(file.mimetype || '');
     const fileName = `${randomUUID()}${extension}`;
     const folder = field === 'logo' ? 'logos' : 'login';
     const uploadsDir = join(process.cwd(), 'uploads', 'clinic-settings', folder);

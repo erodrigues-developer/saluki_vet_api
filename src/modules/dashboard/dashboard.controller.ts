@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Req } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Permissions } from '../../common/decorators/permissions.decorator';
 import { DashboardService } from './dashboard.service';
@@ -12,7 +12,7 @@ export class DashboardController {
 
   @Get('overview')
   @ApiOperation({ summary: 'Obter a visão operacional consolidada da clínica' })
-  getOverview() {
-    return this.dashboardService.getOverview();
+  getOverview(@Req() req: any) {
+    return this.dashboardService.getOverview(req.user);
   }
 }

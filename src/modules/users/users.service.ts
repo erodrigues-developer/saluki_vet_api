@@ -62,6 +62,22 @@ export class UsersService {
     };
   }
 
+  async lookupProfessionals() {
+    const data = await this.usersRepository.createQueryBuilder('user')
+      .innerJoin('user.roles', 'role', 'role.code IN (:...codes)', { codes: ['VET', 'VETERINARIAN'] })
+      .select(['user.id AS id', 'user.name AS name']).distinct(true)
+      .where('user.is_active = true').andWhere('user.deleted_at IS NULL')
+      .orderBy('user.name', 'ASC').getRawMany();
+    return { data: data.map((u) => ({ id: Number(u.id), name: u.name })) };
+  }
+
+  async lookupProfessional(id: number) {
+    const { data } = await this.lookupProfessionals();
+    const user = data.find((u) => u.id === id);
+    if (!user) throw new NotFoundException('Profissional não encontrado');
+    return user;
+  }
+
   async findOne(id: number): Promise<User> {
     const user = await this.usersRepository.findOne({
       where: { id },
@@ -76,7 +92,7 @@ export class UsersService {
   async findByEmailForAuth(email: string): Promise<User | null> {
     return this.usersRepository.findOne({
       where: { email },
-      select: ['id', 'email', 'passwordHash', 'name', 'isActive'],
+      select: ['id', 'email', 'passwordHash', 'name', 'isActive', 'updatedAt'],
       relations: ['roles', 'roles.permissions'],
     });
   }

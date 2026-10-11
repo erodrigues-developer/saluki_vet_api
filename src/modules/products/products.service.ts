@@ -1,3 +1,4 @@
+import { validateRaster, rasterExtension } from '../../security/uploads';
 import {
   BadRequestException,
   ConflictException,
@@ -163,20 +164,18 @@ export class ProductsService {
       throw new BadRequestException('Arquivo de imagem recebido sem conteudo.');
     }
 
+    validateRaster(file.buffer, file.mimetype || '');
     if (!file.mimetype?.startsWith('image/')) {
       throw new BadRequestException('Envie apenas arquivos de imagem.');
     }
 
-    if (Number(file.size || 0) > 5 * 1024 * 1024) {
+    if (file.buffer.length > 5 * 1024 * 1024 || Number(file.size || 0) > 5 * 1024 * 1024) {
       throw new BadRequestException(
         'A imagem deve ter no maximo 5 MB para upload.',
       );
     }
 
-    const extension = this.resolveFileExtension(
-      file.originalname,
-      file.mimetype,
-    );
+    const extension = rasterExtension(file.mimetype || '');
     const fileName = `${randomUUID()}${extension}`;
     const key = `products/${fileName}`;
 

@@ -63,6 +63,8 @@ describe('PetsService', () => {
       clientsService,
       speciesService,
       breedsService,
+      {} as any,
+      {} as any,
     );
   });
 

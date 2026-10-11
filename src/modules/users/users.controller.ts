@@ -51,16 +51,7 @@ export class UsersController {
   }
 
   @Get()
-  @Permissions(
-    'cadastros.users.view',
-    'atendimentos.appointments.view',
-    'atendimentos.consultations.view',
-    'atendimentos.exam_requests.print',
-    'financeiro.sales.view',
-    'financeiro.sales.create',
-    'financeiro.commissions.view',
-    'configuracoes.availability.view',
-  )
+  @Permissions('cadastros.users.view')
   @ApiOperation({ summary: 'Lista usuários com filtros e paginação' })
   @ApiOkResponse({
     description: 'Lista paginada de usuários',
@@ -70,17 +61,16 @@ export class UsersController {
     return this.usersService.findAll(query);
   }
 
+  @Get('lookup')
+  @Permissions('atendimentos.appointments.view', 'atendimentos.appointments.create', 'atendimentos.consultations.view', 'atendimentos.consultations.create', 'atendimentos.exam_requests.print', 'financeiro.sales.view', 'financeiro.sales.create', 'financeiro.commissions.view', 'configuracoes.availability.view')
+  lookup() { return this.usersService.lookupProfessionals(); }
+
+  @Get('lookup/:id')
+  @Permissions('atendimentos.exam_requests.print', 'atendimentos.consultations.view')
+  lookupOne(@Param('id', ParseIntPipe) id: number) { return this.usersService.lookupProfessional(id); }
+
   @Get(':id')
-  @Permissions(
-    'cadastros.users.view',
-    'atendimentos.appointments.view',
-    'atendimentos.consultations.view',
-    'atendimentos.exam_requests.print',
-    'financeiro.sales.view',
-    'financeiro.sales.create',
-    'financeiro.commissions.view',
-    'configuracoes.availability.view',
-  )
+  @Permissions('cadastros.users.view')
   @ApiOperation({ summary: 'Busca um usuário por ID' })
   @ApiParam({ name: 'id', type: Number, example: 1 })
   @ApiOkResponse({ description: 'Usuário encontrado', type: User })

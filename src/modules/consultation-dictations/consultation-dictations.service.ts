@@ -42,9 +42,9 @@ export class ConsultationDictationsService {
     const transcriptDraft = this.normalizeFreeText(payload.transcriptDraft);
     const hasUploadedAudio = Boolean(audioFile?.buffer?.length);
 
-    if (!hasUploadedAudio && transcriptDraft.length < 10) {
+    if (transcriptDraft.length < 10) {
       throw new BadRequestException(
-        'Transcript draft precisa ter ao menos 10 caracteres validos quando nenhum audio e enviado',
+        'A transcricao original capturada no navegador precisa ter ao menos 10 caracteres validos',
       );
     }
 
@@ -164,23 +164,7 @@ export class ConsultationDictationsService {
     await this.consultationDictationsRepository.save(dictation);
 
     try {
-      let transcriptDraft = this.normalizeFreeText(dictation.transcriptDraft);
-
-      if (dictation.audioBlob?.length) {
-        const transcribedAudio =
-          await this.consultationDictationAiService.transcribeAudio(
-            dictation.audioBlob,
-            {
-              fileName: dictation.audioFileName,
-              mimeType: dictation.audioMimeType,
-              language: dictation.language,
-              fallbackTranscript: transcriptDraft || null,
-            },
-          );
-
-        transcriptDraft = this.normalizeFreeText(transcribedAudio);
-        dictation.transcriptDraft = transcriptDraft;
-      }
+      const transcriptDraft = this.normalizeFreeText(dictation.transcriptDraft);
 
       if (transcriptDraft.length < 10) {
         throw new BadRequestException(

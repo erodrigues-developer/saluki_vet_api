@@ -1,5 +1,7 @@
+import { protectedFileUrl } from '../../security/file-access';
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -116,6 +118,8 @@ export class ReportsService {
       throw new NotFoundException('User not found');
     }
 
+    const principal = await this.userRepository.findOne({where: {id: params.requestedByUserId}, relations: ['roles', 'roles.permissions']});
+    this.assertReportPermission(reportType, principal);
     const startedAt = Date.now();
     const workbookPayload = await this.buildWorkbook(reportType, params.filters);
     const buffer = Buffer.from(await workbookPayload.workbook.xlsx.writeBuffer());
@@ -166,7 +170,11 @@ export class ReportsService {
       .orderBy('report.generatedAt', 'DESC')
       .addOrderBy('report.id', 'DESC');
 
-    if (query.scope !== 'all') {
+    const principal = await this.userRepository.findOne({where: {id: currentUserId}, relations: ['roles', 'roles.permissions']});
+    const types = this.allowedTypes.filter((type) => this.canReport(type, principal));
+    if (!types.length) return {data: []};
+    qb.andWhere('report.reportType IN (:...types)', {types});
+    if (query.scope !== 'all' || !(principal?.roles || []).some((r) => r.code === 'ADMIN')) {
       qb.andWhere('report.requestedByUserId = :currentUserId', { currentUserId });
     }
 
@@ -209,7 +217,7 @@ export class ReportsService {
       throw new NotFoundException('Report not found');
     }
 
-    this.ensureCanAccess(entity, currentUserId);
+    await this.ensureCanAccess(entity, currentUserId);
     return entity;
   }
 
@@ -218,7 +226,7 @@ export class ReportsService {
     return {
       id: entity.id,
       reportType: entity.reportType,
-      fileUrl: entity.fileUrl,
+      fileUrl: protectedFileUrl(entity.storageKey),
       originalName: entity.originalName,
       mimeType: entity.mimeType,
       fileSize: Number(entity.fileSize || 0),
@@ -879,9 +887,26 @@ export class ReportsService {
     );
   }
 
-  private ensureCanAccess(entity: ReportGeneration, currentUserId: number) {
-    void entity;
-    void currentUserId;
+  private canReport(type: string, user: any) {
+    if (!user?.isActive) return false;
+    if ((user.roles || []).some((r: any) => r.code === 'ADMIN')) return true;
+    const ps = new Set((user.roles || []).flatMap((r: any) => (r.permissions || []).map((p: any) => p.code)));
+    const requirements: Record<string, string[]> = {
+      REVENUE_BY_PERIOD: ['financeiro.sales.view', 'financeiro.payments.view'],
+      OPEN_ACCOUNTS_RECEIVABLE: ['financeiro.accounts_receivable.view'],
+      ACCOUNTS_PAYABLE_BY_DUE_DATE: ['financeiro.accounts_payable.view'],
+      APPOINTMENTS_AND_CONSULTATIONS_BY_PERIOD: ['atendimentos.appointments.view', 'atendimentos.consultations.view'],
+      STOCK_MOVEMENT_AND_POSITION: ['estoque.movements.view', 'estoque.balances.view'],
+    };
+    return Boolean(requirements[type]?.every((p) => ps.has(p)));
+  }
+  private assertReportPermission(type: string, user: any) {
+    if (!this.canReport(type, user)) throw new ForbiddenException('Sem permissão para o módulo do relatório');
+  }
+  private async ensureCanAccess(entity: ReportGeneration, currentUserId: number) {
+    const user = await this.userRepository.findOne({where: {id: currentUserId}, relations: ['roles', 'roles.permissions']});
+    this.assertReportPermission(entity.reportType, user);
+    if (Number(entity.requestedByUserId) !== currentUserId && !(user.roles || []).some((r) => r.code === 'ADMIN')) throw new ForbiddenException();
   }
 
   private fileSuffix() {

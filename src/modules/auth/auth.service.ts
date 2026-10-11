@@ -1,5 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
+import { SessionService } from '../../security/session.service';
+import { HttpException } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import * as bcrypt from 'bcrypt';
 import { LoginDto } from './dto/login.dto';
@@ -8,10 +9,11 @@ import { LoginDto } from './dto/login.dto';
 export class AuthService {
   constructor(
     private usersService: UsersService,
-    private jwtService: JwtService,
+    private sessions: SessionService,
   ) {}
 
   async login(loginDto: LoginDto) {
+    if (!await this.sessions.loginAllowed(loginDto.email)) throw new HttpException('Tente novamente mais tarde', 429);
     const user = await this.usersService.findByEmailForAuth(loginDto.email);
 
     if (!user || !user.isActive) {
@@ -37,14 +39,9 @@ export class AuthService {
       name: role.name,
     }));
 
-    const payload = {
-      email: user.email,
-      sub: user.id,
-      roles,
-    };
-
+    const issued = await this.sessions.create(user);
     return {
-      access_token: this.jwtService.sign(payload),
+      ...issued,
       user: {
         id: user.id,
         name: user.name,

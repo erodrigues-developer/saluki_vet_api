@@ -44,7 +44,7 @@ export class AccountsPayableController {
   }
 
   @Get('dashboard')
-  @Permissions('financeiro.accounts_payable.view', 'dashboard.view')
+  @Permissions('financeiro.accounts_payable.view')
   @ApiOperation({
     summary: 'Obter dados dos gráficos e KPIs do dashboard financeiro',
   })

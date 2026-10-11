@@ -42,7 +42,7 @@ describe('DashboardService', () => {
       petVaccinesService,
     );
 
-    const result = await service.getOverview();
+    const result = await service.getOverview({ roles: [{code: 'ADMIN'}], permissions: [] });
 
     expect(result.timezone).toBe('America/Sao_Paulo');
     expect(result.clinic.status).toBe('OPEN');

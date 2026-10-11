@@ -38,7 +38,7 @@ describe('ClientsService', () => {
       softDelete: jest.fn(),
     } as any;
 
-    service = new ClientsService(repository);
+    service = new ClientsService(repository, {} as any);
   });
 
   it('should create a client', async () => {

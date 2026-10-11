@@ -20,7 +20,9 @@
     "test:e2e:local": "DATABASE_HOST=127.0.0.1 REDIS_HOST=127.0.0.1 jest --config ./test/jest-e2e.json",
     "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js --datasource src/database/datasource.ts",
     "migrate": "npx ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js migration:run --dataSource src/database/datasource.ts",
-    "seed": "ts-node ./node_modules/typeorm-extension/bin/cli.cjs seed:run -d src/database/seed.ts"
+    "seed": "ts-node ./node_modules/typeorm-extension/bin/cli.cjs seed:run -d src/database/seed.ts",
+    "test:security": "jest --runInBand && jest --config ./test/jest-e2e.json --runInBand security-",
+    "build:security": "tsc -p tsconfig.build.json --noEmit --incremental false"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.515.0",
@@ -29,7 +31,6 @@
     "@langchain/core": "^1.1.39",
     "@langchain/google-genai": "^2.1.27",
     "@langchain/openai": "^1.4.2",
-    "@nestjs-modules/ioredis": "^2.0.2",
     "@nestjs/axios": "^3.0.2",
     "@nestjs/common": "^10.4.20",
     "@nestjs/config": "^3.2.0",
@@ -61,7 +62,8 @@
     "typeorm-extension": "^3.5.1",
     "udp-transport-winston": "^2.0.9",
     "winston": "^3.12.0",
-    "zod": "^4.3.6"
+    "zod": "^4.3.6",
+    "ioredis": "^5.11.1"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.4.9",

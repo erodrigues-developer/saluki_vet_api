@@ -16,7 +16,8 @@ export class DashboardService {
     private readonly petVaccinesService: PetVaccinesService,
   ) {}
 
-  async getOverview() {
+  async getOverview(user: any) {
+    const can = (permission: string) => (user.roles || []).some((r: any) => r.code === 'ADMIN') || (user.permissions || []).includes(permission);
     const settings = await this.clinicSettingsService.getSettings();
     const timezone = settings.timezone || 'America/Sao_Paulo';
     const now = new Date();
@@ -39,13 +40,13 @@ export class DashboardService {
       team,
     ] = await Promise.all([
       this.getAppointments(today, yesterday, timezone),
-      this.getSales(today, yesterday, fourteenDaysAgo, monthStart, timezone),
+      can('financeiro.sales.view') ? this.getSales(today, yesterday, fourteenDaysAgo, monthStart, timezone) : Promise.resolve(undefined),
       this.getVaccines(today, this.addDays(today, 7)),
-      this.getFinance(today, monthStart),
+      can('financeiro.accounts_payable.view') ? this.getFinance(today, monthStart) : Promise.resolve(undefined),
       this.getConsultations(fourteenDaysAgo, today, timezone),
       this.getAttendance(sevenDaysAgo, today, timezone),
       this.getProcedureMix(monthStart, today, timezone),
-      this.getOpenSales(),
+      can('financeiro.sales.view') ? this.getOpenSales() : Promise.resolve(undefined),
       this.getCriticalStock(),
       this.getTeam(),
     ]);
@@ -59,14 +60,14 @@ export class DashboardService {
       },
       today: {
         appointments,
-        sales: sales.today,
+        sales: sales?.today,
         vaccines,
       },
       finance: {
-        payables: finance.payables,
-        expenseCategories: finance.expenseCategories,
-        paymentForecast: finance.paymentForecast,
-        revenueByDay: sales.revenueByDay,
+        payables: finance?.payables,
+        expenseCategories: finance?.expenseCategories,
+        paymentForecast: finance?.paymentForecast,
+        revenueByDay: sales?.revenueByDay,
         openSales,
       },
       operation: {

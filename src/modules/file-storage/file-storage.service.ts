@@ -1,9 +1,11 @@
+import { validateFileContent } from '../../security/uploads';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { mkdir, readFile, writeFile } from 'fs/promises';
 import { extname, join } from 'path';
 import { randomUUID } from 'crypto';
 import { S3Service } from '../s3/services/s3.service';
+import { protectedFileUrl } from '../../security/file-access';
 import { normalizeFileNameEncoding } from '../../common/utils/file-name-encoding.util';
 
 @Injectable()
@@ -34,6 +36,7 @@ export class FileStorageService {
     }
 
     const mimeType = String(file.mimetype || '').toLowerCase();
+    validateFileContent(file.buffer, mimeType);
     const allowedPrefixes = options.allowedMimePrefixes || [];
     const allowedTypes = options.allowedMimeTypes || [];
     const isAllowedByPrefix = allowedPrefixes.some((prefix) =>
@@ -51,7 +54,7 @@ export class FileStorageService {
       throw new BadRequestException('Tipo de arquivo não permitido.');
     }
 
-    if (Number(file.size || 0) > options.maxFileSizeBytes) {
+    if (file.buffer.length > options.maxFileSizeBytes || Number(file.size || 0) > options.maxFileSizeBytes) {
       throw new BadRequestException('Arquivo excede o tamanho permitido.');
     }
 
@@ -59,6 +62,7 @@ export class FileStorageService {
     const extension = this.resolveFileExtension(originalName, mimeType);
     const fileName = `${randomUUID()}${extension}`;
     const normalizedFolder = options.folder.replace(/^\/+|\/+$/g, '');
+    if (!/^[a-z0-9/-]+$/.test(normalizedFolder) || normalizedFolder.includes('..')) throw new BadRequestException('Pasta inválida');
     const storageKey = `${normalizedFolder}/${fileName}`;
 
     if (this.isProductionUpload()) {
@@ -67,11 +71,11 @@ export class FileStorageService {
         key: storageKey,
         contentType: file.mimetype,
         cacheControl:
-          options.cacheControl || 'public, max-age=31536000, immutable',
+          'private, no-store',
       });
 
       return {
-        fileUrl: uploaded.url,
+        fileUrl: protectedFileUrl(storageKey),
         storageKey,
         originalName: originalName || fileName,
         mimeType: file.mimetype || 'application/octet-stream',
@@ -84,7 +88,7 @@ export class FileStorageService {
     await writeFile(join(uploadsDir, fileName), file.buffer);
 
     return {
-      fileUrl: `${options.requestBaseUrl.replace(/\/+$/, '')}/uploads/${normalizedFolder}/${fileName}`,
+      fileUrl: protectedFileUrl(storageKey),
       storageKey,
       originalName: originalName || fileName,
       mimeType: file.mimetype || 'application/octet-stream',
@@ -94,7 +98,7 @@ export class FileStorageService {
 
   async readBinaryFile(storageKey: string, bucket?: string) {
     const normalizedKey = String(storageKey || '').replace(/^\/+/, '');
-    if (!normalizedKey) {
+    if (!normalizedKey || normalizedKey.split('/').some((part) => !part || part === '.' || part === '..') || normalizedKey.includes('\\') || normalizedKey.includes('\0')) {
       throw new BadRequestException('Chave de storage não informada.');
     }
 
@@ -116,9 +120,8 @@ export class FileStorageService {
 
   private resolveFileExtension(originalName?: string, mimeType?: string) {
     const originalExtension = extname(String(originalName || '')).toLowerCase();
-    if (originalExtension) {
-      return originalExtension;
-    }
+    // Never trust an extension supplied by the uploader; MIME mapping determines it.
+    void originalExtension;
 
     const mimeToExtension: Record<string, string> = {
       'image/jpeg': '.jpg',
@@ -126,6 +129,9 @@ export class FileStorageService {
       'image/webp': '.webp',
       'image/gif': '.gif',
       'application/pdf': '.pdf',
+      'application/xml': '.xml',
+      'text/xml': '.xml',
+      'application/x-pkcs12': '.pfx',
       'text/plain': '.txt',
       'application/msword': '.doc',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document':

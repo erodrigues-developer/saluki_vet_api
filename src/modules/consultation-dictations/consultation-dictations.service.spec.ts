@@ -118,46 +118,12 @@ describe('ConsultationDictationsService', () => {
     expect(result.id).toBe(9);
   });
 
-  it('should create pending dictation with uploaded audio even without transcript draft', async () => {
+  it('should reject audio without the original browser transcript', async () => {
     consultationRepository.findOneBy.mockResolvedValue({ id: 12 });
-    dictationRepository.create.mockImplementation((payload: any) => payload);
-    dictationRepository.save.mockResolvedValue({
-      id: 10,
-      consultationId: 12,
-      status: 'PENDING',
-    });
-    dictationRepository.findOne.mockResolvedValue({
-      id: 10,
-      consultationId: 12,
-      transcriptDraft: '',
-      status: 'PENDING',
-    });
-
-    const result = await service.create(
-      12,
-      {
-        captureSource: 'BROWSER_AUDIO',
-      },
-      {
-        buffer: Buffer.from('fake-audio'),
-        originalname: 'consulta.webm',
-        mimetype: 'audio/webm',
-      },
-      3,
-    );
-
-    expect(dictationRepository.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        consultationId: 12,
-        createdByUserId: 3,
-        transcriptDraft: '',
-        audioFileName: 'consulta.webm',
-        audioMimeType: 'audio/webm',
-        audioBlob: expect.any(Buffer),
-        status: 'PENDING',
-      }),
-    );
-    expect(result.id).toBe(10);
+    await expect(service.create(12, { captureSource: 'BROWSER_AUDIO' }, {
+      buffer: Buffer.from('fake-audio'), originalname: 'consulta.webm', mimetype: 'audio/webm',
+    }, 3)).rejects.toThrow('A transcricao original capturada no navegador');
+    expect(dictationRepository.create).not.toHaveBeenCalled();
   });
 
   it('should process transcript into structured payload through AI service', async () => {
@@ -207,20 +173,20 @@ describe('ConsultationDictationsService', () => {
     );
     expect(consultationRepository.save).toHaveBeenCalledWith(
       expect.objectContaining({
-        aiOrganizedComplaint: 'Vomito e apatia desde ontem.',
-        mainComplaint: 'Vomito e apatia desde ontem.',
-        assistedAnamnesisSummary: 'Vomito e apatia desde ontem.',
+        aiOrganizedComplaint: pendingEntity.transcriptDraft,
+        mainComplaint: pendingEntity.transcriptDraft,
+        assistedAnamnesisSummary: pendingEntity.transcriptDraft,
       }),
     );
   });
 
-  it('should transcribe uploaded audio before structuring payload', async () => {
+  it('should structure only the browser transcript even for legacy uploaded audio', async () => {
     const pendingEntity = {
       id: 89,
       consultationId: 12,
       status: 'PENDING',
       processingAttempts: 0,
-      transcriptDraft: '',
+      transcriptDraft: 'Tutor relata tosse seca desde ontem.',
       language: 'pt-BR',
       audioFileName: 'consulta.webm',
       audioMimeType: 'audio/webm',
@@ -241,17 +207,9 @@ describe('ConsultationDictationsService', () => {
 
     await service.processPendingQueue(5);
 
-    expect(consultationDictationAiService.transcribeAudio).toHaveBeenCalledWith(
-      pendingEntity.audioBlob,
-      expect.objectContaining({
-        fileName: 'consulta.webm',
-        mimeType: 'audio/webm',
-        language: 'pt-BR',
-        fallbackTranscript: null,
-      }),
-    );
+    expect(consultationDictationAiService.transcribeAudio).not.toHaveBeenCalled();
     expect(
       consultationDictationAiService.buildStructuredDraft,
-    ).toHaveBeenCalledWith(expect.stringContaining('Tutor relata vomito'));
+    ).toHaveBeenCalledWith(pendingEntity.transcriptDraft);
   });
 });

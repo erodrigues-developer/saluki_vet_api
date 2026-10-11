@@ -93,6 +93,7 @@ describe('SalesService - checkout', () => {
       commissionsService as unknown as CommissionsService,
       stockMovementsService as any,
       cashRegistersService as any,
+      { prepareSaleCheckoutFiscal: jest.fn().mockResolvedValue({fiscalStatus:'PENDING_ISSUE',hasFiscalPending:false,fiscalNotes:null}), createSaleNfceIssueRequest: jest.fn() } as any,
     );
 
     return {

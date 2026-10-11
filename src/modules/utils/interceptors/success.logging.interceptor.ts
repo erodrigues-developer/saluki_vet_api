@@ -1,3 +1,4 @@
+import { safeRequestLog } from '../../../security/safe-log';
 import {
   Injectable,
   NestInterceptor,
@@ -30,27 +31,15 @@ export class SuccessLoggingInterceptor implements NestInterceptor {
 
     return next.handle().pipe(
       tap((data) => {
-        let responseBody = '';
-        try {
-          responseBody = JSON.stringify(data);
-        } catch (error) {}
-
         const log = {
           action: 'success',
-          request: {
-            method: request.method,
-            url: request.originalUrl || request.url,
-            body: JSON.stringify(request.body),
-            query: JSON.stringify(request.query),
-            headers: JSON.stringify(request.headers),
-          },
+          request: safeRequestLog(request),
           exception: {
             message: '',
             status: response.statusCode,
             stack: '',
           },
           response: {
-            body: responseBody,
             statusCode: response.statusCode,
             time: Date.now() - now,
           },

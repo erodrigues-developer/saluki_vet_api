@@ -1,6 +1,8 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+import { AUTHENTICATED_KEY } from '../decorators/authenticated.decorator';
+import { ALL_PERMISSIONS_KEY } from '../decorators/permissions.decorator';
 import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
 
 @Injectable()
@@ -23,7 +25,7 @@ export class PermissionsGuard implements CanActivate {
     );
 
     if (!requiredPermissions || requiredPermissions.length === 0) {
-      return true;
+      return Boolean(this.reflector.getAllAndOverride<boolean>(AUTHENTICATED_KEY, [context.getHandler(), context.getClass()]) && context.switchToHttp().getRequest().user);
     }
 
     const { user } = context.switchToHttp().getRequest();
@@ -38,8 +40,7 @@ export class PermissionsGuard implements CanActivate {
       return true;
     }
 
-    return requiredPermissions.some((permission) =>
-      userPermissions.has(permission),
-    );
+    const all = this.reflector.getAllAndOverride<boolean>(ALL_PERMISSIONS_KEY, [context.getHandler(), context.getClass()]);
+    return all ? requiredPermissions.every((p) => userPermissions.has(p)) : requiredPermissions.some((p) => userPermissions.has(p));
   }
 }

@@ -1,3 +1,4 @@
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AccountsReceivableController } from './accounts-receivable.controller';
 import { AccountsReceivableService } from './accounts-receivable.service';
@@ -23,7 +24,7 @@ describe('AccountsReceivableController', () => {
           useValue: accountsReceivableServiceMock,
         },
       ],
-    }).compile();
+    }).overrideGuard(JwtAuthGuard).useValue({canActivate: () => true}).compile();
 
     controller = module.get<AccountsReceivableController>(
       AccountsReceivableController,
