@@ -1,0 +1,204 @@
+name: Build and deploy API to EC2
+
+on:
+  release:
+    types: [published]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ec2-api-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test
+        run: npm test -- --runInBand
+
+      - name: Build API on the runner
+        run: npm run build
+
+      - name: Build production image on the runner
+        env:
+          IMAGE: saluki_vet_api_image:${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+        run: docker build --platform linux/amd64 -f deploy/Dockerfile -t "$IMAGE" .
+
+      - name: Deploy to EC2
+        if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+        env:
+          SERVICE: api
+          EC2_HOST: ${{ vars.EC2_HOST || 'ec2-54-89-10-179.compute-1.amazonaws.com' }}
+          EC2_USER: ${{ vars.EC2_USER || 'ubuntu' }}
+          EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          EC2_KNOWN_HOSTS: ${{ secrets.EC2_KNOWN_HOSTS }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${EC2_SSH_PRIVATE_KEY:?Configure EC2_SSH_PRIVATE_KEY}"
+          : "${EC2_KNOWN_HOSTS:?Configure EC2_KNOWN_HOSTS}"
+          [[ "$EC2_HOST" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]*$ ]]
+          [[ "$EC2_USER" =~ ^[a-z_][a-z0-9_-]*$ ]]
+          [[ "$SERVICE" == api || "$SERVICE" == ui ]]
+          [[ "$GITHUB_SHA" =~ ^[a-f0-9]{40}$ ]]
+          [[ "$GITHUB_RUN_ID" =~ ^[0-9]+$ && "$GITHUB_RUN_ATTEMPT" =~ ^[0-9]+$ ]]
+          image="saluki_vet_${SERVICE}_image:${GITHUB_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          remote_dir="saluki-deploy/${SERVICE}-${GITHUB_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          ssh_dir=$(mktemp -d)
+          trap 'rm -rf "$ssh_dir"' EXIT
+          umask 077
+          printf '%s\n' "$EC2_SSH_PRIVATE_KEY" > "$ssh_dir/key"
+          printf '%s\n' "$EC2_KNOWN_HOSTS" > "$ssh_dir/known_hosts"
+          ssh-keygen -y -f "$ssh_dir/key" > /dev/null
+          ssh-keygen -F "$EC2_HOST" -f "$ssh_dir/known_hosts" > /dev/null
+          ssh_options=(-i "$ssh_dir/key" -o BatchMode=yes -o IdentitiesOnly=yes
+            -o StrictHostKeyChecking=yes -o "UserKnownHostsFile=$ssh_dir/known_hosts"
+            -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=6)
+          target="${EC2_USER}@${EC2_HOST}"
+          mkdir -p .deploy-artifacts
+          docker save "$image" | gzip -1 > .deploy-artifacts/image.tar.gz
+          (cd .deploy-artifacts && sha256sum image.tar.gz > image.sha256)
+          # Expansion on the runner is intentional; all remote arguments are validated.
+          # shellcheck disable=SC2029
+          ssh "${ssh_options[@]}" "$target" "umask 077; mkdir -p '$remote_dir'"
+          scp "${ssh_options[@]}" .deploy-artifacts/image.tar.gz .deploy-artifacts/image.sha256 "$target:$remote_dir/"
+          # Both repositories hold this lock throughout image loading and replacement.
+          # shellcheck disable=SC2029
+          ssh "${ssh_options[@]}" "$target" \
+            "flock -w 900 \"\$HOME/.saluki-deploy.lock\" timeout --signal=TERM --kill-after=90s 600s bash -s -- '$SERVICE' '$image' '$remote_dir'" <<'REMOTE'
+          set -euo pipefail
+          umask 077
+          service=$1
+          image=$2
+          cd "$3"
+          for tool in docker jq curl; do command -v "$tool" > /dev/null; done
+          case "$service" in
+            api) name=saluki_vet_api; port=3001; container_port=3000; memory=384m; heap=256;
+                 public_url=https://api.sigmavet.com.br/ ;;
+            ui) name=saluki-vet-ui; port=3002; container_port=3001; memory=256m; heap=160;
+                public_url=https://app.sigmavet.com.br/login ;;
+            *) exit 1 ;;
+          esac
+          backup="${name}-rollback-${image##*:}"
+          previous="${name}-previous"
+          swap_started=0
+          renamed=0
+          rollback() {
+            local status=$?
+            trap - EXIT
+            trap '' INT TERM
+            if (( status != 0 && swap_started )); then
+              echo 'Deployment failed; restoring the previous container' >&2
+              if (( renamed )); then
+                docker rm -f "$name" > /dev/null 2>&1 || true
+                docker rename "$backup" "$name"
+              fi
+              docker start "$name" > /dev/null
+            fi
+            exit "$status"
+          }
+          trap rollback EXIT
+          trap 'exit 130' INT
+          trap 'exit 143' TERM
+          # Inspect privately: preserve the existing credentials and bind mounts.
+          docker inspect "$name" > previous-container.json
+          jq -e '.[0] | .State.Running and (.HostConfig.NetworkMode == "bridge")
+            and ((.HostConfig.Binds // [] | length) == (.Mounts | length))
+            and all(.Config.Env[]; (contains("\n") or contains("\r")) | not)' previous-container.json > /dev/null
+          jq -r '.[0].Config.Env[]' previous-container.json > runtime.env
+          mapfile -t binds < <(jq -r '.[0].HostConfig.Binds // [] | .[]' previous-container.json)
+          mapfile -t extra_hosts < <(jq -r '.[0].HostConfig.ExtraHosts // [] | .[]' previous-container.json)
+          if [[ "$service" == api ]]; then
+            jq -e 'any(.[0].Mounts[]; .Destination == "/usr/src/app/uploads")' previous-container.json > /dev/null
+            grep -q '^APP_ORIGINS=.' runtime.env
+            monitoring_token=$(sed -n 's/^MONITORING_TOKEN=//p' runtime.env)
+            (( ${#monitoring_token} >= 32 ))
+            # Read the header from a private file, keeping the token out of process args.
+            printf 'Authorization: Bearer %s\n' "$monitoring_token" > health-header
+          fi
+          retired_image=''
+          if docker inspect "$previous" > previous-backup.json 2>/dev/null; then
+            jq -e '.[0].State.Running | not' previous-backup.json > /dev/null
+            retired_image=$(jq -r '.[0].Image' previous-backup.json)
+          fi
+          sha256sum --check image.sha256
+          nice -n 15 ionice -c 3 docker load -i image.tar.gz
+          [[ "$(docker image inspect --format '{{.Architecture}}' "$image")" == amd64 ]]
+          run_args=(--name "$name" --restart unless-stopped --memory "$memory"
+            --log-opt max-size=10m --log-opt max-file=3 -p "$port:$container_port"
+            --env-file runtime.env -e NODE_ENV=production -e "NODE_OPTIONS=--max-old-space-size=$heap")
+          for bind in "${binds[@]}"; do run_args+=(-v "$bind"); done
+          for entry in "${extra_hosts[@]}"; do
+            if [[ "$service" == ui && "$entry" == host.docker.internal:* ]]; then continue; fi
+            run_args+=(--add-host "$entry")
+          done
+          if [[ "$service" == ui ]]; then
+            run_args+=(--add-host host.docker.internal:host-gateway
+              -e NUXT_API_UPSTREAM=http://host.docker.internal:3001 -e HOST=0.0.0.0 -e PORT=3001)
+          fi
+          fetch_200() {
+            local url=$1 output=$2 code
+            shift 2
+            code=$(curl --silent --show-error --max-time 10 -o "$output" -w '%{http_code}' "$@" "$url") || return 1
+            [[ "$code" == 200 ]]
+          }
+          health_check() {
+            if [[ "$service" == api ]]; then
+              fetch_200 "http://127.0.0.1:$port/health/ready" health-body --header @health-header || return 1
+              jq -e '.status == "ok"' health-body > /dev/null || return 1
+              fetch_200 "$public_url" public-body || return 1
+              jq -e '. == {"status":"ok"}' public-body > /dev/null || return 1
+            else
+              fetch_200 "http://127.0.0.1:$port/login" health-body || return 1
+              grep -q 'cssr-id=' health-body || return 1
+              [[ "$(curl --silent --show-error --max-time 10 -o /dev/null -w '%{http_code}' "http://127.0.0.1:$port/api/v1/auth/me")" == 401 ]] || return 1
+              fetch_200 "$public_url" public-body || return 1
+              grep -q 'cssr-id=' public-body || return 1
+            fi
+          }
+          swap_started=1
+          docker stop -t 25 "$name" > /dev/null
+          docker rename "$name" "$backup"
+          renamed=1
+          docker run -d "${run_args[@]}" "$image" > /dev/null
+          healthy=0
+          for _ in {1..60}; do
+            [[ "$(docker inspect --format '{{.State.Running}} {{.State.OOMKilled}}' "$name")" == 'true false' ]] || break
+            if health_check; then healthy=1; break; fi
+            sleep 1
+          done
+          (( healthy )) || { echo 'Health check failed' >&2; exit 1; }
+          # The new service passed local and public checks; retain one stopped backup.
+          swap_started=0
+          trap - EXIT INT TERM
+          docker update --restart no "$backup" > /dev/null
+          if [[ -n "$retired_image" ]]; then docker rm "$previous" > /dev/null; fi
+          docker rename "$backup" "$previous"
+          current_image=$(jq -r '.[0].Image' previous-container.json)
+          new_image=$(docker image inspect --format '{{.Id}}' "$image")
+          if [[ -n "$retired_image" && "$retired_image" != "$current_image" && "$retired_image" != "$new_image" ]]; then
+            docker image rm "$retired_image" > /dev/null 2>&1 || true
+          fi
+          rm -f image.tar.gz health-header health-body public-body
+          echo "Deployment complete; rollback container: $previous"
+          REMOTE
